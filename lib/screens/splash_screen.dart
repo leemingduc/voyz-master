@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:voyz/data/mock_data.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
 
@@ -73,7 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
                 shaderCallback: (bounds) =>
                     AppTheme.splashTextGradient.createShader(bounds),
                 child: Text(
-                  MockData.appName,
+                  AppLocalizations.of(context)!.appName,
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     fontSize: 64,
@@ -85,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 24),
               // ── Subtitle ──
               Text(
-                MockData.splashSubtitle.toUpperCase(),
+                AppLocalizations.of(context)!.aiPowered,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -112,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 40),
               // ── Version ──
               Text(
-                MockData.appVersion.toUpperCase(),
+                AppLocalizations.of(context)!.appVersion,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,

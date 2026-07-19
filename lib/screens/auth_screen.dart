@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -29,24 +31,25 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _submit() async {
-    final username = _usernameController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
     if (email.isEmpty || password.length < 6) {
-      _showMessage('Enter an email and a password with at least 6 characters.');
+      _showMessage(l10n.emailPasswordRequired);
       return;
     }
 
     if (_isRegister) {
+      final username = _usernameController.text.trim();
       if (username.isEmpty) {
-        _showMessage('Enter your username.');
+        _showMessage(l10n.usernameRequired);
         return;
       }
 
       if (password != confirmPassword) {
-        _showMessage('Password confirmation does not match.');
+        _showMessage(l10n.passwordMismatch);
         return;
       }
     }
@@ -56,14 +59,20 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final auth = SupabaseService.instance.auth;
       if (_isRegister) {
-        await _register(auth, username, email, password);
+        await _register(auth, _usernameController.text.trim(), email, password);
       } else {
         await auth.signInWithPassword(email: email, password: password);
       }
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(ErrorLocalizer.getLocalizedMessage(error, l10n));
+      }
     } catch (error) {
-      if (mounted) _showMessage(error.toString());
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(ErrorLocalizer.getLocalizedMessage(error, l10n));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -75,24 +84,20 @@ class _AuthScreenState extends State<AuthScreen> {
     String email,
     String password,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final response = await auth.signUp(
       email: email,
       password: password,
-      data: {
-        'username': username,
-        'display_name': username,
-      },
+      data: {'username': username, 'display_name': username},
     );
 
     if (response.user == null) {
-      throw const AuthException('Could not create account. Please try again.');
+      throw AuthException(l10n.accountCreationFailed);
     }
 
     if (response.session == null) {
       if (!mounted) return;
-      _showMessage(
-        'Account created. Please check your email or login to continue.',
-      );
+      _showMessage(l10n.accountCreated);
       setState(() => _isRegister = false);
       return;
     }
@@ -111,6 +116,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Container(
@@ -146,7 +152,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isRegister ? 'Create your account' : 'Welcome back',
+                      _isRegister ? l10n.createAccount : l10n.welcomeBack,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: Colors.white.withValues(alpha: 0.7),
@@ -156,21 +162,21 @@ class _AuthScreenState extends State<AuthScreen> {
                     if (_isRegister) ...[
                       _AuthField(
                         controller: _usernameController,
-                        label: 'Username',
+                        label: l10n.username,
                         icon: Icons.person_outline,
                       ),
                       const SizedBox(height: 14),
                     ],
                     _AuthField(
                       controller: _emailController,
-                      label: 'Email',
+                      label: l10n.email,
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 14),
                     _AuthField(
                       controller: _passwordController,
-                      label: 'Password',
+                      label: l10n.password,
                       icon: Icons.lock_outline,
                       obscureText: true,
                     ),
@@ -178,7 +184,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 14),
                       _AuthField(
                         controller: _confirmPasswordController,
-                        label: 'Confirm password',
+                        label: l10n.confirmPassword,
                         icon: Icons.lock_reset,
                         obscureText: true,
                       ),
@@ -202,7 +208,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(_isRegister ? 'Register' : 'Login'),
+                          : Text(_isRegister ? l10n.register : l10n.login),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
@@ -211,8 +217,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           : () => setState(() => _isRegister = !_isRegister),
                       child: Text(
                         _isRegister
-                            ? 'Already have an account? Login'
-                            : 'Need an account? Register',
+                            ? l10n.haveAccountLogin
+                            : l10n.needAccountRegister,
                       ),
                     ),
                   ],

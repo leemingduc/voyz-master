@@ -4,26 +4,20 @@
 class MockData {
   MockData._();
 
-  // ── Splash ────────────────────────────────────────────────────────────
+  // ── App Branding ──────────────────────────────────────────────────────
   static const String appName = 'AIVIVU';
-  static const String splashSubtitle = 'Your Premium Travel Companion';
-  static const String appVersion = 'Version 4.2.0';
 
   // ── Smart Planner ─────────────────────────────────────────────────────
-  static const String plannerGreeting = 'Plan your next adventure.';
-  static const String plannerHint =
-      'Tell me your dream trip... e.g. I have 5M VNĐ, want a relaxing beach getaway for 3 days';
-  static const String aiPoweredLabel = 'Powered by AIVIVU AI';
 
   static const String profileImageUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCWKzJjIC-bCxkKLNaEMpT1-pEwOTknOSyDbRwNxHcwt3sePJQsJYIdFLMQUs8hwT-JRUBOzHiyDr85CdA2-3heHgP_k-aGXNenCqzpTSZnT7579AJv7FaUfT9F6Ec5OgKDuwIr2G8FXEwiTwrSMxnzxjvRvFa8isrU2XoG-mGZmNI_OxGjbza5ikkwPjcvbQfmXsiLCCShCt0dzMpEvXVNWIlFGuuKfpT-kcO6AhtYrF2A-4PRAhNNU2YZF-gOaCSzzUFrHUGL8HQ';
 
   static const List<String> interests = [
-    'Beach',
-    'Adventure',
-    'Culture',
-    'Food',
-    'Wellness',
+    'beach',
+    'adventure',
+    'culture',
+    'food',
+    'wellness',
   ];
 
   static const List<bool> interestsSelected = [true, false, false, true, false];
@@ -150,12 +144,5 @@ class MockData {
       'icon': 'beach_access',
       'isFirst': false,
     },
-  ];
-
-  // ── Bottom Nav ────────────────────────────────────────────────────────
-  static const List<Map<String, String>> navItems = [
-    {'label': 'AI Planner', 'icon': 'auto_awesome'},
-    {'label': 'Explore', 'icon': 'explore'},
-    {'label': 'Saved', 'icon': 'bookmark'},
   ];
 }

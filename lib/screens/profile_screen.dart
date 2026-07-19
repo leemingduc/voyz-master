@@ -2,12 +2,16 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
+import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -55,6 +59,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _offsetX = 0;
         _offsetY = 0;
       });
+    } on UnsupportedError {
+      if (mounted)
+        _showMessage(
+          AppLocalizations.of(context)!.avatarUploadWebOnly,
+          isError: true,
+        );
     } catch (error) {
       if (mounted) _showMessage(error.toString(), isError: true);
     }
@@ -84,11 +94,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         _pickedImage = null;
       });
-      _showMessage('Avatar da duoc luu.');
+      _showMessage(AppLocalizations.of(context)!.avatarSaved);
+    } on UnsupportedError {
+      if (mounted)
+        _showMessage(
+          AppLocalizations.of(context)!.avatarEditingWebOnly,
+          isError: true,
+        );
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message, isError: true);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(
+          ErrorLocalizer.getLocalizedMessage(error, l10n),
+          isError: true,
+        );
+      }
     } catch (error) {
-      if (mounted) _showMessage(error.toString(), isError: true);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(
+          ErrorLocalizer.getLocalizedMessage(error, l10n),
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSavingAvatar = false);
     }
@@ -145,16 +173,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changePassword() async {
+    final l10n = AppLocalizations.of(context)!;
     final password = _newPasswordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
     if (password.length < 6) {
-      _showMessage('Mat khau moi can it nhat 6 ky tu.', isError: true);
+      _showMessage(l10n.passwordMinLength, isError: true);
       return;
     }
 
     if (password != confirmPassword) {
-      _showMessage('Xac nhan mat khau khong khop.', isError: true);
+      _showMessage(l10n.passwordMismatch, isError: true);
       return;
     }
 
@@ -164,11 +193,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _newPasswordController.clear();
       _confirmPasswordController.clear();
-      _showMessage('Mat khau da duoc cap nhat.');
+      _showMessage(AppLocalizations.of(context)!.passwordUpdated);
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message, isError: true);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(
+          ErrorLocalizer.getLocalizedMessage(error, l10n),
+          isError: true,
+        );
+      }
     } catch (error) {
-      if (mounted) _showMessage(error.toString(), isError: true);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showMessage(
+          ErrorLocalizer.getLocalizedMessage(error, l10n),
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isChangingPassword = false);
     }
@@ -214,6 +255,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _buildAccountCard(theme),
                           const SizedBox(height: 16),
+                          _buildLanguageCard(theme),
+                          const SizedBox(height: 16),
                           _buildPasswordCard(theme),
                         ],
                       ),
@@ -229,14 +272,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAccountCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return GlassCard(
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Ho so nguoi dung',
-            style: TextStyle(
+          Text(
+            l10n.userProfile,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -244,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Avatar va email se duoc giu lai sau moi lan dang nhap.',
+            l10n.profileSubtitle,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.55),
               fontSize: 13,
@@ -280,6 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatarEditor(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     final canSave = _pickedImage != null && !_isSavingAvatar;
 
     return Column(
@@ -299,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         OutlinedButton.icon(
           onPressed: _isSavingAvatar ? null : _pickImage,
           icon: const Icon(Icons.upload_file, size: 18),
-          label: const Text('Upload anh'),
+          label: Text(l10n.uploadPhoto),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
             side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
@@ -311,21 +356,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_pickedImage != null) ...[
           const SizedBox(height: 14),
           _SliderRow(
-            label: 'Zoom',
+            label: l10n.zoom,
             value: _zoom,
             min: 1,
             max: 3,
             onChanged: (value) => setState(() => _zoom = value),
           ),
           _SliderRow(
-            label: 'Ngang',
+            label: l10n.horizontal,
             value: _offsetX,
             min: -1,
             max: 1,
             onChanged: (value) => setState(() => _offsetX = value),
           ),
           _SliderRow(
-            label: 'Doc',
+            label: l10n.vertical,
             value: _offsetY,
             min: -1,
             max: 1,
@@ -344,13 +389,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _offsetY = 0;
                         }),
                   icon: const Icon(Icons.restart_alt, size: 18),
-                  label: const Text('Dat lai'),
+                  label: Text(l10n.reset),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: GradientButton(
-                  label: _isSavingAvatar ? 'Dang luu' : 'Luu',
+                  label: _isSavingAvatar ? l10n.saving : l10n.save,
                   icon: Icons.save,
                   height: 44,
                   onPressed: canSave ? _saveAvatar : null,
@@ -364,16 +409,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileDetails(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     final displayName = _profile.displayName.isEmpty
-        ? 'Chua co ten hien thi'
+        ? l10n.noDisplayName
         : _profile.displayName;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _InfoRow(icon: Icons.person_outline, label: 'Ten hien thi', value: displayName),
+        _InfoRow(
+          icon: Icons.person_outline,
+          label: l10n.displayName,
+          value: displayName,
+        ),
         const SizedBox(height: 12),
-        _InfoRow(icon: Icons.mail_outline, label: 'Email', value: _profile.email),
+        _InfoRow(
+          icon: Icons.mail_outline,
+          label: l10n.email,
+          value: _profile.email,
+        ),
         const SizedBox(height: 12),
         _ContactPhoneField(controller: _phoneController),
         const SizedBox(height: 14),
@@ -382,7 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: SizedBox(
             width: 220,
             child: GradientButton(
-              label: _isSavingContactInfo ? 'Dang luu' : 'Luu thong tin',
+              label: _isSavingContactInfo ? 'Đang lưu' : 'Lưu thông tin',
               icon: Icons.save,
               height: 46,
               onPressed: _isSavingContactInfo ? null : _saveContactInfo,
@@ -410,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Anh duoc luu trong Supabase Storage bucket avatars va URL duoc ghi vao user metadata.',
+                  l10n.avatarStorageNote,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.68),
                     fontSize: 12,
@@ -425,15 +479,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPasswordCard(ThemeData theme) {
+  // ── Language Card (Task 3) ───────────────────────────────────────────────
+
+  Widget _buildLanguageCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = LocaleProvider.of(context);
+    final currentLocale = controller.value;
+
+    // Map locale → localized display label
+    String localizedLabel(String key) => switch (key) {
+      'english' => l10n.english,
+      'vietnamese' => l10n.vietnamese,
+      'korean' => l10n.korean,
+      _ => key,
+    };
+
+    const options = [
+      (Locale('en'), 'english'),
+      (Locale('vi'), 'vietnamese'),
+      (Locale('ko'), 'korean'),
+    ];
+
     return GlassCard(
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Doi mat khau',
-            style: TextStyle(
+          Row(
+            children: [
+              const Icon(Icons.language, color: Colors.white70, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.language,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final option in options)
+            RadioListTile<Locale>(
+              contentPadding: EdgeInsets.zero,
+              value: option.$1,
+              groupValue: currentLocale,
+              onChanged: (locale) async {
+                if (locale == null) return;
+                await controller.setLocale(locale);
+                if (mounted) {
+                  _showMessage(AppLocalizations.of(context)!.languageSaved);
+                }
+              },
+              title: Text(
+                localizedLabel(option.$2),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.changePassword,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -442,12 +560,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 16),
           _PasswordField(
             controller: _newPasswordController,
-            label: 'Mat khau moi',
+            label: l10n.newPassword,
           ),
           const SizedBox(height: 12),
           _PasswordField(
             controller: _confirmPasswordController,
-            label: 'Xac nhan mat khau',
+            label: l10n.confirmPassword,
           ),
           const SizedBox(height: 18),
           Align(
@@ -455,7 +573,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: SizedBox(
               width: 220,
               child: GradientButton(
-                label: _isChangingPassword ? 'Dang cap nhat' : 'Cap nhat',
+                label: _isChangingPassword ? l10n.updating : l10n.update,
                 icon: Icons.lock_reset,
                 height: 46,
                 onPressed: _isChangingPassword ? null : _changePassword,
@@ -475,6 +593,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 20, 4),
       child: Row(
@@ -482,12 +601,14 @@ class _Header extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.arrow_back, color: Colors.white),
+            tooltip: l10n.back,
           ),
           const SizedBox(width: 4),
           ShaderMask(
-            shaderCallback: (bounds) => AppTheme.brandGradient.createShader(bounds),
-            child: const Text(
-              'AIVIVU',
+            shaderCallback: (bounds) =>
+                AppTheme.brandGradient.createShader(bounds),
+            child: Text(
+              MockData.appName,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -498,7 +619,7 @@ class _Header extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Profile',
+            l10n.profile,
             style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -613,7 +734,7 @@ class _SliderRow extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 54,
+          width: 70,
           child: Text(
             label,
             style: TextStyle(
@@ -624,12 +745,7 @@ class _SliderRow extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            onChanged: onChanged,
-          ),
+          child: Slider(value: value, min: min, max: max, onChanged: onChanged),
         ),
       ],
     );
@@ -637,7 +753,11 @@ class _SliderRow extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;

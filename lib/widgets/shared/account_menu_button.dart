@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/screens/profile_screen.dart';
 import 'package:voyz/services/supabase_service.dart';
@@ -12,19 +13,20 @@ class AccountMenuButton extends StatefulWidget {
 
 class _AccountMenuButtonState extends State<AccountMenuButton> {
   Future<void> _confirmLogout(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Logout?'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(l10n.signOut),
+        content: Text('${l10n.signOut}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Logout'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -48,8 +50,9 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = SupabaseService.instance.auth.currentUser;
-    final email = user?.email ?? 'Signed in';
+    final email = user?.email ?? l10n.signIn;
     final avatarUrl = user?.userMetadata?['avatar_url']?.toString();
 
     return PopupMenuButton<String>(
@@ -71,23 +74,23 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.manage_accounts_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Profile'),
+              const Icon(Icons.manage_accounts_outlined, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.profile),
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, size: 18),
-              SizedBox(width: 8),
-              Text('Logout'),
+              const Icon(Icons.logout, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.signOut),
             ],
           ),
         ),

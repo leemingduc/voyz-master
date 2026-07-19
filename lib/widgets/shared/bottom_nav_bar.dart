@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/theme/app_theme.dart';
 
 /// Bottom navigation bar shared across Planner, Suggestions, Detail, and Plan
@@ -9,27 +10,28 @@ class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onTap;
 
-  static const List<_NavItem> _items = [
-    _NavItem(
-      icon: Icons.auto_awesome_outlined,
-      activeIcon: Icons.auto_awesome,
-      label: 'AI Planner',
-    ),
-    _NavItem(
-      icon: Icons.explore_outlined,
-      activeIcon: Icons.explore,
-      label: 'Explore',
-    ),
-    _NavItem(
-      icon: Icons.bookmark_outline,
-      activeIcon: Icons.bookmark,
-      label: 'Saved',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final items = [
+      _NavItem(
+        icon: Icons.auto_awesome_outlined,
+        activeIcon: Icons.auto_awesome,
+        label: l10n.home,
+      ),
+      _NavItem(
+        icon: Icons.explore_outlined,
+        activeIcon: Icons.explore,
+        label: l10n.explore,
+      ),
+      _NavItem(
+        icon: Icons.bookmark_outline,
+        activeIcon: Icons.bookmark,
+        label: l10n.savedTrips,
+      ),
+    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -41,8 +43,8 @@ class BottomNavBar extends StatelessWidget {
       padding: const EdgeInsets.only(top: 12, bottom: 28, left: 8, right: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(_items.length, (i) {
-          final item = _items[i];
+        children: List.generate(items.length, (i) {
+          final item = items[i];
           final isActive = i == currentIndex;
           final color = isActive
               ? theme.colorScheme.primary

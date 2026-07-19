@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
@@ -44,6 +46,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       final detail = await GeminiService.instance.getDestinationDetail(
         widget.destinationName,
         trip,
+        languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (mounted) {
         setState(() {
@@ -87,11 +90,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   void _onShare(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.share, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Share link copied!'),
+            const Icon(Icons.share, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context)!.shareLinkCopied),
           ],
         ),
         backgroundColor: AppTheme.primaryPink.withValues(alpha: 0.9),
@@ -112,7 +115,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       matchPercent: 98,
       rating: 4.5,
       reviewCount: 120,
-      aiInsight: 'Perfect for your wellness budget. Dry season now.',
+      aiInsight: AppLocalizations.of(context)!.defaultAiInsight,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -128,8 +131,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             Expanded(
               child: Text(
                 added
-                    ? 'Trip info saved! Check your Saved tab.'
-                    : '${d.name} is already saved!',
+                    ? AppLocalizations.of(context)!.tripInfoSaved
+                    : AppLocalizations.of(context)!.alreadySavedMessage(d.name),
               ),
             ),
           ],
@@ -158,7 +161,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               CircularProgressIndicator(color: theme.colorScheme.primary),
               const SizedBox(height: 16),
               Text(
-                'Đang tải thông tin chi tiết...',
+                AppLocalizations.of(context)!.loadingDetail,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
@@ -186,7 +189,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Không thể tải thông tin',
+                  AppLocalizations.of(context)!.cannotLoadDetail,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -195,7 +198,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _error ?? 'Lỗi không xác định',
+                  _error ?? AppLocalizations.of(context)!.unknownError,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
@@ -209,7 +212,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back),
-                      label: const Text('Quay lại'),
+                      label: Text(AppLocalizations.of(context)!.goBack),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                       ),
@@ -218,7 +221,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     OutlinedButton.icon(
                       onPressed: _loadDetail,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
+                      label: Text(AppLocalizations.of(context)!.retry),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.colorScheme.primary,
                         side: BorderSide(
@@ -553,7 +556,7 @@ class _BudgetCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ESTIMATED BUDGET',
+                    AppLocalizations.of(context)!.estimatedBudget,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -652,7 +655,7 @@ class _ActionButtons extends StatelessWidget {
     return Column(
       children: [
         GradientButton(
-          label: 'Generate AI Itinerary',
+          label: AppLocalizations.of(context)!.generateAiItinerary,
           icon: Icons.auto_awesome,
           height: 56,
           onPressed: () => Navigator.of(context).push(
@@ -669,7 +672,7 @@ class _ActionButtons extends StatelessWidget {
           children: [
             Expanded(
               child: _OutlineBtn(
-                label: 'Save Info',
+                label: AppLocalizations.of(context)!.saveInfo,
                 icon: Icons.bookmark,
                 onPressed: onSaveInfo,
               ),
@@ -687,11 +690,11 @@ class _ActionButtons extends StatelessWidget {
                   child: InkWell(
                     onTap: () {},
                     borderRadius: BorderRadius.circular(12),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Book Now',
+                          AppLocalizations.of(context)!.bookNow,
                           style: TextStyle(
                             color: AppTheme.backgroundDark,
                             fontWeight: FontWeight.w600,

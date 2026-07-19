@@ -12,13 +12,26 @@ import 'package:voyz/services/image_service.dart';
 
 /// Central service for interacting with the Gemini Flash 3 API.
 ///
-/// Uses Vietnamese prompts and returns strongly-typed Dart models.
-/// All methods check Hive cache first; only calls the API on cache miss.
+/// Prompts include a language instruction so the AI responds in the
+/// user's active locale. All methods check Hive cache first; only
+/// calls the API on cache miss.
 class GeminiService {
   GeminiService._();
   static final GeminiService instance = GeminiService._();
 
   final CacheService _cache = CacheService.instance;
+
+  // ── Language helpers ────────────────────────────────────────────────
+
+  /// Returns a language instruction appended to every Gemini prompt.
+  /// JSON keys, numeric values, and icon identifiers remain language-neutral.
+  static String languageInstruction(String languageCode) {
+    return switch (languageCode) {
+      'vi' => 'Write every human-readable JSON value in Vietnamese.',
+      'ko' => 'Write every human-readable JSON value in Korean.',
+      _ => 'Write every human-readable JSON value in English.',
+    };
+  }
 
   GenerativeModel? _model;
 
@@ -26,9 +39,7 @@ class GeminiService {
     if (_model != null) return _model!;
     final apiKey = dotenv.env['GEMINI_API_KEY'];
     if (apiKey == null || apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
-      throw Exception(
-        'GEMINI_API_KEY is not set. Please add your key to .env file.',
-      );
+      throw Exception('apiKeyNotSet');
     }
     _model = GenerativeModel(
       model: 'gemini-3.5-flash',
@@ -49,11 +60,16 @@ class GeminiService {
   ///
   /// [limit] number of destinations to return.
   /// [forceRefresh] if true, bypasses the cache.
+  /// [languageCode] locale code for language-aware prompts (vi, en, ko).
   Future<List<DestinationSuggestion>> getExploreTrending({
     int limit = 10,
     bool forceRefresh = false,
+    String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('explore_trending', {'limit': limit});
+    final cacheKey = _cache.buildKey('explore_trending', {
+      'limit': limit,
+      'lang': languageCode,
+    });
 
     if (!forceRefresh) {
       final cached = _cache.get(cacheKey);
@@ -62,6 +78,7 @@ class GeminiService {
       }
     }
 
+    final langInst = languageInstruction(languageCode);
     final prompt =
         '''
 Bạn là chuyên gia du lịch AI. Hãy gợi ý $limit điểm đến du lịch đang thịnh hành nhất hiện nay, bao gồm cả trong nước Việt Nam và quốc tế.
@@ -91,6 +108,7 @@ Quy tắc:
 - aiInsight nên đề cập lý do trending (mùa lễ hội, thời tiết đẹp, ...)
 - Phần tử đầu tiên có isTopMatch = true
 - CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
+- $langInst
 ''';
 
     final response = await _gemini.generateContent([Content.text(prompt)]);
@@ -118,6 +136,7 @@ Quy tắc:
     TripData trip, {
     int limit = 10,
     bool forceRefresh = false,
+    String languageCode = 'vi',
   }) async {
     // Build cache key from the inputs that actually affect the result
     final cacheKey = _cache.buildKey('suggestions', {
@@ -126,6 +145,7 @@ Quy tắc:
       'currency': trip.currency,
       'interests': trip.selectedInterests,
       'limit': limit,
+      'lang': languageCode,
     });
 
     // Check cache
@@ -139,7 +159,7 @@ Quy tắc:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildSuggestionsPrompt(trip, limit);
+    final prompt = _buildSuggestionsPrompt(trip, limit, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) return [];
@@ -241,7 +261,11 @@ Quy tắc:
     return suggestions;
   }
 
-  String _buildSuggestionsPrompt(TripData trip, int limit) {
+  String _buildSuggestionsPrompt(
+    TripData trip,
+    int limit,
+    String languageCode,
+  ) {
     final interests = trip.selectedInterests.isNotEmpty
         ? trip.selectedInterests.join(', ')
         : 'du lịch tổng hợp';
@@ -265,6 +289,8 @@ Quy tắc:
     final aiPromptExtra = trip.aiPrompt.isNotEmpty
         ? '\nMô tả chuyến đi: ${trip.aiPrompt}'
         : '';
+
+    final langInst = languageInstruction(languageCode);
 
     return '''
 Bạn là chuyên gia du lịch AI. Hãy gợi ý $limit điểm đến du lịch phù hợp nhất.
@@ -296,6 +322,7 @@ Quy tắc:
 - aiInsight phải cụ thể, liên quan đến sở thích và ngân sách người dùng
 - Chỉ có 1 phần tử đầu tiên có isTopMatch = true
 - CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
+- $langInst
 ''';
   }
 
@@ -308,8 +335,12 @@ Quy tắc:
     String destinationName,
     TripData trip, {
     bool forceRefresh = false,
+    String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('detail', {'name': destinationName});
+    final cacheKey = _cache.buildKey('detail', {
+      'name': destinationName,
+      'lang': languageCode,
+    });
 
     // Check cache
     if (!forceRefresh) {
@@ -320,7 +351,7 @@ Quy tắc:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildDetailPrompt(destinationName, trip);
+    final prompt = _buildDetailPrompt(destinationName, trip, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
@@ -344,7 +375,11 @@ Quy tắc:
     return DestinationDetail.fromJson(json, imageUrl);
   }
 
-  String _buildDetailPrompt(String destinationName, TripData trip) {
+  String _buildDetailPrompt(
+    String destinationName,
+    TripData trip,
+    String languageCode,
+  ) {
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
         : 'Mar 15 - Mar 18';
@@ -352,6 +387,8 @@ Quy tắc:
     final budget = trip.budget.isNotEmpty
         ? '${trip.budget} ${trip.currency}'
         : '5M VNĐ';
+
+    final langInst = languageInstruction(languageCode);
 
     return '''
 Bạn là chuyên gia du lịch AI. Hãy cung cấp thông tin chi tiết về điểm đến "$destinationName".
@@ -382,6 +419,7 @@ Quy tắc:
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
 - Số liệu phải phù hợp với ngân sách $budget
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
+- $langInst
 ''';
   }
 
@@ -398,10 +436,12 @@ Quy tắc:
     TripData trip, {
     int limit = 4,
     bool forceRefresh = false,
+    String languageCode = 'vi',
   }) async {
     final cacheKey = _cache.buildKey('itinerary', {
       'name': destinationName,
       'numDays': numDays,
+      'lang': languageCode,
     });
 
     // Check cache
@@ -415,11 +455,17 @@ Quy tắc:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildItineraryPrompt(destinationName, numDays, trip, limit);
+    final prompt = _buildItineraryPrompt(
+      destinationName,
+      numDays,
+      trip,
+      limit,
+      languageCode,
+    );
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
-      throw Exception('Không nhận được phản hồi từ AI.');
+      throw Exception('noAiResponse');
     }
 
     // Save to cache
@@ -434,10 +480,17 @@ Quy tắc:
     int numDays,
     TripData trip,
     int limit,
+    String languageCode,
   ) {
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
         : 'MAR 15 - MAR 18';
+
+    final languageName = languageCode == 'vi'
+        ? 'Vietnamese'
+        : languageCode == 'ko'
+        ? 'Korean'
+        : 'English';
 
     return '''
 Bạn là chuyên gia du lịch AI. Hãy lên kế hoạch du lịch chi tiết $numDays ngày tại "$destinationName".
@@ -475,6 +528,7 @@ Quy tắc:
 - items.icon chỉ dùng: flight_land, hotel, restaurant, beach_access
 - items.description: viết bằng tiếng Anh, 1-2 câu
 - proTip: mẹo thực tế bằng tiếng Anh
+- Write all human-readable content (title, subtitle, description, proTip) in $languageName
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
 ''';
   }
