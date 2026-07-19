@@ -38,6 +38,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
+      // ── Phase 1: Hiển thị text ngay lập tức ──
       final results = await GeminiService.instance.getExploreTrending(
         limit: 10,
         forceRefresh: forceRefresh,
@@ -47,6 +48,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
           _destinations = results;
           _isLoading = false;
         });
+      }
+
+      // ── Phase 2: Tải ảnh song song trong nền ──
+      try {
+        final withImages = await GeminiService.instance
+            .enrichSuggestionsWithImages(results);
+        if (mounted) {
+          setState(() {
+            _destinations = withImages;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error loading explore images in background: $e');
       }
     } catch (e) {
       if (mounted) {
