@@ -19,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   late UserProfile _profile;
   PickedAvatarImage? _pickedImage;
@@ -27,15 +28,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double _offsetY = 0;
   bool _isSavingAvatar = false;
   bool _isChangingPassword = false;
+  bool _isSavingContactInfo = false;
 
   @override
   void initState() {
     super.initState();
     _profile = ProfileService.instance.currentProfile();
+    _phoneController.text = _profile.phoneNumber;
   }
 
   @override
   void dispose() {
+    _phoneController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -76,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           email: _profile.email,
           displayName: _profile.displayName,
           avatarUrl: avatarUrl,
+          phoneNumber: _profile.phoneNumber,
         );
         _pickedImage = null;
       });
@@ -86,6 +91,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) _showMessage(error.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _isSavingAvatar = false);
+    }
+  }
+
+  String? _phoneValidationMessage(String phoneNumber) {
+    final trimmed = phoneNumber.trim();
+    if (trimmed.isEmpty) return null;
+
+    final allowedCharacters = RegExp(r'^[0-9+\-() ]+$');
+    if (!allowedCharacters.hasMatch(trimmed)) {
+      return 'So dien thoai chi gom so, khoang trang, +, -, (, ).';
+    }
+
+    final digitCount = RegExp(r'\d').allMatches(trimmed).length;
+    if (digitCount < 8) {
+      return 'So dien thoai can it nhat 8 chu so.';
+    }
+
+    return null;
+  }
+
+  Future<void> _saveContactInfo() async {
+    final phoneNumber = _phoneController.text.trim();
+    final validationMessage = _phoneValidationMessage(phoneNumber);
+    if (validationMessage != null) {
+      _showMessage(validationMessage, isError: true);
+      return;
+    }
+
+    setState(() => _isSavingContactInfo = true);
+    try {
+      final savedPhoneNumber = await ProfileService.instance.updateContactInfo(
+        phoneNumber: phoneNumber,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = UserProfile(
+          email: _profile.email,
+          displayName: _profile.displayName,
+          avatarUrl: _profile.avatarUrl,
+          phoneNumber: savedPhoneNumber,
+        );
+        _phoneController.text = savedPhoneNumber;
+      });
+      _showMessage('Thong tin lien he da duoc luu.');
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message, isError: true);
+    } catch (error) {
+      if (mounted) _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingContactInfo = false);
     }
   }
 
@@ -319,6 +374,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _InfoRow(icon: Icons.person_outline, label: 'Ten hien thi', value: displayName),
         const SizedBox(height: 12),
         _InfoRow(icon: Icons.mail_outline, label: 'Email', value: _profile.email),
+        const SizedBox(height: 12),
+        _ContactPhoneField(controller: _phoneController),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            width: 220,
+            child: GradientButton(
+              label: _isSavingContactInfo ? 'Dang luu' : 'Luu thong tin',
+              icon: Icons.save,
+              height: 46,
+              onPressed: _isSavingContactInfo ? null : _saveContactInfo,
+            ),
+          ),
+        ),
         const SizedBox(height: 18),
         Container(
           padding: const EdgeInsets.all(12),
@@ -633,6 +703,36 @@ class _PasswordField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: const Icon(Icons.lock_outline),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.06),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactPhoneField extends StatelessWidget {
+  const _ContactPhoneField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.phone,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: 'So dien thoai',
+        hintText: '+84 912 345 678',
+        prefixIcon: const Icon(Icons.phone_outlined),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
         border: OutlineInputBorder(
