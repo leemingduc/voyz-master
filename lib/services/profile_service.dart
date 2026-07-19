@@ -8,11 +8,13 @@ class UserProfile {
     required this.email,
     required this.displayName,
     required this.avatarUrl,
+    required this.phoneNumber,
   });
 
   final String email;
   final String displayName;
   final String? avatarUrl;
+  final String phoneNumber;
 }
 
 class ProfileService {
@@ -29,11 +31,13 @@ class ProfileService {
     final displayName =
         (metadata['display_name'] ?? metadata['username'] ?? '').toString();
     final avatarUrl = metadata['avatar_url']?.toString();
+    final phoneNumber = metadata['phone_number']?.toString().trim() ?? '';
 
     return UserProfile(
       email: user.email ?? '',
       displayName: displayName,
       avatarUrl: avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
+      phoneNumber: phoneNumber,
     );
   }
 
@@ -60,6 +64,19 @@ class ProfileService {
     );
 
     return avatarUrl;
+  }
+
+  Future<String> updateContactInfo({required String phoneNumber}) async {
+    final user = _requireUser();
+    final normalizedPhone = phoneNumber.trim();
+
+    await _auth.updateUser(
+      UserAttributes(
+        data: {...?user.userMetadata, 'phone_number': normalizedPhone},
+      ),
+    );
+
+    return normalizedPhone;
   }
 
   Future<void> updatePassword(String password) {

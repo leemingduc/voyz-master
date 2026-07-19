@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/services/cache_service.dart';

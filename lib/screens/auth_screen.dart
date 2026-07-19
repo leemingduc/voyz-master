@@ -84,23 +84,18 @@ class _AuthScreenState extends State<AuthScreen> {
       },
     );
 
+    if (response.user == null) {
+      throw const AuthException('Could not create account. Please try again.');
+    }
+
     if (response.session == null) {
       if (!mounted) return;
       _showMessage(
-        'Account created. Login with this email and password to continue.',
+        'Account created. Please check your email or login to continue.',
       );
       setState(() => _isRegister = false);
       return;
     }
-
-    await auth.updateUser(
-      UserAttributes(
-        data: {
-          'username': username,
-          'display_name': username,
-        },
-      ),
-    );
   }
 
   void _showMessage(String message) {
