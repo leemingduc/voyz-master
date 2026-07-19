@@ -31,11 +31,12 @@ class GeminiService {
       );
     }
     _model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.5-flash',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.7,
+        maxOutputTokens: 4096, // 10 destination objects need ~3000 tokens; 1200 caused truncation
       ),
     );
     return _model!;
@@ -57,7 +58,7 @@ class GeminiService {
     if (!forceRefresh) {
       final cached = _cache.get(cacheKey);
       if (cached != null) {
-        return _parseSuggestions(cached);
+        return parseSuggestionsSync(cached);
       }
     }
 
@@ -97,12 +98,18 @@ Quy tắc:
     if (text == null || text.isEmpty) return [];
 
     await _cache.put(cacheKey, text);
-    return _parseSuggestions(text);
+    return parseSuggestionsSync(text);
   }
 
-  // ── Suggestions ──────────────────────────────────────────────────────
+  // ── Suggestions ──────────────────────────────────────────────────────────
 
   /// Get AI travel suggestions based on user's trip preferences.
+  ///
+  /// **Phase 1 (fast, ~1-2s):** Returns text-only suggestions immediately.
+  /// Images are left as empty strings so the UI can render right away.
+  ///
+  /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
+  /// image URLs asynchronously while the user is already browsing the results.
   ///
   /// [trip] contains destination, budget, interests, dates, etc.
   /// [limit] controls the number of suggestions returned (default 10).
@@ -125,7 +132,9 @@ Quy tắc:
     if (!forceRefresh) {
       final cached = _cache.get(cacheKey);
       if (cached != null) {
-        return _parseSuggestions(cached);
+        // Cache hit: parse text synchronously, no image fetch needed here.
+        // CachedNetworkImage will handle images from its own persistent cache.
+        return parseSuggestionsSync(cached);
       }
     }
 
@@ -138,24 +147,81 @@ Quy tắc:
     // Save to cache
     await _cache.put(cacheKey, text);
 
-    return _parseSuggestions(text);
+    // Phase 1: return text-only list instantly (no image fetching yet).
+    return parseSuggestionsSync(text);
   }
 
-  /// Parse raw JSON text into a list of DestinationSuggestion with images.
-  Future<List<DestinationSuggestion>> _parseSuggestions(String text) async {
-    final List<dynamic> jsonList = jsonDecode(text) as List<dynamic>;
-
-    // Batch fetch image URLs
-    final names = jsonList
-        .map((e) => (e as Map<String, dynamic>)['name'] as String)
-        .toList();
+  /// Phase 2: Back-fill image URLs into an existing list of suggestions.
+  ///
+  /// Call this after [getSuggestions] to enrich results with images in the
+  /// background. All images are fetched in parallel via [ImageService].
+  Future<List<DestinationSuggestion>> enrichSuggestionsWithImages(
+    List<DestinationSuggestion> suggestions,
+  ) async {
+    final names = suggestions.map((s) => s.name).toList();
     final imageUrls = await ImageService.instance.getImageUrls(names);
 
-    final suggestions = jsonList.map((e) {
-      final map = e as Map<String, dynamic>;
-      final name = map['name'] as String? ?? '';
-      return DestinationSuggestion.fromJson(map, imageUrls[name] ?? '');
+    return suggestions.map((s) {
+      return DestinationSuggestion(
+        name: s.name,
+        imageUrl: imageUrls[s.name] ?? '',
+        matchPercent: s.matchPercent,
+        rating: s.rating,
+        reviewCount: s.reviewCount,
+        price: s.price,
+        aiInsight: s.aiInsight,
+        isTopMatch: s.isTopMatch,
+      );
     }).toList();
+  }
+
+  /// Synchronously parse raw JSON text into text-only DestinationSuggestions.
+  ///
+  /// Images are left as empty strings — they are loaded lazily by the widget
+  /// layer (CachedNetworkImage) or back-filled via [enrichSuggestionsWithImages].
+  List<DestinationSuggestion> parseSuggestionsSync(String text) {
+    final decoded = safeJsonDecode(text);
+    final List<dynamic> jsonList;
+    if (decoded is List) {
+      jsonList = decoded;
+    } else if (decoded is Map) {
+      final listValue = decoded.values.firstWhere(
+        (v) => v is List,
+        orElse: () => null,
+      );
+      if (listValue != null) {
+        jsonList = listValue as List<dynamic>;
+      } else {
+        throw const FormatException('Phản hồi từ AI không chứa danh sách điểm đến.');
+      }
+    } else {
+      throw const FormatException('Định dạng phản hồi của AI không hợp lệ.');
+    }
+
+    final suggestions = jsonList
+        .whereType<Map>()
+        .map((e) {
+          final rawMap = Map<String, dynamic>.from(e);
+          final map = <String, dynamic>{
+            'name': rawMap['name']?.toString() ?? '',
+            'matchPercent': (rawMap['matchPercent'] is num)
+                ? (rawMap['matchPercent'] as num).toInt()
+                : int.tryParse(rawMap['matchPercent']?.toString() ?? '') ?? 0,
+            'rating': (rawMap['rating'] is num)
+                ? (rawMap['rating'] as num).toDouble()
+                : double.tryParse(rawMap['rating']?.toString() ?? '') ?? 0.0,
+            'reviewCount': (rawMap['reviewCount'] is num)
+                ? (rawMap['reviewCount'] as num).toInt()
+                : int.tryParse(rawMap['reviewCount']?.toString() ?? '') ?? 0,
+            'price': rawMap['price']?.toString() ?? '',
+            'aiInsight': rawMap['aiInsight']?.toString() ?? '',
+            'isTopMatch': rawMap['isTopMatch'] is bool
+                ? rawMap['isTopMatch'] as bool
+                : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
+          };
+          return DestinationSuggestion.fromJson(map, '');
+        })
+        .toList();
 
     // Mark the first item as top match if none is flagged.
     if (suggestions.isNotEmpty && !suggestions.any((s) => s.isTopMatch)) {
@@ -272,7 +338,7 @@ Quy tắc:
     String text,
     String destinationName,
   ) async {
-    final Map<String, dynamic> json = jsonDecode(text) as Map<String, dynamic>;
+    final Map<String, dynamic> json = safeJsonDecode(text) as Map<String, dynamic>;
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
     return DestinationDetail.fromJson(json, imageUrl);
@@ -343,7 +409,7 @@ Quy tắc:
       final cached = _cache.get(cacheKey);
       if (cached != null) {
         final Map<String, dynamic> json =
-            jsonDecode(cached) as Map<String, dynamic>;
+            safeJsonDecode(cached) as Map<String, dynamic>;
         return ItineraryPlan.fromJson(json);
       }
     }
@@ -359,7 +425,7 @@ Quy tắc:
     // Save to cache
     await _cache.put(cacheKey, text);
 
-    final Map<String, dynamic> json = jsonDecode(text) as Map<String, dynamic>;
+    final Map<String, dynamic> json = safeJsonDecode(text) as Map<String, dynamic>;
     return ItineraryPlan.fromJson(json);
   }
 
@@ -449,5 +515,78 @@ Quy tắc:
       'DEC',
     ];
     return '${months[date.month - 1]} ${date.day}';
+  }
+
+  /// Safely decodes JSON from AI response, removing any markdown code block wrappers
+  /// or leading/trailing non-JSON text.
+  ///
+  /// Also performs healing for common Gemini model output errors:
+  /// - JSON array closed with `}` instead of `]`
+  /// - Truncated JSON due to token limits
+  dynamic safeJsonDecode(String text) {
+    var cleaned = text.trim();
+
+    // Strip markdown code fences
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.substring(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    cleaned = cleaned.trim();
+
+    // Attempt 1: direct decode
+    try {
+      return jsonDecode(cleaned);
+    } catch (_) {}
+
+    // Attempt 2: heal JSON array closed with } instead of ] (Gemini model bug)
+    // e.g. "[{...}, {...}}" → "[{...}, {...}]"
+    final healed = _healJsonArray(cleaned);
+    if (healed != cleaned) {
+      try {
+        return jsonDecode(healed);
+      } catch (_) {}
+    }
+
+    // Attempt 3: extract innermost JSON object/array from surrounding text
+    final startIdx = cleaned.indexOf(RegExp(r'\[|\{'));
+    if (startIdx != -1) {
+      final sub = cleaned.substring(startIdx);
+      final healedSub = _healJsonArray(sub);
+      try {
+        return jsonDecode(healedSub);
+      } catch (_) {}
+      // Try extracting just up to the last valid closer
+      final endIdx = sub.lastIndexOf(RegExp(r'\]|\}'));
+      if (endIdx > 0) {
+        final extracted = sub.substring(0, endIdx + 1);
+        try {
+          return jsonDecode(extracted);
+        } catch (_) {}
+        // Last resort: heal extracted substring
+        try {
+          return jsonDecode(_healJsonArray(extracted));
+        } catch (_) {}
+      }
+    }
+
+    throw const FormatException('Không thể phân tích cú pháp JSON từ phản hồi AI.');
+  }
+
+  /// Heals a JSON string where an array was incorrectly closed with `}` instead of `]`.
+  /// Gemini sometimes ends a top-level `[` array with `}` due to model quirks.
+  String _healJsonArray(String s) {
+    final trimmed = s.trim();
+    if (!trimmed.startsWith('[')) return trimmed;
+
+    // The array starts with [. Find what character closes it.
+    // We walk from the end: if it ends with }, replace with ]
+    if (trimmed.endsWith('}')) {
+      return '${trimmed.substring(0, trimmed.length - 1)}]';
+    }
+    return trimmed;
   }
 }

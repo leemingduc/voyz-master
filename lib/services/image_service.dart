@@ -40,12 +40,15 @@ class ImageService {
     return url;
   }
 
+  /// Fetches image URLs for all destinations **in parallel** using Future.wait.
+  ///
+  /// This is significantly faster than sequential fetching:
+  /// - Before: N images × ~2s each = N×2 seconds total
+  /// - After:  All images fetched concurrently = ~2 seconds total
   Future<Map<String, String>> getImageUrls(List<String> names) async {
-    final results = <String, String>{};
-    for (final name in names) {
-      results[name] = await getImageUrl(name);
-    }
-    return results;
+    final futures = names.map((name) => getImageUrl(name));
+    final urls = await Future.wait(futures);
+    return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
   }
 
   // ── Wikipedia ──────────────────────────────────────────────────────────

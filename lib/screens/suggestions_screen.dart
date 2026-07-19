@@ -37,16 +37,29 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
 
     try {
       final trip = SavedTripsProvider.of(context).currentTrip;
-      final results = await GeminiService.instance.getSuggestions(
+
+      // ── Phase 1: Hiển thị text ngay (~1-2 giây) ──
+      final textOnly = await GeminiService.instance.getSuggestions(
         trip,
         limit: 10,
         forceRefresh: forceRefresh,
       );
-      if (mounted) {
+      if (!mounted) return;
+      setState(() {
+        _suggestions = textOnly; // Người dùng thấy danh sách ngay
+        _isLoading = false;
+      });
+
+      // ── Phase 2: Tải ảnh song song trong nền (~2 giây) ──
+      try {
+        final withImages = await GeminiService.instance
+            .enrichSuggestionsWithImages(textOnly);
+        if (!mounted) return;
         setState(() {
-          _suggestions = results;
-          _isLoading = false;
+          _suggestions = withImages; // Cập nhật lại khi ảnh đã sẵn sàng
         });
+      } catch (e) {
+        debugPrint('Error loading images in background: $e');
       }
     } catch (e) {
       if (mounted) {
