@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -42,6 +44,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final results = await GeminiService.instance.getExploreTrending(
         limit: 10,
         forceRefresh: forceRefresh,
+        languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (mounted) {
         setState(() {
@@ -131,7 +134,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Khám phá',
+                  AppLocalizations.of(context)!.exploreTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -140,7 +143,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Điểm đến đang thịnh hành',
+                  AppLocalizations.of(context)!.exploreSubtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.5),
                   ),
@@ -161,7 +164,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white70, size: 22),
               onPressed: () => _loadExplore(forceRefresh: true),
-              tooltip: 'Làm mới',
+              tooltip: AppLocalizations.of(context)!.refresh,
             ),
           ),
         ],
@@ -173,14 +176,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildBody(ThemeData theme) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
             Text(
-              'Đang tìm điểm đến thú vị...',
+              AppLocalizations.of(context)!.loadingExplore,
               style: TextStyle(color: Colors.white54),
             ),
           ],
@@ -198,7 +201,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               const Icon(Icons.cloud_off, size: 48, color: Colors.white30),
               const SizedBox(height: 16),
               Text(
-                'Không thể tải dữ liệu',
+                AppLocalizations.of(context)!.cannotLoadData,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                 ),
@@ -213,7 +216,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ElevatedButton.icon(
                 onPressed: () => _loadExplore(),
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Thử lại'),
+                label: Text(AppLocalizations.of(context)!.retry),
               ),
             ],
           ),
@@ -222,10 +225,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
 
     if (_destinations.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Không có dữ liệu',
-          style: TextStyle(color: Colors.white54),
+          AppLocalizations.of(context)!.noData,
+          style: const TextStyle(color: Colors.white54),
         ),
       );
     }
@@ -341,18 +344,18 @@ class _DestinationCard extends StatelessWidget {
                             ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.local_fire_department,
                                 size: 14,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                'HOT',
-                                style: TextStyle(
+                                AppLocalizations.of(context)!.hot,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,

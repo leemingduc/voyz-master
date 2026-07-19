@@ -28,8 +28,8 @@ class ProfileService {
   UserProfile currentProfile() {
     final user = _requireUser();
     final metadata = user.userMetadata ?? {};
-    final displayName =
-        (metadata['display_name'] ?? metadata['username'] ?? '').toString();
+    final displayName = (metadata['display_name'] ?? metadata['username'] ?? '')
+        .toString();
     final avatarUrl = metadata['avatar_url']?.toString();
     final phoneNumber = metadata['phone_number']?.toString().trim() ?? '';
 
@@ -86,7 +86,8 @@ class ProfileService {
   User _requireUser() {
     final user = _auth.currentUser;
     if (user == null) {
-      throw const AuthException('You need to be logged in.');
+      // This will be caught and localized in the UI
+      throw const AuthException('loginRequired');
     }
     return user;
   }

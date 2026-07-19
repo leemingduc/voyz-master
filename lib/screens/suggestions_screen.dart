@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
@@ -43,6 +46,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
         trip,
         limit: 10,
         forceRefresh: forceRefresh,
+        languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (!mounted) return;
       setState(() {
@@ -132,7 +136,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
             CircularProgressIndicator(color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
-              'AI đang tìm kiếm điểm đến...',
+              AppLocalizations.of(context)!.loadingSuggestionsDetail,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 14,
@@ -157,7 +161,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Không thể tải gợi ý',
+                AppLocalizations.of(context)!.cannotLoadSuggestions,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -177,7 +181,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               OutlinedButton.icon(
                 onPressed: _loadSuggestions,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Thử lại'),
+                label: Text(AppLocalizations.of(context)!.retry),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
                   side: BorderSide(
@@ -194,7 +198,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     if (_suggestions.isEmpty) {
       return Center(
         child: Text(
-          'Không tìm thấy gợi ý nào.',
+          AppLocalizations.of(context)!.noSuggestionsFound,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
         ),
       );
@@ -250,9 +254,9 @@ class _Header extends StatelessWidget {
               ShaderMask(
                 shaderCallback: (bounds) =>
                     AppTheme.brandGradient.createShader(bounds),
-                child: const Text(
-                  'AIVIVU',
-                  style: TextStyle(
+                child: Text(
+                  MockData.appName,
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 3,
@@ -261,9 +265,9 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Travel Suggestions',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.travelSuggestions,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -384,7 +388,7 @@ class _CardImage extends StatelessWidget {
                     : Border.all(color: Colors.white.withValues(alpha: 0.2)),
               ),
               child: Text(
-                '${data['matchPercent']}% Match${isTopMatch ? ' ✨' : ''}',
+                '${data['matchPercent']}% ${isTopMatch ? '${AppLocalizations.of(context)!.match} ✨' : AppLocalizations.of(context)!.match}',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -406,6 +410,7 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final rating = (data['rating'] as num).toDouble();
     final fullStars = rating.floor();
     final hasHalf = rating - fullStars >= 0.5;
@@ -445,7 +450,7 @@ class _CardHeader extends StatelessWidget {
                     ),
                   const SizedBox(width: 6),
                   Text(
-                    '(${data['reviewCount']} reviews)',
+                    '(${data['reviewCount']} ${AppLocalizations.of(context)!.reviewsCount})',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF94A3B8),
@@ -467,9 +472,9 @@ class _CardHeader extends StatelessWidget {
                 color: theme.colorScheme.tertiary,
               ),
             ),
-            const Text(
-              '/ person',
-              style: TextStyle(
+            Text(
+              l10n.perPerson,
+              style: const TextStyle(
                 fontSize: 10,
                 color: Color(0xFF94A3B8),
                 letterSpacing: 0.5,
@@ -490,6 +495,7 @@ class _AiInsightBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -508,7 +514,16 @@ class _AiInsightBox extends StatelessWidget {
           style: const TextStyle(fontSize: 12, height: 1.5),
           children: [
             TextSpan(
-              text: '💡 AI Insight: ',
+              text: '💡 ',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: isTopMatch
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.secondary,
+              ),
+            ),
+            TextSpan(
+              text: l10n.aiInsightPrefix,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: isTopMatch
@@ -556,8 +571,8 @@ class _CardActions extends StatelessWidget {
             Expanded(
               child: Text(
                 added
-                    ? '${data['name']} added to wishlist!'
-                    : '${data['name']} is already saved!',
+                    ? '${data['name']} ${AppLocalizations.of(context)!.addedToWishlist}'
+                    : '${data['name']} ${AppLocalizations.of(context)!.alreadySaved}',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -576,11 +591,11 @@ class _CardActions extends StatelessWidget {
   void _onShare(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.share, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Share link copied!'),
+            const Icon(Icons.share, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context)!.shareLinkCopied),
           ],
         ),
         backgroundColor: const Color(0xFF475569),
@@ -600,7 +615,7 @@ class _CardActions extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => _onShare(context),
             icon: const Icon(Icons.share, size: 18),
-            label: const Text('Share'),
+            label: Text(AppLocalizations.of(context)!.share),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -628,7 +643,7 @@ class _CardActions extends StatelessWidget {
               color: theme.colorScheme.primary,
             ),
             label: Text(
-              'Add to Wishlist',
+              AppLocalizations.of(context)!.addToWishlist,
               style: TextStyle(color: theme.colorScheme.primary),
             ),
             style: OutlinedButton.styleFrom(

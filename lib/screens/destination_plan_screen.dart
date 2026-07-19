@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/itinerary_plan.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -57,6 +59,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         numDays,
         trip,
         limit: 4,
+        languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (mounted) {
         setState(() {
@@ -111,7 +114,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
               CircularProgressIndicator(color: theme.colorScheme.primary),
               const SizedBox(height: 16),
               Text(
-                'AI đang lên lịch trình...',
+                AppLocalizations.of(context)!.loadingItinerary,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
@@ -138,9 +141,9 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                   size: 48,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Không thể tạo lịch trình',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.cannotCreateItinerary,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -148,7 +151,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _error ?? 'Lỗi không xác định',
+                  _error ?? AppLocalizations.of(context)!.unknownError,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
@@ -162,7 +165,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                     OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back),
-                      label: const Text('Quay lại'),
+                      label: Text(AppLocalizations.of(context)!.goBack),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                       ),
@@ -171,7 +174,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                     OutlinedButton.icon(
                       onPressed: _loadPlan,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
+                      label: Text(AppLocalizations.of(context)!.retry),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.colorScheme.primary,
                         side: BorderSide(
@@ -346,7 +349,9 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Day ${plan.days[i].dayNumber}',
+                    AppLocalizations.of(
+                      context,
+                    )!.dayLabel(plan.days[i].dayNumber),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
@@ -545,7 +550,7 @@ class _ProTipCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 14, height: 1.4),
                 children: [
                   TextSpan(
-                    text: 'Pro Tip: ',
+                    text: '${AppLocalizations.of(context)!.proTip}: ',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.primary,

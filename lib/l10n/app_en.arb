@@ -1,0 +1,468 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "AIVIVU - AI Travel Advisor",
+  "@appTitle": {"description": "Application title used in MaterialApp"},
+
+  "appName": "AIVIVU",
+  "@appName": {"description": "Short app brand name"},
+
+  "aiPowered": "AI POWERED TRAVEL",
+  "@aiPowered": {"description": "Splash screen subtitle"},
+
+  "appVersion": "VERSION 1.0.0",
+  "@appVersion": {"description": "App version shown on splash"},
+
+  "profile": "Profile",
+  "@profile": {"description": "Profile tab/screen label"},
+
+  "language": "Language",
+  "@language": {"description": "Language settings section heading"},
+
+  "english": "English",
+  "@english": {"description": "English language option"},
+
+  "vietnamese": "Tiếng Việt",
+  "@vietnamese": {"description": "Vietnamese language option"},
+
+  "korean": "한국어",
+  "@korean": {"description": "Korean language option"},
+
+  "signIn": "Sign in",
+  "@signIn": {"description": "Sign in button / label"},
+
+  "languageSaved": "Language saved",
+  "@languageSaved": {"description": "Snackbar after successful language change"},
+
+  "genericError": "Something went wrong. Please try again.",
+  "@genericError": {"description": "Generic error fallback message"},
+
+  "save": "Save",
+  "@save": {"description": "Generic save action"},
+
+  "cancel": "Cancel",
+  "@cancel": {"description": "Generic cancel action"},
+
+  "home": "AI Planner",
+  "@home": {"description": "Bottom nav item for planner tab"},
+
+  "explore": "Explore",
+  "@explore": {"description": "Bottom nav item for explore tab"},
+
+  "savedTrips": "Saved",
+  "@savedTrips": {"description": "Bottom nav item for saved tab"},
+
+  "signOut": "Sign out",
+  "@signOut": {"description": "Sign out action in account menu"},
+
+  "loading": "Loading...",
+  "@loading": {"description": "Generic loading indicator label"},
+
+  "back": "Back",
+  "@back": {"description": "Back navigation tooltip"},
+
+  "smartPlanner": "Smart Planner",
+  "@smartPlanner": {"description": "Smart planner screen subtitle"},
+
+  "welcomeBack": "Welcome back",
+  "@welcomeBack": {"description": "Auth screen greeting when logging in"},
+
+  "createAccount": "Create your account",
+  "@createAccount": {"description": "Auth screen greeting when registering"},
+
+  "username": "Username",
+  "@username": {"description": "Username field label"},
+
+  "email": "Email",
+  "@email": {"description": "Email field label"},
+
+  "password": "Password",
+  "@password": {"description": "Password field label"},
+
+  "confirmPassword": "Confirm password",
+  "@confirmPassword": {"description": "Confirm password field label"},
+
+  "login": "Login",
+  "@login": {"description": "Login button label"},
+
+  "register": "Register",
+  "@register": {"description": "Register button label"},
+
+  "haveAccountLogin": "Already have an account? Login",
+  "@haveAccountLogin": {"description": "Switch to login mode link"},
+
+  "needAccountRegister": "Need an account? Register",
+  "@needAccountRegister": {"description": "Switch to register mode link"},
+
+  "emailPasswordRequired": "Enter an email and a password with at least 6 characters.",
+  "@emailPasswordRequired": {"description": "Validation: email and password required"},
+
+  "usernameRequired": "Enter your username.",
+  "@usernameRequired": {"description": "Validation: username required"},
+
+  "passwordMismatch": "Password confirmation does not match.",
+  "@passwordMismatch": {"description": "Validation: passwords don't match"},
+
+  "accountCreated": "Account created. Please check your email or login to continue.",
+  "@accountCreated": {"description": "Success message after registration requiring email confirm"},
+
+  "accountCreationFailed": "Could not create account. Please try again.",
+  "@accountCreationFailed": {"description": "Error when account creation fails"},
+
+  "userProfile": "User Profile",
+  "@userProfile": {"description": "Profile card heading"},
+
+  "profileSubtitle": "Avatar and email are retained after each login.",
+  "@profileSubtitle": {"description": "Profile card subtitle"},
+
+  "uploadPhoto": "Upload photo",
+  "@uploadPhoto": {"description": "Button to upload avatar image"},
+
+  "zoom": "Zoom",
+  "@zoom": {"description": "Zoom slider label in avatar editor"},
+
+  "horizontal": "X",
+  "@horizontal": {"description": "Horizontal offset slider label"},
+
+  "vertical": "Y",
+  "@vertical": {"description": "Vertical offset slider label"},
+
+  "reset": "Reset",
+  "@reset": {"description": "Reset avatar adjustments button"},
+
+  "saving": "Saving…",
+  "@saving": {"description": "Button label while avatar is being saved"},
+
+  "avatarSaved": "Avatar saved.",
+  "@avatarSaved": {"description": "Snackbar after successful avatar save"},
+
+  "avatarStorageNote": "The image is stored in Supabase Storage bucket 'avatars' and the URL is written to user metadata.",
+  "@avatarStorageNote": {"description": "Info note about avatar storage"},
+
+  "avatarUploadWebOnly": "Avatar upload is currently available on web only.",
+  "@avatarUploadWebOnly": {"description": "Error when avatar upload not supported on platform"},
+
+  "avatarEditingWebOnly": "Avatar editing is currently available on web only.",
+  "@avatarEditingWebOnly": {"description": "Error when avatar editing not supported on platform"},
+
+  "displayName": "Display name",
+  "@displayName": {"description": "Display name info row label"},
+
+  "noDisplayName": "No display name set",
+  "@noDisplayName": {"description": "Placeholder when display name is empty"},
+
+  "changePassword": "Change password",
+  "@changePassword": {"description": "Change password card heading"},
+
+  "newPassword": "New password",
+  "@newPassword": {"description": "New password field label"},
+
+  "passwordMinLength": "New password must be at least 6 characters.",
+  "@passwordMinLength": {"description": "Validation: password too short"},
+
+  "passwordUpdated": "Password updated.",
+  "@passwordUpdated": {"description": "Success snackbar after password change"},
+
+  "updating": "Updating…",
+  "@updating": {"description": "Button label while updating password"},
+
+  "update": "Update",
+  "@update": {"description": "Generic update action"},
+
+  "requiredInfo": "REQUIRED INFO",
+  "@requiredInfo": {"description": "Section heading for required planner fields"},
+
+  "optionalInfo": "OPTIONAL INFO",
+  "@optionalInfo": {"description": "Section heading for optional planner fields"},
+
+  "destination": "Destination",
+  "@destination": {"description": "Destination input field label"},
+
+  "destinationHint": "e.g. Phu Quoc, Paris, Bali...",
+  "@destinationHint": {"description": "Destination field hint text"},
+
+  "departDate": "Departure",
+  "@departDate": {"description": "Departure date field label"},
+
+  "returnDate": "Return",
+  "@returnDate": {"description": "Return date field label"},
+
+  "addDate": "Add date",
+  "@addDate": {"description": "Placeholder when no date is selected"},
+
+  "budget": "Budget",
+  "@budget": {"description": "Budget input field label"},
+
+  "budgetHint": "e.g. 5000000",
+  "@budgetHint": {"description": "Budget field hint"},
+
+  "currency": "Currency",
+  "@currency": {"description": "Currency field label"},
+
+  "participants": "Participants",
+  "@participants": {"description": "Number of participants field label"},
+
+  "participantsHint": "e.g. 2 adults",
+  "@participantsHint": {"description": "Participants field hint"},
+
+  "ageRange": "Age range",
+  "@ageRange": {"description": "Age range field label"},
+
+  "ageRangeHint": "e.g. 25-35",
+  "@ageRangeHint": {"description": "Age range field hint"},
+
+  "interests": "Interests",
+  "@interests": {"description": "Interests section heading"},
+
+  "additionalNotes": "Additional notes",
+  "@additionalNotes": {"description": "Additional notes field label"},
+
+  "notesHint": "Any special requests, accessibility needs...",
+  "@notesHint": {"description": "Notes field hint"},
+
+  "aiPrompt": "Describe your dream trip",
+  "@aiPrompt": {"description": "AI prompt field label"},
+
+  "aiPromptHint": "Tell AI what kind of trip you want...",
+  "@aiPromptHint": {"description": "AI prompt field hint"},
+
+  "getAiSuggestions": "Get AI Suggestions",
+  "@getAiSuggestions": {"description": "Main CTA button on smart planner"},
+
+  "fillAllRequired": "Please fill in all required info",
+  "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
+
+  "trendingDestinations": "Trending Destinations",
+  "@trendingDestinations": {"description": "Explore screen section heading"},
+
+  "aiInsight": "AI Insight",
+  "@aiInsight": {"description": "Label for AI insight text on destination card"},
+
+  "topMatch": "TOP MATCH",
+  "@topMatch": {"description": "Badge on top-matched destination"},
+
+  "match": "match",
+  "@match": {"description": "Suffix after match percentage e.g. '92% match'"},
+
+  "refresh": "Refresh",
+  "@refresh": {"description": "Refresh button tooltip"},
+
+  "retry": "Retry",
+  "@retry": {"description": "Retry button label on error state"},
+
+  "noSavedItems": "No saved items yet",
+  "@noSavedItems": {"description": "Empty state heading on saved screen"},
+
+  "noSavedItemsHint": "Save destinations you love and they'll appear here.",
+  "@noSavedItemsHint": {"description": "Empty state subtitle on saved screen"},
+
+  "savedItemRemoved": "Removed from saved",
+  "@savedItemRemoved": {"description": "Snackbar after removing a saved item"},
+
+  "saveTrip": "Save Trip",
+  "@saveTrip": {"description": "Save trip button on destination detail"},
+
+  "tripAlreadySaved": "Already saved",
+  "@tripAlreadySaved": {"description": "Snackbar when trip is already saved"},
+
+  "tripSaved": "Trip saved!",
+  "@tripSaved": {"description": "Snackbar after successfully saving a trip"},
+
+  "viewItinerary": "View Itinerary",
+  "@viewItinerary": {"description": "Button to open the itinerary plan screen"},
+
+  "shareLinkCopied": "Share link copied!",
+  "@shareLinkCopied": {"description": "Snackbar when share link is copied"},
+
+  "budgetBreakdown": "Budget Breakdown",
+  "@budgetBreakdown": {"description": "Section heading for budget breakdown"},
+
+  "totalBudget": "Total Budget",
+  "@totalBudget": {"description": "Total budget label"},
+
+  "weather": "Weather",
+  "@weather": {"description": "Weather info label"},
+
+  "dates": "Dates",
+  "@dates": {"description": "Travel dates label"},
+
+  "proTip": "Pro Tip",
+  "@proTip": {"description": "Pro tip section heading in itinerary"},
+
+  "itinerary": "Itinerary",
+  "@itinerary": {"description": "Itinerary screen heading"},
+
+  "day": "Day",
+  "@day": {"description": "Day prefix in itinerary e.g. 'Day 1'"},
+
+  "generatingItinerary": "Generating your itinerary…",
+  "@generatingItinerary": {"description": "Loading message while itinerary is being generated"},
+
+  "aiSuggestions": "AI Suggestions",
+  "@aiSuggestions": {"description": "Suggestions screen heading"},
+
+  "loadingSuggestions": "Finding best destinations for you…",
+  "@loadingSuggestions": {"description": "Loading message on suggestions screen"},
+
+  "noSuggestions": "No suggestions found",
+  "@noSuggestions": {"description": "Empty state on suggestions screen"},
+
+  "optional": "(optional)",
+  "@optional": {"description": "Optional field marker"},
+
+  "plannerGreeting": "Where do you\nwant to go? 🌍",
+  "@plannerGreeting": {"description": "Greeting headline on smart planner screen"},
+
+  "exploreTitle": "Explore",
+  "@exploreTitle": {"description": "Explore screen heading"},
+
+  "exploreSubtitle": "Trending destinations",
+  "@exploreSubtitle": {"description": "Explore screen subtitle"},
+
+  "loadingExplore": "Finding interesting destinations...",
+  "@loadingExplore": {"description": "Loading message on explore screen"},
+
+  "cannotLoadData": "Cannot load data",
+  "@cannotLoadData": {"description": "Error heading when data cannot be loaded"},
+
+  "noData": "No data",
+  "@noData": {"description": "Empty state when no data is available"},
+
+  "travelSuggestions": "Travel Suggestions",
+  "@travelSuggestions": {"description": "Suggestions screen heading"},
+
+  "loadingSuggestionsDetail": "AI is searching destinations...",
+  "@loadingSuggestionsDetail": {"description": "Detailed loading message on suggestions screen"},
+
+  "cannotLoadSuggestions": "Cannot load suggestions",
+  "@cannotLoadSuggestions": {"description": "Error heading on suggestions screen"},
+
+  "noSuggestionsFound": "No suggestions found.",
+  "@noSuggestionsFound": {"description": "Empty state on suggestions screen"},
+
+  "saved": "Saved",
+  "@saved": {"description": "Saved screen heading"},
+
+  "savedTrip": "Saved Trip",
+  "@savedTrip": {"description": "Badge label for saved trip"},
+
+  "wishlist": "Wishlist",
+  "@wishlist": {"description": "Badge label for wishlist item"},
+
+  "reviewsCount": "reviews",
+  "@reviewsCount": {"description": "Label after review count e.g. '(120 reviews)'"},
+
+  "removed": "removed",
+  "@removed": {"description": "Snackbar suffix when item is removed"},
+
+  "emptySavedHint": "Explore destinations and save them\nto see them here.",
+  "@emptySavedHint": {"description": "Empty state subtitle on saved screen"},
+
+  "noSavedYet": "No saved items yet",
+  "@noSavedYet": {"description": "Empty state heading on saved screen"},
+
+  "loadingDetail": "Loading details...",
+  "@loadingDetail": {"description": "Loading message on destination detail screen"},
+
+  "cannotLoadDetail": "Cannot load details",
+  "@cannotLoadDetail": {"description": "Error heading on destination detail screen"},
+
+  "unknownError": "Unknown error",
+  "@unknownError": {"description": "Fallback error message"},
+
+  "goBack": "Go back",
+  "@goBack": {"description": "Go back button label"},
+
+  "tripInfoSaved": "Trip info saved! Check your Saved tab.",
+  "@tripInfoSaved": {"description": "Snackbar after saving trip info"},
+
+  "alreadySavedMessage": "{name} is already saved!",
+  "@alreadySavedMessage": {"description": "Snackbar when trip is already saved", "placeholders": {"name": {"type": "String"}}},
+
+  "loadingItinerary": "AI is planning your itinerary...",
+  "@loadingItinerary": {"description": "Loading message on itinerary screen"},
+
+  "cannotCreateItinerary": "Cannot create itinerary",
+  "@cannotCreateItinerary": {"description": "Error heading on itinerary screen"},
+
+  "share": "Share",
+  "@share": {"description": "Share button label"},
+
+  "dayLabel": "Day {n}",
+  "@dayLabel": {"description": "Tab label for itinerary day", "placeholders": {"n": {"type": "int"}}},
+
+  "generateAiItinerary": "Generate AI Itinerary",
+  "@generateAiItinerary": {"description": "CTA button on destination detail to plan itinerary"},
+
+  "saveInfo": "Save Info",
+  "@saveInfo": {"description": "Button to save trip info on destination detail"},
+
+  "emptySavedHint": "Explore destinations and save them\nto see them here.",
+  "@emptySavedHint": {"description": "Hint text on saved screen empty state"},
+
+  "remove": "Remove",
+  "@remove": {"description": "Remove button label"},
+
+  "estimatedBudget": "ESTIMATED BUDGET",
+  "@estimatedBudget": {"description": "Budget section heading on destination detail"},
+
+  "bookNow": "Book Now",
+  "@bookNow": {"description": "Book now button label"},
+
+  "addToWishlist": "Add to Wishlist",
+  "@addToWishlist": {"description": "Add to wishlist button label"},
+
+  "addedToWishlist": "added to wishlist!",
+  "@addedToWishlist": {"description": "Snackbar message when item added to wishlist"},
+
+  "alreadySaved": "is already saved!",
+  "@alreadySaved": {"description": "Snackbar message when item already saved"},
+
+  "hot": "HOT",
+  "@hot": {"description": "Hot badge label for trending destinations"},
+
+  "perPerson": "/ person",
+  "@perPerson": {"description": "Price label suffix per person"},
+
+  "aiInsightPrefix": "💡 AI Insight: ",
+  "@aiInsightPrefix": {"description": "Prefix label for AI insight box"},
+
+  "defaultAiInsight": "Perfect for your wellness budget. Dry season now.",
+  "@defaultAiInsight": {"description": "Default AI insight text when saving trip"},
+
+  "vnd": "VNĐ",
+  "@vnd": {"description": "Vietnamese Dong currency symbol"},
+
+  "loginRequired": "You need to be logged in.",
+  "@loginRequired": {"description": "Error when user is not authenticated"},
+
+  "noAiResponse": "No response received from AI.",
+  "@noAiResponse": {"description": "Error when AI returns no response"},
+
+  "apiKeyNotSet": "GEMINI_API_KEY is not set. Please add your key to .env file.",
+  "@apiKeyNotSet": {"description": "Error when API key is missing"},
+
+  "invalidLoginCredentials": "Invalid login credentials. Please check your email and password.",
+  "@invalidLoginCredentials": {"description": "Error when login credentials are invalid"},
+
+  "emailNotConfirmed": "Email not confirmed. Please check your inbox.",
+  "@emailNotConfirmed": {"description": "Error when email is not confirmed"},
+
+  "userAlreadyExists": "User already exists. Please sign in instead.",
+  "@userAlreadyExists": {"description": "Error when user already exists"},
+
+  "beach": "Beach",
+  "@beach": {"description": "Beach interest label"},
+
+  "adventure": "Adventure",
+  "@adventure": {"description": "Adventure interest label"},
+
+  "culture": "Culture",
+  "@culture": {"description": "Culture interest label"},
+
+  "food": "Food",
+  "@food": {"description": "Food interest label"},
+
+  "wellness": "Wellness",
+  "@wellness": {"description": "Wellness interest label"}
+}

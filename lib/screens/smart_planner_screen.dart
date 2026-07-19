@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
@@ -15,7 +16,6 @@ import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/interest_chip.dart';
 
-/// Smart Planner screen — AI-powered trip planning input form.
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
 
@@ -35,10 +35,26 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   DateTime? _returnDate;
   late List<bool> _selectedInterests;
 
+  String _getLocalizedInterest(String interestKey, AppLocalizations l10n) {
+    switch (interestKey) {
+      case 'beach':
+        return l10n.beach;
+      case 'adventure':
+        return l10n.adventure;
+      case 'culture':
+        return l10n.culture;
+      case 'food':
+        return l10n.food;
+      case 'wellness':
+        return l10n.wellness;
+      default:
+        return interestKey;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Delay slightly so context is ready for provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final trip = SavedTripsProvider.of(context).currentTrip;
       setState(() {
@@ -51,7 +67,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _notesController.text = trip.additionalNotes;
         _promptController.text = trip.aiPrompt;
 
-        // Restore interests
         _selectedInterests = List.filled(MockData.interests.length, false);
         for (int i = 0; i < MockData.interests.length; i++) {
           if (trip.selectedInterests.contains(MockData.interests[i])) {
@@ -100,7 +115,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       setState(() {
         if (isDepart) {
           _departDate = picked;
-          // If return date is before depart, clear it
           if (_returnDate != null && _returnDate!.isBefore(picked)) {
             _returnDate = null;
           }
@@ -111,8 +125,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     }
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Add date';
+  String _formatDate(DateTime? date, AppLocalizations l10n) {
+    if (date == null) return l10n.addDate;
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
@@ -125,7 +139,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _ageRangeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please fill in all required info'),
+          content: Text(AppLocalizations.of(context)!.fillAllRequired),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -138,7 +152,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   void _onNavTap(int index) {
     switch (index) {
       case 0:
-        // Already on AI Planner
         break;
       case 1:
         Navigator.of(context).pushAndRemoveUntil(
@@ -192,6 +205,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Container(
@@ -205,7 +219,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // ── Header ──
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spacingLg,
@@ -218,7 +231,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          MockData.appName,
+                          l10n.appName,
                           style: TextStyle(
                             color: theme.colorScheme.primary,
                             fontSize: 20,
@@ -227,7 +240,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           ),
                         ),
                         Text(
-                          'Smart Planner',
+                          l10n.smartPlanner,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.7),
@@ -239,8 +252,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   ],
                 ),
               ),
-
-              // ── Scrollable Content ──
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -251,7 +262,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                     children: [
                       const SizedBox(height: 16),
                       Text(
-                        MockData.plannerGreeting,
+                        l10n.plannerGreeting,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -259,12 +270,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // ── AI Prompt Box ──
                       _AiPromptBox(controller: _promptController),
                       const SizedBox(height: 24),
-
-                      // ── Required Fields Label ──
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
@@ -276,7 +283,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'REQUIRED INFO',
+                              l10n.requiredInfo,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -287,25 +294,21 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           ],
                         ),
                       ),
-
-                      // ── Destination (text input) ──
                       _buildTextField(
                         icon: Icons.public,
-                        label: 'Destination',
-                        hint: 'Where to?',
+                        label: l10n.destination,
+                        hint: l10n.destinationHint,
                         controller: _destinationController,
                         keyboardType: TextInputType.text,
                       ),
                       const SizedBox(height: 12),
-
-                      // ── Depart / Return (date pickers) ──
                       Row(
                         children: [
                           Expanded(
                             child: _buildDateField(
                               icon: Icons.calendar_today,
-                              label: 'Depart',
-                              value: _formatDate(_departDate),
+                              label: l10n.departDate,
+                              value: _formatDate(_departDate, l10n),
                               onTap: () => _pickDate(isDepart: true),
                             ),
                           ),
@@ -313,27 +316,23 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           Expanded(
                             child: _buildDateField(
                               icon: Icons.calendar_month,
-                              label: 'Return',
-                              value: _formatDate(_returnDate),
+                              label: l10n.returnDate,
+                              value: _formatDate(_returnDate, l10n),
                               onTap: () => _pickDate(isDepart: false),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-
-                      // ── Budget (decimal input) ──
-                      _buildBudgetRow(),
+                      _buildBudgetRow(l10n),
                       const SizedBox(height: 12),
-
-                      // ── Participants / Age Range ──
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
                               icon: Icons.group,
-                              label: 'Participants',
-                              hint: 'How many?',
+                              label: l10n.participants,
+                              hint: l10n.participantsHint,
                               controller: _participantsController,
                               keyboardType: TextInputType.number,
                               inputFormatters: [
@@ -345,8 +344,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           Expanded(
                             child: _buildTextField(
                               icon: Icons.cake,
-                              label: 'Age Range',
-                              hint: 'e.g. 25-35',
+                              label: l10n.ageRange,
+                              hint: l10n.ageRangeHint,
                               controller: _ageRangeController,
                               keyboardType: TextInputType.number,
                             ),
@@ -354,12 +353,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-
-                      // ── Interests ──
-                      _buildInterests(),
+                      _buildInterests(l10n),
                       const SizedBox(height: 24),
-
-                      // ── Additional Notes (optional) ──
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
@@ -371,7 +366,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'PERSONALIZE YOUR TRIP',
+                              l10n.optionalInfo,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -390,7 +385,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'OPTIONAL',
+                                l10n.optional.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w600,
@@ -426,9 +421,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'ADDITIONAL NOTES',
-                                    style: TextStyle(
+                                  Text(
+                                    l10n.additionalNotes.toUpperCase(),
+                                    style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                       color: Color(0xFF64748B),
@@ -444,8 +439,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                                       fontSize: 14,
                                     ),
                                     decoration: InputDecoration(
-                                      hintText:
-                                          'Dietary restrictions, mobility needs, special occasions...',
+                                      hintText: l10n.notesHint,
                                       hintStyle: TextStyle(
                                         fontSize: 13,
                                         color: Colors.white.withValues(
@@ -464,8 +458,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-
-                      // ── Action Buttons ──
                       Row(
                         children: [
                           Expanded(
@@ -490,9 +482,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                                   ),
                                 ),
                               ),
-                              child: const Text(
-                                'Free Explore',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.explore,
+                                style: const TextStyle(
                                   color: Color(0xFFCBD5E1),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
@@ -504,7 +496,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           Expanded(
                             flex: 2,
                             child: GradientButton(
-                              label: 'Get AI Suggestions',
+                              label: l10n.getAiSuggestions,
                               icon: Icons.arrow_forward,
                               height: 52,
                               onPressed: _onGetSuggestions,
@@ -525,7 +517,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  /// Text input field inside a GlassCard.
   Widget _buildTextField({
     required IconData icon,
     required String label,
@@ -585,14 +576,13 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  /// Date picker field inside a GlassCard.
   Widget _buildDateField({
     required IconData icon,
     required String label,
     required String value,
     required VoidCallback onTap,
   }) {
-    final hasValue = value != 'Add date';
+    final hasValue = value != AppLocalizations.of(context)!.addDate;
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
@@ -640,12 +630,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  Widget _buildBudgetRow() {
+  Widget _buildBudgetRow(AppLocalizations l10n) {
     return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          // Amount
           Expanded(
             child: Row(
               children: [
@@ -666,9 +655,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'AMOUNT',
-                        style: TextStyle(
+                      Text(
+                        l10n.budget.toUpperCase(),
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF64748B),
@@ -690,7 +679,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           color: Colors.white,
                         ),
                         decoration: InputDecoration(
-                          hintText: '0.00',
+                          hintText: l10n.budgetHint,
                           hintStyle: TextStyle(
                             fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.3),
@@ -711,7 +700,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             height: 40,
             color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           ),
-          // Currency
           Expanded(
             child: Row(
               children: [
@@ -729,22 +717,22 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'CURRENCY',
-                        style: TextStyle(
+                        l10n.currency.toUpperCase(),
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF64748B),
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'VNĐ',
-                        style: TextStyle(
+                        l10n.vnd,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFFE2E8F0),
                         ),
@@ -760,7 +748,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  Widget _buildInterests() {
+  Widget _buildInterests(AppLocalizations l10n) {
     return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -781,9 +769,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'INTERESTS',
-                style: TextStyle(
+              Text(
+                l10n.interests.toUpperCase(),
+                style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF64748B),
@@ -796,8 +784,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             spacing: 8,
             runSpacing: 8,
             children: List.generate(MockData.interests.length, (i) {
+              final interestKey = MockData.interests[i];
+              final localizedLabel = _getLocalizedInterest(interestKey, l10n);
               return InterestChip(
-                label: MockData.interests[i],
+                label: localizedLabel,
                 isSelected: _selectedInterests[i],
                 onTap: () {
                   setState(
@@ -813,7 +803,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   }
 }
 
-/// AI prompt textarea with branded border.
 class _AiPromptBox extends StatelessWidget {
   const _AiPromptBox({required this.controller});
 
@@ -823,6 +812,7 @@ class _AiPromptBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -841,7 +831,7 @@ class _AiPromptBox extends StatelessWidget {
             maxLines: 3,
             style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
-              hintText: MockData.plannerHint,
+              hintText: l10n.aiPromptHint,
               hintStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 14,
@@ -857,7 +847,7 @@ class _AiPromptBox extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              MockData.aiPoweredLabel.toUpperCase(),
+              l10n.aiPowered,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,

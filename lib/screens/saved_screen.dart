@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
@@ -61,7 +63,6 @@ class _SavedScreenState extends State<SavedScreen> {
               Expanded(
                 child: _ItemListView(
                   items: allItems,
-                  label: 'saved items',
                   onRemoved: () => setState(() {}),
                 ),
               ),
@@ -92,8 +93,8 @@ class _Header extends StatelessWidget {
               ShaderMask(
                 shaderCallback: (bounds) =>
                     AppTheme.brandGradient.createShader(bounds),
-                child: const Text(
-                  'AIVIVU',
+                child: Text(
+                  MockData.appName,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
@@ -103,9 +104,9 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Saved',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.saved,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -123,19 +124,14 @@ class _Header extends StatelessWidget {
 // ── Item List View ──────────────────────────────────────────────────────
 
 class _ItemListView extends StatelessWidget {
-  const _ItemListView({
-    required this.items,
-    required this.label,
-    this.onRemoved,
-  });
+  const _ItemListView({required this.items, this.onRemoved});
   final List<SavedItem> items;
-  final String label;
   final VoidCallback? onRemoved;
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return _EmptyState(label: label);
+      return const _EmptyState();
     }
 
     return ListView.separated(
@@ -162,8 +158,7 @@ class _ItemListView extends StatelessWidget {
 // ── Empty State ─────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.label});
-  final String label;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +185,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'No $label yet',
+              AppLocalizations.of(context)!.noSavedYet,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -199,7 +194,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Explore destinations and save them\nto see them here.',
+              AppLocalizations.of(context)!.emptySavedHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -280,7 +275,9 @@ class _SavedItemCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isFullTrip ? 'Saved Trip' : 'Wishlist',
+                          isFullTrip
+                              ? AppLocalizations.of(context)!.savedTrip
+                              : AppLocalizations.of(context)!.wishlist,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -305,7 +302,7 @@ class _SavedItemCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${item.matchPercent}% Match',
+                      '${item.matchPercent}% ${AppLocalizations.of(context)!.match}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -370,7 +367,7 @@ class _SavedItemCard extends StatelessWidget {
                       ),
                     const SizedBox(width: 6),
                     Text(
-                      '(${item.reviewCount} reviews)',
+                      '(${item.reviewCount} ${AppLocalizations.of(context)!.reviewsCount})',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF94A3B8),
@@ -423,7 +420,9 @@ class _SavedItemCard extends StatelessWidget {
                       onRemoved?.call();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${item.name} removed'),
+                          content: Text(
+                            AppLocalizations.of(context)!.savedItemRemoved,
+                          ),
                           backgroundColor: const Color(0xFF475569),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -445,18 +444,18 @@ class _SavedItemCard extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.delete_outline,
                             size: 16,
                             color: Color(0xFFEF4444),
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Remove',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.remove,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFFEF4444),
