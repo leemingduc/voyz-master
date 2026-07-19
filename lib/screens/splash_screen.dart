@@ -7,7 +7,10 @@ import 'package:voyz/theme/app_theme.dart';
 ///
 /// Auto-navigates to the Smart Planner after 2.5 seconds.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.nextScreen, this.onFinished});
+
+  final Widget? nextScreen;
+  final VoidCallback? onFinished;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -33,9 +36,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateNext() {
     if (!mounted) return;
+    if (widget.onFinished != null) {
+      widget.onFinished!();
+      return;
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (c, a1, a2) => const SmartPlannerScreen(),
+        pageBuilder: (c, a1, a2) =>
+            widget.nextScreen ?? const SmartPlannerScreen(),
         transitionsBuilder: (c2, anim, a3, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 600),

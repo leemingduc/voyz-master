@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
@@ -8,7 +7,9 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
@@ -175,10 +176,14 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  void _onGetSuggestions() {
+  Future<void> _onGetSuggestions() async {
     if (!_validateInput()) return;
     _saveCurrentState();
+    await SearchHistoryService.instance.recordTripSearch(
+      SavedTripsProvider.of(context).currentTrip,
+    );
 
+    if (!mounted) return;
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const SuggestionsScreen()));
@@ -230,24 +235,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ),
                       ],
                     ),
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
-                      child: ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: MockData.profileImageUrl,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, e, s) => Icon(
-                            Icons.person,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                    ),
+                    const AccountMenuButton(),
                   ],
                 ),
               ),

@@ -7,6 +7,7 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 /// AI Travel Suggestions screen — scrollable list of AI-recommended destinations.
@@ -257,9 +258,15 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          IconButton(
-            onPressed: onRefresh,
-            icon: Icon(Icons.refresh, color: theme.colorScheme.primary),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AccountMenuButton(),
+              IconButton(
+                onPressed: onRefresh,
+                icon: Icon(Icons.refresh, color: theme.colorScheme.primary),
+              ),
+            ],
           ),
         ],
       ),

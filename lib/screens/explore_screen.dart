@@ -6,6 +6,7 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 /// Explore screen — independent from AI Planner.
@@ -133,6 +134,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ],
             ),
           ),
+
+          const AccountMenuButton(),
+          const SizedBox(width: 10),
 
           // Refresh button
           Container(
