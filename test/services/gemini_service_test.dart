@@ -23,4 +23,42 @@ void main() {
       expect(result, contains('English'));
     });
   });
+
+  group('chatLanguageInstruction', () {
+    test('uses the active chat language rather than the JSON instruction', () {
+      expect(
+        GeminiService.chatLanguageInstruction('vi'),
+        contains('Vietnamese'),
+      );
+      expect(GeminiService.chatLanguageInstruction('ko'), contains('Korean'));
+      expect(GeminiService.chatLanguageInstruction('en'), contains('English'));
+    });
+  });
+
+  group('extractChatText', () {
+    test('returns plain text unchanged', () {
+      expect(
+        GeminiService.extractChatText('Chào bạn, mình có thể giúp gì?'),
+        'Chào bạn, mình có thể giúp gì?',
+      );
+    });
+
+    test('extracts the response field from a JSON payload', () {
+      expect(
+        GeminiService.extractChatText(
+          '{"response":"Bạn nên đi Đà Nẵng vào tháng 3 nhé."}',
+        ),
+        'Bạn nên đi Đà Nẵng vào tháng 3 nhé.',
+      );
+    });
+
+    test('extracts nested text from a fenced JSON payload', () {
+      expect(
+        GeminiService.extractChatText(
+          '```json\n{"response":{"text":"Nội dung trả lời"}}\n```',
+        ),
+        'Nội dung trả lời',
+      );
+    });
+  });
 }

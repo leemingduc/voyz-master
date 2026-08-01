@@ -1065,6 +1065,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saving…'**
   String get savingContactInfo;
+
+  /// No description provided for @chatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Travel Assistant'**
+  String get chatTitle;
+
+  /// No description provided for @chatWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello! I’m your AI travel assistant. 🌍✈️\n\nYou can ask me about:\n• Travel destinations\n• Visa and documents\n• Travel costs\n• Local culture\n• Travel tips\n\nWhat would you like to know?'**
+  String get chatWelcome;
+
+  /// No description provided for @chatError.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, I encountered an error processing your request. Please try again later.'**
+  String get chatError;
+
+  /// No description provided for @chatCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat history cleared. What would you like to ask?'**
+  String get chatCleared;
+
+  /// No description provided for @chatInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about travel...'**
+  String get chatInputHint;
+
+  /// No description provided for @chatAiReply.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is replying...'**
+  String get chatAiReply;
+
+  /// No description provided for @compareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Destinations'**
+  String get compareTitle;
+
+  /// No description provided for @compareInputHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter destination names'**
+  String get compareInputHeader;
+
+  /// No description provided for @compareDest1Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination 1 (required)'**
+  String get compareDest1Hint;
+
+  /// No description provided for @compareDest2Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination 2 (required)'**
+  String get compareDest2Hint;
+
+  /// No description provided for @compareDest3Hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination 3 (optional)'**
+  String get compareDest3Hint;
+
+  /// No description provided for @compareButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare now'**
+  String get compareButton;
+
+  /// No description provided for @compareLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparing...'**
+  String get compareLoading;
+
+  /// No description provided for @compareMinError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter at least 2 destinations to compare'**
+  String get compareMinError;
+
+  /// No description provided for @compareRecommendation.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendation'**
+  String get compareRecommendation;
+
+  /// No description provided for @compareDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed Comparison'**
+  String get compareDetail;
+
+  /// No description provided for @comparePros.
+  ///
+  /// In en, this message translates to:
+  /// **'Pros'**
+  String get comparePros;
+
+  /// No description provided for @compareCons.
+  ///
+  /// In en, this message translates to:
+  /// **'Cons'**
+  String get compareCons;
+
+  /// No description provided for @bestTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Best Time to Travel'**
+  String get bestTimeTitle;
+
+  /// No description provided for @bestTimeInputHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter destination name'**
+  String get bestTimeInputHeader;
+
+  /// No description provided for @bestTimeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Da Lat, Bangkok, Tokyo...'**
+  String get bestTimeHint;
+
+  /// No description provided for @bestTimeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze now'**
+  String get bestTimeButton;
+
+  /// No description provided for @bestTimeLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing...'**
+  String get bestTimeLoading;
+
+  /// No description provided for @bestTimeMinError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a destination name'**
+  String get bestTimeMinError;
+
+  /// Best month label
+  ///
+  /// In en, this message translates to:
+  /// **'Best month: {month}'**
+  String bestTimeBestMonth(String month);
+
+  /// No description provided for @bestTimeSeasons.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Seasons'**
+  String get bestTimeSeasons;
+
+  /// No description provided for @bestTimeMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Data'**
+  String get bestTimeMonthly;
+
+  /// No description provided for @bestTimeTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Tips'**
+  String get bestTimeTips;
+
+  /// No description provided for @aiToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Tools'**
+  String get aiToolsTitle;
+
+  /// No description provided for @aiToolsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore powerful AI features'**
+  String get aiToolsSubtitle;
+
+  /// No description provided for @aiChatbotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chatbot'**
+  String get aiChatbotTitle;
+
+  /// No description provided for @aiChatbotSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with AI travel assistant'**
+  String get aiChatbotSubtitle;
+
+  /// No description provided for @aiChatbotDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about destinations, visas, culture, costs and get instant answers'**
+  String get aiChatbotDesc;
+
+  /// No description provided for @aiCompareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Destinations'**
+  String get aiCompareTitle;
+
+  /// No description provided for @aiCompareSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare 2-3 destinations at once'**
+  String get aiCompareSubtitle;
+
+  /// No description provided for @aiCompareDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View pros/cons, costs, weather, and activities for each destination'**
+  String get aiCompareDesc;
+
+  /// No description provided for @aiBestTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Best Time to Travel'**
+  String get aiBestTimeTitle;
+
+  /// No description provided for @aiBestTimeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze the ideal time to travel'**
+  String get aiBestTimeSubtitle;
+
+  /// No description provided for @aiBestTimeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Know which month to go, best season, cheapest flights'**
+  String get aiBestTimeDesc;
 }
 
 class _AppLocalizationsDelegate
