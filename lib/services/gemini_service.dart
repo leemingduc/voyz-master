@@ -6,6 +6,8 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/models/itinerary_plan.dart';
+import 'package:voyz/models/destination_comparison.dart';
+import 'package:voyz/models/best_time_travel.dart';
 
 import 'package:voyz/services/cache_service.dart';
 import 'package:voyz/services/image_service.dart';
@@ -33,17 +35,68 @@ class GeminiService {
     };
   }
 
-  GenerativeModel? _model;
+  /// Extracts the human-readable text when a chat model wraps it in JSON.
+  ///
+  /// Some model responses use payloads such as `{ "response": "..." }` even
+  /// though chat replies are expected to be plain text. This keeps payload
+  /// metadata from being shown in the chat bubble.
+  static String extractChatText(String rawResponse) {
+    final trimmed = rawResponse.trim();
+    if (trimmed.isEmpty) return '';
 
-  GenerativeModel get _gemini {
-    if (_model != null) return _model!;
+    final jsonText = trimmed
+        .replaceFirst(RegExp(r'^```(?:json)?\s*', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'\s*```$'), '')
+        .trim();
+
+    try {
+      final decoded = jsonDecode(jsonText);
+      final extracted = _extractTextValue(decoded);
+      if (extracted != null && extracted.trim().isNotEmpty) {
+        return extracted.trim();
+      }
+    } on FormatException {
+      // The normal chat response is not JSON, so display it unchanged.
+    }
+
+    return trimmed;
+  }
+
+  static String? _extractTextValue(dynamic value) {
+    if (value is String) return value;
+    if (value is! Map) return null;
+
+    for (final key in const [
+      'response',
+      'text',
+      'message',
+      'answer',
+      'content',
+      'result',
+    ]) {
+      final extracted = _extractTextValue(value[key]);
+      if (extracted != null) return extracted;
+    }
+
+    return null;
+  }
+
+  GenerativeModel? _model;
+  GenerativeModel? _chatModel;
+
+  String get _apiKey {
     final apiKey = dotenv.env['GEMINI_API_KEY'];
     if (apiKey == null || apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
       throw Exception('apiKeyNotSet');
     }
+    return apiKey;
+  }
+
+  GenerativeModel get _gemini {
+    if (_model != null) return _model!;
     _model = GenerativeModel(
       model: 'gemini-3.5-flash',
-      apiKey: apiKey,
+      apiKey: _apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.7,
@@ -52,6 +105,21 @@ class GeminiService {
       ),
     );
     return _model!;
+  }
+
+  /// Chat responses must be plain text; the main model is JSON-only for
+  /// structured travel tools such as itineraries and destination comparisons.
+  GenerativeModel get _chatGemini {
+    if (_chatModel != null) return _chatModel!;
+    _chatModel = GenerativeModel(
+      model: 'gemini-3.5-flash',
+      apiKey: _apiKey,
+      generationConfig: GenerationConfig(
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      ),
+    );
+    return _chatModel!;
   }
 
   // ── Explore (independent, no TripData needed) ─────────────────────────
@@ -785,5 +853,254 @@ Quy tắc:
     } catch (_) {
       return null;
     }
+  }
+
+  // ── AI Chatbot ────────────────────────────────────────────────────────
+
+  /// Send a chat message to the AI travel assistant.
+  ///
+  /// [message] the user's question about travel.
+  /// [languageCode] locale code for language-aware responses.
+  /// Returns the AI's text response.
+  Future<String> chat(String message, {String languageCode = 'vi'}) async {
+    final langInst = languageInstruction(languageCode);
+    final prompt =
+        '''
+Bạn là một người bạn đồng hành du lịch thân thiện, vui vẻ và rất am hiểu về du lịch. Hãy trò chuyện với người dùng như một cuộc nói chuyện tự nhiên giữa hai người bạn.
+
+Tin nhắn của người dùng: $message
+
+Cách trả lời:
+- Nói chuyện tự nhiên, thân mật như bạn bè (dùng "bạn", "mình", "nha", "nhé", "đó", "à", "ơi"...)
+- Thể hiện sự nhiệt tình, hào hứng khi chia sẻ về du lịch
+- Đưa ra thông tin hữu ích, cụ thể nhưng không quá dài dòng (tối đa 200-250 từ)
+- Đặt câu hỏi lại để tiếp tục cuộc trò chuyện (vd: "Bạn định đi khi nào?", "Bạn thích biển hay núi hơn?")
+- Thể hiện sự đồng cảm khi phù hợp (vd: "Ồ, chỗ đó đẹp lắm!", "Mình hiểu, đi lần đầu ai cũng lo")
+- Chia sẻ trải nghiệm thực tế, mẹo hữu ích
+- Dùng emoji để tăng cảm xúc 🌟✈️🏖️
+- Nếu người dùng hỏi về chi phí, đưa ra con số ước tính cụ thể
+- Nếu người dùng hỏi về thủ tục, trình bày lần lượt bằng các câu bắt đầu với "Bước 1", "Bước 2" thay vì dùng gạch đầu dòng
+- Luôn trả lời dưới dạng văn bản thuần, chia thành các đoạn ngắn tự nhiên như một văn bản thông thường
+- Không dùng Markdown hoặc các ký tự định dạng như tiêu đề (#), in đậm (**), gạch đầu dòng (-, *), bảng hay khối mã
+- $langInst
+''';
+
+    final response = await _chatGemini.generateContent([Content.text(prompt)]);
+    return extractChatText(response.text ?? '');
+  }
+
+  // ── Compare Destinations ──────────────────────────────────────────────
+
+  /// Compare 2-3 destinations side by side.
+  ///
+  /// [destinations] list of destination names to compare.
+  /// [trip] optional trip context for personalized comparison.
+  /// [languageCode] locale code for language-aware responses.
+  Future<DestinationComparison> compareDestinations(
+    List<String> destinations, {
+    TripData? trip,
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  }) async {
+    final cacheKey = _cache.buildKey('compare', {
+      'destinations': destinations,
+      'lang': languageCode,
+    });
+
+    if (!forceRefresh) {
+      final cached = _cache.get(cacheKey);
+      if (cached != null) {
+        final json = safeJsonDecode(cached) as Map<String, dynamic>;
+        return DestinationComparison.fromJson(json);
+      }
+    }
+
+    final prompt = _buildComparePrompt(destinations, trip, languageCode);
+    final response = await _gemini.generateContent([Content.text(prompt)]);
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('Không nhận được phản hồi từ AI.');
+    }
+
+    await _cache.put(cacheKey, text);
+    final json = safeJsonDecode(text) as Map<String, dynamic>;
+    return DestinationComparison.fromJson(json);
+  }
+
+  String _buildComparePrompt(
+    List<String> destinations,
+    TripData? trip,
+    String languageCode,
+  ) {
+    final destList = destinations.join(', ');
+    final langInst = languageInstruction(languageCode);
+    final budget = trip?.budget.isNotEmpty == true
+        ? '${trip!.budget} ${trip.currency}'
+        : 'không giới hạn';
+
+    return '''
+Bạn là chuyên gia du lịch AI. Hãy so sánh các điểm đến sau: $destList
+
+Ngân sách: $budget
+
+Trả về JSON object với cấu trúc:
+{
+  "destinations": [
+    {
+      "name": "Tên điểm đến",
+      "summary": "Tóm tắt 1-2 câu về điểm đến",
+      "overallScore": 8.5,
+      "pros": ["Ưu điểm 1", "Ưu điểm 2", "Ưu điểm 3"],
+      "cons": ["Nhược điểm 1", "Nhược điểm 2"]
+    }
+  ],
+  "recommendation": "Gợi ý cuối cùng: nên chọn điểm nào và tại sao",
+  "aspects": [
+    {
+      "label": "Chi phí",
+      "icon": "attach_money",
+      "details": [
+        {"destination": "Tên 1", "value": "Mô tả chi phí", "score": 8},
+        {"destination": "Tên 2", "value": "Mô tả chi phí", "score": 7}
+      ]
+    },
+    {
+      "label": "Thời tiết",
+      "icon": "cloud",
+      "details": [
+        {"destination": "Tên 1", "value": "Mô tả thời tiết", "score": 9},
+        {"destination": "Tên 2", "value": "Mô tả thời tiết", "score": 6}
+      ]
+    },
+    {
+      "label": "Hoạt động",
+      "icon": "sports",
+      "details": [
+        {"destination": "Tên 1", "value": "Mô tả hoạt động", "score": 8},
+        {"destination": "Tên 2", "value": "Mô tả hoạt động", "score": 9}
+      ]
+    },
+    {
+      "label": "Ẩm thực",
+      "icon": "restaurant",
+      "details": [
+        {"destination": "Tên 1", "value": "Mô tả ẩm thực", "score": 7},
+        {"destination": "Tên 2", "value": "Mô tả ẩm thực", "score": 8}
+      ]
+    }
+  ]
+}
+
+Quy tắc:
+- overallScore từ 1.0-10.0
+- pros: 3 ưu điểm chính
+- cons: 2 nhược điểm chính
+- aspects: so sánh 4 khía cạnh (chi phí, thời tiết, hoạt động, ẩm thực)
+- details.score từ 1-10
+- recommendation: gợi ý rõ ràng nên chọn điểm nào
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
+- $langInst
+''';
+  }
+
+  // ── Best Time to Travel ──────────────────────────────────────────────
+
+  /// Analyze the best time to travel to a destination.
+  ///
+  /// [destination] the destination name to analyze.
+  /// [languageCode] locale code for language-aware responses.
+  Future<BestTimeTravel> getBestTimeToTravel(
+    String destination, {
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  }) async {
+    final cacheKey = _cache.buildKey('best_time', {
+      'destination': destination,
+      'lang': languageCode,
+    });
+
+    if (!forceRefresh) {
+      final cached = _cache.get(cacheKey);
+      if (cached != null) {
+        final json = safeJsonDecode(cached) as Map<String, dynamic>;
+        return BestTimeTravel.fromJson(json);
+      }
+    }
+
+    final prompt = _buildBestTimePrompt(destination, languageCode);
+    final response = await _gemini.generateContent([Content.text(prompt)]);
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('Không nhận được phản hồi từ AI.');
+    }
+
+    await _cache.put(cacheKey, text);
+    final json = safeJsonDecode(text) as Map<String, dynamic>;
+    return BestTimeTravel.fromJson(json);
+  }
+
+  String _buildBestTimePrompt(String destination, String languageCode) {
+    final langInst = languageInstruction(languageCode);
+
+    return '''
+Bạn là chuyên gia du lịch AI. Hãy phân tích thời điểm tốt nhất để du lịch "$destination".
+
+Trả về JSON object với cấu trúc:
+{
+  "destination": "$destination",
+  "summary": "Tóm tắt 2-3 câu về thời điểm tốt nhất",
+  "bestMonth": "Tên tháng tốt nhất",
+  "monthlyData": [
+    {
+      "month": "Tháng 1",
+      "temperature": "18-22°C",
+      "rainfall": "Thấp",
+      "suitabilityScore": 85,
+      "highlight": "Sự kiện hoặc lý do nên đến"
+    }
+  ],
+  "seasons": [
+    {
+      "name": "Mùa khô",
+      "period": "Tháng 11 - Tháng 4",
+      "description": "Mô tả về mùa này",
+      "rating": 9
+    },
+    {
+      "name": "Mùa mưa",
+      "period": "Tháng 5 - Tháng 10",
+      "description": "Mô tả về mùa này",
+      "rating": 6
+    }
+  ],
+  "tips": [
+    {
+      "icon": "flight_takeoff",
+      "title": "Đặt vé sớm",
+      "description": "Đặt vé trước 2-3 tháng để có giá tốt nhất"
+    },
+    {
+      "icon": "hotel",
+      "title": "Đặt phòng",
+      "description": "Tránh đặt phòng vào mùa cao điểm"
+    },
+    {
+      "icon": "event",
+      "title": "Sự kiện",
+      "description": "Tham gia lễ hội địa phương"
+    }
+  ]
+}
+
+Quy tắc:
+- monthlyData: đủ 12 tháng (Tháng 1 đến Tháng 12)
+- suitabilityScore từ 0-100 (tháng tốt nhất có score cao nhất)
+- seasons: 2-4 mùa chính
+- tips: 3-5 mẹo thực tế
+- bestMonth: tên tháng có suitabilityScore cao nhất
+- icon cho tips: flight_takeoff, hotel, event, attach_money, calendar_today
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
+- $langInst
+''';
   }
 }
