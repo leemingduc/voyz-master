@@ -1065,6 +1065,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saving…'**
   String get savingContactInfo;
+
+  /// Cultural tips screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Cultural Tips'**
+  String get culturalTips;
+
+  /// Section heading for do's
+  ///
+  /// In en, this message translates to:
+  /// **'Do\'s'**
+  String get culturalDos;
+
+  /// Section heading for don'ts
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'ts'**
+  String get culturalDonts;
+
+  /// Section heading for basic phrases
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Phrases'**
+  String get basicPhrases;
+
+  /// Section heading for dining etiquette
+  ///
+  /// In en, this message translates to:
+  /// **'Dining Etiquette'**
+  String get diningEtiquette;
+
+  /// Section heading for sacred site rules
+  ///
+  /// In en, this message translates to:
+  /// **'Sacred Sites'**
+  String get sacredSites;
+
+  /// Loading message for cultural tips
+  ///
+  /// In en, this message translates to:
+  /// **'Loading cultural tips...'**
+  String get loadingCulturalTips;
+
+  /// Error message when cultural tips fail to load
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot load cultural tips'**
+  String get cannotLoadCulturalTips;
+
+  /// Button label to navigate to cultural tips
+  ///
+  /// In en, this message translates to:
+  /// **'🎭 Cultural Tips'**
+  String get culturalTipsButton;
 }
 
 class _AppLocalizationsDelegate

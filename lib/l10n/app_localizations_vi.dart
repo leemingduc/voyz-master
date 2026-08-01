@@ -508,4 +508,31 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get savingContactInfo => 'Đang lưu…';
+
+  @override
+  String get culturalTips => 'Mẹo văn hóa';
+
+  @override
+  String get culturalDos => 'Nên làm';
+
+  @override
+  String get culturalDonts => 'Không nên làm';
+
+  @override
+  String get basicPhrases => 'Cụm từ cơ bản';
+
+  @override
+  String get diningEtiquette => 'Phép tắc ăn uống';
+
+  @override
+  String get sacredSites => 'Địa điểm linh thiêng';
+
+  @override
+  String get loadingCulturalTips => 'Đang tải mẹo văn hóa...';
+
+  @override
+  String get cannotLoadCulturalTips => 'Không thể tải mẹo văn hóa';
+
+  @override
+  String get culturalTipsButton => '🎭 Mẹo văn hóa';
 }

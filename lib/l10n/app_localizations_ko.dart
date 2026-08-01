@@ -495,4 +495,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get savingContactInfo => '저장 중…';
+
+  @override
+  String get culturalTips => '문화 팁';
+
+  @override
+  String get culturalDos => '해야 할 일';
+
+  @override
+  String get culturalDonts => '하지 말아야 할 일';
+
+  @override
+  String get basicPhrases => '기본 표현';
+
+  @override
+  String get diningEtiquette => '식사 예절';
+
+  @override
+  String get sacredSites => '신성한 장소';
+
+  @override
+  String get loadingCulturalTips => '문화 팁 로딩 중...';
+
+  @override
+  String get cannotLoadCulturalTips => '문화 팁을 로드할 수 없습니다';
+
+  @override
+  String get culturalTipsButton => '🎭 문화 팁';
 }

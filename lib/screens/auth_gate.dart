@@ -37,7 +37,9 @@ class _AuthGateState extends State<AuthGate> {
       stream: SupabaseService.instance.auth.onAuthStateChange,
       builder: (context, snapshot) {
         final session = SupabaseService.instance.auth.currentSession;
-        return session == null ? const AuthScreen() : const SmartPlannerScreen();
+        return session == null
+            ? const AuthScreen()
+            : const SmartPlannerScreen();
       },
     );
   }

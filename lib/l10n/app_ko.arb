@@ -160,5 +160,15 @@
   "phoneMinDigits": "전화번호는 최소 8자리 이상이어야 합니다.",
   "contactInfoSaved": "연락처 정보가 저장되었습니다.",
   "saveContactInfo": "연락처 정보 저장",
-  "savingContactInfo": "저장 중…"
+  "savingContactInfo": "저장 중…",
+
+  "culturalTips": "문화 팁",
+  "culturalDos": "해야 할 일",
+  "culturalDonts": "하지 말아야 할 일",
+  "basicPhrases": "기본 표현",
+  "diningEtiquette": "식사 예절",
+  "sacredSites": "신성한 장소",
+  "loadingCulturalTips": "문화 팁 로딩 중...",
+  "cannotLoadCulturalTips": "문화 팁을 로드할 수 없습니다",
+  "culturalTipsButton": "🎭 문화 팁"
 }

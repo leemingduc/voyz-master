@@ -160,5 +160,15 @@
   "phoneMinDigits": "Số điện thoại cần ít nhất 8 chữ số.",
   "contactInfoSaved": "Thông tin liên hệ đã được lưu.",
   "saveContactInfo": "Lưu thông tin",
-  "savingContactInfo": "Đang lưu…"
+  "savingContactInfo": "Đang lưu…",
+
+  "culturalTips": "Mẹo văn hóa",
+  "culturalDos": "Nên làm",
+  "culturalDonts": "Không nên làm",
+  "basicPhrases": "Cụm từ cơ bản",
+  "diningEtiquette": "Phép tắc ăn uống",
+  "sacredSites": "Địa điểm linh thiêng",
+  "loadingCulturalTips": "Đang tải mẹo văn hóa...",
+  "cannotLoadCulturalTips": "Không thể tải mẹo văn hóa",
+  "culturalTipsButton": "🎭 Mẹo văn hóa"
 }

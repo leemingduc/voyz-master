@@ -482,5 +482,32 @@
   "@saveContactInfo": {"description": "Button label to save contact information"},
 
   "savingContactInfo": "Saving…",
-  "@savingContactInfo": {"description": "Button label while saving contact info"}
+  "@savingContactInfo": {"description": "Button label while saving contact info"},
+
+  "culturalTips": "Cultural Tips",
+  "@culturalTips": {"description": "Cultural tips screen title"},
+
+  "culturalDos": "Do's",
+  "@culturalDos": {"description": "Section heading for do's"},
+
+  "culturalDonts": "Don'ts",
+  "@culturalDonts": {"description": "Section heading for don'ts"},
+
+  "basicPhrases": "Basic Phrases",
+  "@basicPhrases": {"description": "Section heading for basic phrases"},
+
+  "diningEtiquette": "Dining Etiquette",
+  "@diningEtiquette": {"description": "Section heading for dining etiquette"},
+
+  "sacredSites": "Sacred Sites",
+  "@sacredSites": {"description": "Section heading for sacred site rules"},
+
+  "loadingCulturalTips": "Loading cultural tips...",
+  "@loadingCulturalTips": {"description": "Loading message for cultural tips"},
+
+  "cannotLoadCulturalTips": "Cannot load cultural tips",
+  "@cannotLoadCulturalTips": {"description": "Error message when cultural tips fail to load"},
+
+  "culturalTipsButton": "🎭 Cultural Tips",
+  "@culturalTipsButton": {"description": "Button label to navigate to cultural tips"}
 }

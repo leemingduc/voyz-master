@@ -509,4 +509,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savingContactInfo => 'Saving…';
+
+  @override
+  String get culturalTips => 'Cultural Tips';
+
+  @override
+  String get culturalDos => 'Do\'s';
+
+  @override
+  String get culturalDonts => 'Don\'ts';
+
+  @override
+  String get basicPhrases => 'Basic Phrases';
+
+  @override
+  String get diningEtiquette => 'Dining Etiquette';
+
+  @override
+  String get sacredSites => 'Sacred Sites';
+
+  @override
+  String get loadingCulturalTips => 'Loading cultural tips...';
+
+  @override
+  String get cannotLoadCulturalTips => 'Cannot load cultural tips';
+
+  @override
+  String get culturalTipsButton => '🎭 Cultural Tips';
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/models/itinerary_plan.dart';
@@ -551,6 +552,116 @@ Quy tắc:
 - items.description: viết bằng tiếng Anh, 1-2 câu
 - proTip: mẹo thực tế bằng tiếng Anh
 - Write all human-readable content (title, subtitle, description, proTip) in $languageName
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
+''';
+  }
+
+  // ── Cultural Tips ──────────────────────────────────────────────────────
+
+  /// Get AI-generated cultural tips for a specific destination.
+  ///
+  /// Returns customs, do's & don'ts, basic phrases, dining etiquette,
+  /// and sacred site guidelines.
+  Future<CulturalTips> getCulturalTips(
+    String destinationName, {
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  }) async {
+    final cacheKey = _cache.buildKey('cultural_tips', {
+      'name': destinationName,
+      'lang': languageCode,
+    });
+
+    // Check cache
+    if (!forceRefresh) {
+      final cached = _cache.get(cacheKey);
+      if (cached != null) {
+        return _parseCulturalTips(cached, destinationName);
+      }
+    }
+
+    // Cache miss — call Gemini API
+    final prompt = _buildCulturalTipsPrompt(destinationName, languageCode);
+    final response = await _gemini.generateContent([Content.text(prompt)]);
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('noAiResponse');
+    }
+
+    // Save to cache
+    await _cache.put(cacheKey, text);
+
+    return _parseCulturalTips(text, destinationName);
+  }
+
+  Future<CulturalTips> _parseCulturalTips(
+    String text,
+    String destinationName,
+  ) async {
+    final Map<String, dynamic> json =
+        safeJsonDecode(text) as Map<String, dynamic>;
+    final name = json['destinationName'] as String? ?? destinationName;
+    final imageUrl = await ImageService.instance.getImageUrl(name);
+    json['imageUrl'] = imageUrl;
+    return CulturalTips.fromJson(json);
+  }
+
+  String _buildCulturalTipsPrompt(String destinationName, String languageCode) {
+    final langInst = languageInstruction(languageCode);
+
+    return '''
+Bạn là chuyên gia văn hóa du lịch AI. Hãy cung cấp hướng dẫn văn hóa chi tiết cho điểm đến "$destinationName".
+
+Trả về JSON object với cấu trúc chính xác sau:
+{
+  "destinationName": "$destinationName",
+  "dos": [
+    "Nên làm 1",
+    "Nên làm 2",
+    "Nên làm 3",
+    "Nên làm 4",
+    "Nên làm 5"
+  ],
+  "donts": [
+    "Không nên làm 1",
+    "Không nên làm 2",
+    "Không nên làm 3",
+    "Không nên làm 4",
+    "Không nên làm 5"
+  ],
+  "phrases": [
+    {"native": "Xin chào", "translation": "Hello", "pronunciation": "sin chow"},
+    {"native": "Cảm ơn", "translation": "Thank you", "pronunciation": "kam uhn"},
+    {"native": "Xin lỗi", "translation": "Sorry", "pronunciation": "sin loi"},
+    {"native": "Bao nhiêu?", "translation": "How much?", "pronunciation": "bao nyew"},
+    {"native": "Tạm biệt", "translation": "Goodbye", "pronunciation": "tam byet"},
+    {"native": "Ngon", "translation": "Delicious", "pronunciation": "ngon"}
+  ],
+  "diningEtiquette": [
+    "Quy tắc ăn uống 1",
+    "Quy tắc ăn uống 2",
+    "Quy tắc ăn uống 3"
+  ],
+  "sacredSites": [
+    "Quy tắc đền/chùa 1",
+    "Quy tắc đền/chùa 2",
+    "Quy tắc đền/chùa 3"
+  ],
+  "generalAdvice": "Lời khuyên tổng quan 1-2 câu về văn hóa địa phương"
+}
+
+Quy tắc:
+- dos: 4-6 điều NÊN làm khi đến $destinationName (giao tiếp, ứng xử, ăn mặc)
+- donts: 4-6 điều KHÔNG NÊN làm (kiêng kỵ, sai lầm thường gặp)
+- phrases: 5-8 câu giao tiếp cơ bản hữu ích nhất cho khách du lịch
+  + native: câu viết bằng ngôn ngữ địa phương
+  + translation: dịch sang tiếng Anh
+  + pronunciation: phiên âm cách đọc cho người Việt/Anh
+- diningEtiquette: 3-4 quy tắc khi ăn uống tại $destinationName
+- sacredSites: 3-4 quy tắc khi tham quan đền, chùa, nhà thờ, nơi linh thiêng
+- generalAdvice: 1-2 câu tóm tắt lời khuyên văn hóa quan trọng nhất
+- Nội dung phải CHÍNH XÁC, cụ thể cho $destinationName, không generic
+- $langInst
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
 ''';
   }
