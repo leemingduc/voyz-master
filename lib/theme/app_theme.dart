@@ -48,9 +48,50 @@ class AppTheme {
   static const double radiusLg = 16;
   static const double radiusXl = 24;
 
+  // ── CJK Font Fallbacks ──────────────────────────────────────────────
+  // Font Inter (Google Fonts) does not include Korean/Japanese/Chinese
+  // glyphs. Add system CJK fonts as fallbacks so those scripts render
+  // correctly on every platform.
+  static const List<String> _cjkFontFallbacks = [
+    'Malgun Gothic', // Windows – Korean
+    'Apple SD Gothic Neo', // macOS/iOS – Korean
+    'Noto Sans CJK KR', // Linux – Korean
+    'Yu Gothic UI', // Windows – Japanese
+    'Hiragino Sans', // macOS/iOS – Japanese
+    'Microsoft YaHei UI', // Windows – Chinese Simplified
+    'PingFang SC', // macOS/iOS – Chinese Simplified
+  ];
+
+  /// Returns a copy of [textTheme] where every style has
+  /// [fontFamilyFallback] merged with [_cjkFontFallbacks].
+  static TextTheme _applyCjkFallbacks(TextTheme textTheme) {
+    TextStyle _add(TextStyle? s) => (s ?? const TextStyle()).copyWith(
+      fontFamilyFallback: _cjkFontFallbacks,
+    );
+    return textTheme.copyWith(
+      displayLarge: _add(textTheme.displayLarge),
+      displayMedium: _add(textTheme.displayMedium),
+      displaySmall: _add(textTheme.displaySmall),
+      headlineLarge: _add(textTheme.headlineLarge),
+      headlineMedium: _add(textTheme.headlineMedium),
+      headlineSmall: _add(textTheme.headlineSmall),
+      titleLarge: _add(textTheme.titleLarge),
+      titleMedium: _add(textTheme.titleMedium),
+      titleSmall: _add(textTheme.titleSmall),
+      bodyLarge: _add(textTheme.bodyLarge),
+      bodyMedium: _add(textTheme.bodyMedium),
+      bodySmall: _add(textTheme.bodySmall),
+      labelLarge: _add(textTheme.labelLarge),
+      labelMedium: _add(textTheme.labelMedium),
+      labelSmall: _add(textTheme.labelSmall),
+    );
+  }
+
   // ── Dark Theme ────────────────────────────────────────────────────────
   static ThemeData darkTheme() {
-    final textTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+    final textTheme = _applyCjkFallbacks(
+      GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -93,7 +134,9 @@ class AppTheme {
 
   // ── Light Theme (placeholder) ─────────────────────────────────────────
   static ThemeData lightTheme() {
-    final textTheme = GoogleFonts.interTextTheme(ThemeData.light().textTheme);
+    final textTheme = _applyCjkFallbacks(
+      GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+    );
 
     return ThemeData(
       useMaterial3: true,

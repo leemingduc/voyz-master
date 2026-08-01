@@ -808,7 +808,7 @@ abstract class AppLocalizations {
   /// **'removed'**
   String get removed;
 
-  /// Hint text on saved screen empty state
+  /// Empty state subtitle on saved screen
   ///
   /// In en, this message translates to:
   /// **'Explore destinations and save them\nto see them here.'**
@@ -1023,6 +1023,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wellness'**
   String get wellness;
+
+  /// Phone number field label
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get phoneNumber;
+
+  /// Phone number field hint text
+  ///
+  /// In en, this message translates to:
+  /// **'+84 912 345 678'**
+  String get phoneHint;
+
+  /// Phone validation error for invalid characters
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number can only contain digits, spaces, +, -, (, ).'**
+  String get phoneInvalidChars;
+
+  /// Phone validation error for minimum digits
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number needs at least 8 digits.'**
+  String get phoneMinDigits;
+
+  /// Snackbar after saving contact info
+  ///
+  /// In en, this message translates to:
+  /// **'Contact info saved.'**
+  String get contactInfoSaved;
+
+  /// Button label to save contact information
+  ///
+  /// In en, this message translates to:
+  /// **'Save contact info'**
+  String get saveContactInfo;
+
+  /// Button label while saving contact info
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get savingContactInfo;
 }
 
 class _AppLocalizationsDelegate

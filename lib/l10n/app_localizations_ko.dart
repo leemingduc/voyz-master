@@ -474,4 +474,25 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get wellness => '웰니스';
+
+  @override
+  String get phoneNumber => '전화번호';
+
+  @override
+  String get phoneHint => '+84 912 345 678';
+
+  @override
+  String get phoneInvalidChars => '전화번호는 숫자, 공백, +, -, (, )만 사용할 수 있습니다.';
+
+  @override
+  String get phoneMinDigits => '전화번호는 최소 8자리 이상이어야 합니다.';
+
+  @override
+  String get contactInfoSaved => '연락처 정보가 저장되었습니다.';
+
+  @override
+  String get saveContactInfo => '연락처 정보 저장';
+
+  @override
+  String get savingContactInfo => '저장 중…';
 }

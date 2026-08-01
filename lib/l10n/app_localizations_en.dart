@@ -487,4 +487,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wellness => 'Wellness';
+
+  @override
+  String get phoneNumber => 'Phone number';
+
+  @override
+  String get phoneHint => '+84 912 345 678';
+
+  @override
+  String get phoneInvalidChars =>
+      'Phone number can only contain digits, spaces, +, -, (, ).';
+
+  @override
+  String get phoneMinDigits => 'Phone number needs at least 8 digits.';
+
+  @override
+  String get contactInfoSaved => 'Contact info saved.';
+
+  @override
+  String get saveContactInfo => 'Save contact info';
+
+  @override
+  String get savingContactInfo => 'Saving…';
 }

@@ -126,14 +126,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final trimmed = phoneNumber.trim();
     if (trimmed.isEmpty) return null;
 
+    final l10n = AppLocalizations.of(context)!;
     final allowedCharacters = RegExp(r'^[0-9+\-() ]+$');
     if (!allowedCharacters.hasMatch(trimmed)) {
-      return 'So dien thoai chi gom so, khoang trang, +, -, (, ).';
+      return l10n.phoneInvalidChars;
     }
 
     final digitCount = RegExp(r'\d').allMatches(trimmed).length;
     if (digitCount < 8) {
-      return 'So dien thoai can it nhat 8 chu so.';
+      return l10n.phoneMinDigits;
     }
 
     return null;
@@ -162,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         _phoneController.text = savedPhoneNumber;
       });
-      _showMessage('Thong tin lien he da duoc luu.');
+      _showMessage(AppLocalizations.of(context)!.contactInfoSaved);
     } on AuthException catch (error) {
       if (mounted) _showMessage(error.message, isError: true);
     } catch (error) {
@@ -436,7 +437,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: SizedBox(
             width: 220,
             child: GradientButton(
-              label: _isSavingContactInfo ? 'Đang lưu' : 'Lưu thông tin',
+              label: _isSavingContactInfo
+                  ? l10n.savingContactInfo
+                  : l10n.saveContactInfo,
               icon: Icons.save,
               height: 46,
               onPressed: _isSavingContactInfo ? null : _saveContactInfo,
@@ -845,13 +848,14 @@ class _ContactPhoneField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return TextField(
       controller: controller,
       keyboardType: TextInputType.phone,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        labelText: 'So dien thoai',
-        hintText: '+84 912 345 678',
+        labelText: l10n.phoneNumber,
+        hintText: l10n.phoneHint,
         prefixIcon: const Icon(Icons.phone_outlined),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),

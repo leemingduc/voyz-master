@@ -397,9 +397,6 @@
   "saveInfo": "Save Info",
   "@saveInfo": {"description": "Button to save trip info on destination detail"},
 
-  "emptySavedHint": "Explore destinations and save them\nto see them here.",
-  "@emptySavedHint": {"description": "Hint text on saved screen empty state"},
-
   "remove": "Remove",
   "@remove": {"description": "Remove button label"},
 
@@ -464,5 +461,26 @@
   "@food": {"description": "Food interest label"},
 
   "wellness": "Wellness",
-  "@wellness": {"description": "Wellness interest label"}
+  "@wellness": {"description": "Wellness interest label"},
+
+  "phoneNumber": "Phone number",
+  "@phoneNumber": {"description": "Phone number field label"},
+
+  "phoneHint": "+84 912 345 678",
+  "@phoneHint": {"description": "Phone number field hint text"},
+
+  "phoneInvalidChars": "Phone number can only contain digits, spaces, +, -, (, ).",
+  "@phoneInvalidChars": {"description": "Phone validation error for invalid characters"},
+
+  "phoneMinDigits": "Phone number needs at least 8 digits.",
+  "@phoneMinDigits": {"description": "Phone validation error for minimum digits"},
+
+  "contactInfoSaved": "Contact info saved.",
+  "@contactInfoSaved": {"description": "Snackbar after saving contact info"},
+
+  "saveContactInfo": "Save contact info",
+  "@saveContactInfo": {"description": "Button label to save contact information"},
+
+  "savingContactInfo": "Saving…",
+  "@savingContactInfo": {"description": "Button label while saving contact info"}
 }

@@ -51,7 +51,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get cancel => 'Hủy';
 
   @override
-  String get home => 'AI Planner';
+  String get home => 'Lập KH AI';
 
   @override
   String get explore => 'Khám phá';
@@ -486,4 +486,26 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get wellness => 'Chăm sóc sức khỏe';
+
+  @override
+  String get phoneNumber => 'Số điện thoại';
+
+  @override
+  String get phoneHint => '+84 912 345 678';
+
+  @override
+  String get phoneInvalidChars =>
+      'Số điện thoại chỉ gồm số, khoảng trắng, +, -, (, ).';
+
+  @override
+  String get phoneMinDigits => 'Số điện thoại cần ít nhất 8 chữ số.';
+
+  @override
+  String get contactInfoSaved => 'Thông tin liên hệ đã được lưu.';
+
+  @override
+  String get saveContactInfo => 'Lưu thông tin';
+
+  @override
+  String get savingContactInfo => 'Đang lưu…';
 }

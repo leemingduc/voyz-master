@@ -132,8 +132,6 @@
   "dayLabel": "Ngày {n}",
   "generateAiItinerary": "Tạo lịch trình AI",
   "saveInfo": "Lưu thông tin",
-  "home": "AI Planner",
-  "emptySavedHint": "Khám phá các điểm đến và lưu chúng\nđể xem tại đây.",
   "remove": "Xóa",
   "estimatedBudget": "NGÂN SÁCH DỰ KIẾN",
   "bookNow": "Đặt ngay",
@@ -155,5 +153,12 @@
   "adventure": "Phiêu lưu",
   "culture": "Văn hóa",
   "food": "Ẩm thực",
-  "wellness": "Chăm sóc sức khỏe"
+  "wellness": "Chăm sóc sức khỏe",
+  "phoneNumber": "Số điện thoại",
+  "phoneHint": "+84 912 345 678",
+  "phoneInvalidChars": "Số điện thoại chỉ gồm số, khoảng trắng, +, -, (, ).",
+  "phoneMinDigits": "Số điện thoại cần ít nhất 8 chữ số.",
+  "contactInfoSaved": "Thông tin liên hệ đã được lưu.",
+  "saveContactInfo": "Lưu thông tin",
+  "savingContactInfo": "Đang lưu…"
 }

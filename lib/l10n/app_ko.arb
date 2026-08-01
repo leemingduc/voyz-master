@@ -132,7 +132,6 @@
   "dayLabel": "{n}일차",
   "generateAiItinerary": "AI 일정 생성",
   "saveInfo": "정보 저장",
-  "emptySavedHint": "여행지를 탐색하고 저장하면\n여기에 표시됩니다.",
   "remove": "삭제",
   "estimatedBudget": "예상 예산",
   "bookNow": "지금 예약",
@@ -154,5 +153,12 @@
   "adventure": "모험",
   "culture": "문화",
   "food": "음식",
-  "wellness": "웰니스"
+  "wellness": "웰니스",
+  "phoneNumber": "전화번호",
+  "phoneHint": "+84 912 345 678",
+  "phoneInvalidChars": "전화번호는 숫자, 공백, +, -, (, )만 사용할 수 있습니다.",
+  "phoneMinDigits": "전화번호는 최소 8자리 이상이어야 합니다.",
+  "contactInfoSaved": "연락처 정보가 저장되었습니다.",
+  "saveContactInfo": "연락처 정보 저장",
+  "savingContactInfo": "저장 중…"
 }

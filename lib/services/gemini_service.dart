@@ -47,7 +47,8 @@ class GeminiService {
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.7,
-        maxOutputTokens: 4096, // 10 destination objects need ~3000 tokens; 1200 caused truncation
+        maxOutputTokens:
+            8192, // Itinerary plans with nested days/items need ~5000+ tokens
       ),
     );
     return _model!;
@@ -212,36 +213,35 @@ Quy tắc:
       if (listValue != null) {
         jsonList = listValue as List<dynamic>;
       } else {
-        throw const FormatException('Phản hồi từ AI không chứa danh sách điểm đến.');
+        throw const FormatException(
+          'Phản hồi từ AI không chứa danh sách điểm đến.',
+        );
       }
     } else {
       throw const FormatException('Định dạng phản hồi của AI không hợp lệ.');
     }
 
-    final suggestions = jsonList
-        .whereType<Map>()
-        .map((e) {
-          final rawMap = Map<String, dynamic>.from(e);
-          final map = <String, dynamic>{
-            'name': rawMap['name']?.toString() ?? '',
-            'matchPercent': (rawMap['matchPercent'] is num)
-                ? (rawMap['matchPercent'] as num).toInt()
-                : int.tryParse(rawMap['matchPercent']?.toString() ?? '') ?? 0,
-            'rating': (rawMap['rating'] is num)
-                ? (rawMap['rating'] as num).toDouble()
-                : double.tryParse(rawMap['rating']?.toString() ?? '') ?? 0.0,
-            'reviewCount': (rawMap['reviewCount'] is num)
-                ? (rawMap['reviewCount'] as num).toInt()
-                : int.tryParse(rawMap['reviewCount']?.toString() ?? '') ?? 0,
-            'price': rawMap['price']?.toString() ?? '',
-            'aiInsight': rawMap['aiInsight']?.toString() ?? '',
-            'isTopMatch': rawMap['isTopMatch'] is bool
-                ? rawMap['isTopMatch'] as bool
-                : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
-          };
-          return DestinationSuggestion.fromJson(map, '');
-        })
-        .toList();
+    final suggestions = jsonList.whereType<Map>().map((e) {
+      final rawMap = Map<String, dynamic>.from(e);
+      final map = <String, dynamic>{
+        'name': rawMap['name']?.toString() ?? '',
+        'matchPercent': (rawMap['matchPercent'] is num)
+            ? (rawMap['matchPercent'] as num).toInt()
+            : int.tryParse(rawMap['matchPercent']?.toString() ?? '') ?? 0,
+        'rating': (rawMap['rating'] is num)
+            ? (rawMap['rating'] as num).toDouble()
+            : double.tryParse(rawMap['rating']?.toString() ?? '') ?? 0.0,
+        'reviewCount': (rawMap['reviewCount'] is num)
+            ? (rawMap['reviewCount'] as num).toInt()
+            : int.tryParse(rawMap['reviewCount']?.toString() ?? '') ?? 0,
+        'price': rawMap['price']?.toString() ?? '',
+        'aiInsight': rawMap['aiInsight']?.toString() ?? '',
+        'isTopMatch': rawMap['isTopMatch'] is bool
+            ? rawMap['isTopMatch'] as bool
+            : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
+      };
+      return DestinationSuggestion.fromJson(map, '');
+    }).toList();
 
     // Mark the first item as top match if none is flagged.
     if (suggestions.isNotEmpty && !suggestions.any((s) => s.isTopMatch)) {
@@ -369,7 +369,8 @@ Quy tắc:
     String text,
     String destinationName,
   ) async {
-    final Map<String, dynamic> json = safeJsonDecode(text) as Map<String, dynamic>;
+    final Map<String, dynamic> json =
+        safeJsonDecode(text) as Map<String, dynamic>;
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
     return DestinationDetail.fromJson(json, imageUrl);
@@ -468,11 +469,32 @@ Quy tắc:
       throw Exception('noAiResponse');
     }
 
+    // Debug: log raw AI response
+    print('=== AI Response for Itinerary ===');
+    print('Destination: $destinationName, Days: $numDays');
+    print('Response length: ${text.length} chars');
+    print(
+      'First 500 chars: ${text.length > 500 ? text.substring(0, 500) : text}',
+    );
+    print(
+      'Last 200 chars: ${text.length > 200 ? text.substring(text.length - 200) : text}',
+    );
+    print('=================================');
+
     // Save to cache
     await _cache.put(cacheKey, text);
 
-    final Map<String, dynamic> json = safeJsonDecode(text) as Map<String, dynamic>;
-    return ItineraryPlan.fromJson(json);
+    try {
+      final Map<String, dynamic> json =
+          safeJsonDecode(text) as Map<String, dynamic>;
+      return ItineraryPlan.fromJson(json);
+    } catch (e, stackTrace) {
+      print('=== JSON Parse Error ===');
+      print('Error: $e');
+      print('Stack trace: $stackTrace');
+      print('========================');
+      rethrow;
+    }
   }
 
   String _buildItineraryPrompt(
@@ -598,14 +620,22 @@ Quy tắc:
 
     // Attempt 2: heal JSON array closed with } instead of ] (Gemini model bug)
     // e.g. "[{...}, {...}}" → "[{...}, {...}]"
-    final healed = _healJsonArray(cleaned);
-    if (healed != cleaned) {
+    final healedArray = _healJsonArray(cleaned);
+    if (healedArray != cleaned) {
       try {
-        return jsonDecode(healed);
+        return jsonDecode(healedArray);
       } catch (_) {}
     }
 
-    // Attempt 3: extract innermost JSON object/array from surrounding text
+    // Attempt 3: heal truncated JSON (AI ran out of tokens mid-output)
+    final healedTruncated = _healTruncatedJson(cleaned);
+    if (healedTruncated != null) {
+      try {
+        return jsonDecode(healedTruncated);
+      } catch (_) {}
+    }
+
+    // Attempt 4: extract innermost JSON object/array from surrounding text
     final startIdx = cleaned.indexOf(RegExp(r'\[|\{'));
     if (startIdx != -1) {
       final sub = cleaned.substring(startIdx);
@@ -625,9 +655,18 @@ Quy tắc:
           return jsonDecode(_healJsonArray(extracted));
         } catch (_) {}
       }
+      // Attempt 5: heal truncated extracted substring
+      final healedExtractedTruncated = _healTruncatedJson(sub);
+      if (healedExtractedTruncated != null) {
+        try {
+          return jsonDecode(healedExtractedTruncated);
+        } catch (_) {}
+      }
     }
 
-    throw const FormatException('Không thể phân tích cú pháp JSON từ phản hồi AI.');
+    throw const FormatException(
+      'Không thể phân tích cú pháp JSON từ phản hồi AI.',
+    );
   }
 
   /// Heals a JSON string where an array was incorrectly closed with `}` instead of `]`.
@@ -642,5 +681,109 @@ Quy tắc:
       return '${trimmed.substring(0, trimmed.length - 1)}]';
     }
     return trimmed;
+  }
+
+  /// Attempts to heal truncated JSON caused by AI running out of tokens mid-output.
+  ///
+  /// Strategy: scan from the end and close any unclosed brackets/braces and
+  /// strings so the result is valid JSON. Returns `null` if healing fails.
+  String? _healTruncatedJson(String s) {
+    var trimmed = s.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Step 1: Find the last valid closing bracket position
+    // Work backwards to find where the JSON becomes incomplete
+    var lastValidPos = trimmed.length;
+    var inString = false;
+    var escaped = false;
+
+    // Scan from end to find incomplete parts
+    for (var i = trimmed.length - 1; i >= 0; i--) {
+      final c = trimmed[i];
+      if (c == '"' && (i == 0 || trimmed[i - 1] != r'\')) {
+        inString = !inString;
+      }
+      // Stop at first complete object/array boundary when not in string
+      if (!inString && (c == '}' || c == ']')) {
+        lastValidPos = i + 1;
+        break;
+      }
+    }
+
+    // If we didn't find a valid end, try the whole string
+    var workStr = lastValidPos < trimmed.length
+        ? trimmed.substring(0, lastValidPos)
+        : trimmed;
+
+    // Step 2: Clean up trailing fragments
+    workStr = workStr.trimRight();
+
+    // Remove trailing incomplete key-value pair
+    if (workStr.endsWith(',')) {
+      workStr = workStr.substring(0, workStr.length - 1).trimRight();
+    }
+
+    // Remove trailing incomplete string value
+    final lastQuote = workStr.lastIndexOf('"');
+    if (lastQuote != -1) {
+      final afterQuote = workStr.substring(lastQuote + 1).trimRight();
+      if (afterQuote.isEmpty || afterQuote.endsWith(',')) {
+        // String is incomplete, remove it
+        workStr = workStr.substring(0, lastQuote);
+        // Also remove the key if exists
+        final prevComma = workStr.lastIndexOf(',');
+        if (prevComma != -1) {
+          workStr = workStr.substring(0, prevComma);
+        }
+      }
+    }
+
+    // Step 3: Track open brackets and strings for proper closing
+    final stack = <String>[];
+    inString = false;
+    escaped = false;
+
+    for (var i = 0; i < workStr.length; i++) {
+      final c = workStr[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (c == r'\') {
+        escaped = true;
+        continue;
+      }
+      if (c == '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+
+      if (c == '{') {
+        stack.add('}');
+      } else if (c == '[') {
+        stack.add(']');
+      } else if (c == '}' || c == ']') {
+        if (stack.isNotEmpty) stack.removeLast();
+      }
+    }
+
+    // Step 4: Close any open strings and brackets
+    if (inString) {
+      workStr = '$workStr"';
+    }
+
+    final closing = stack.reversed.join();
+    if (closing.isEmpty) return null;
+
+    final result = '$workStr$closing';
+
+    // Verify it actually parses
+    try {
+      jsonDecode(result);
+      return result;
+    } catch (_) {
+      return null;
+    }
   }
 }
