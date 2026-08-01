@@ -24,6 +24,17 @@ void main() {
     });
   });
 
+  group('chatLanguageInstruction', () {
+    test('uses the active chat language rather than the JSON instruction', () {
+      expect(
+        GeminiService.chatLanguageInstruction('vi'),
+        contains('Vietnamese'),
+      );
+      expect(GeminiService.chatLanguageInstruction('ko'), contains('Korean'));
+      expect(GeminiService.chatLanguageInstruction('en'), contains('English'));
+    });
+  });
+
   group('extractChatText', () {
     test('returns plain text unchanged', () {
       expect(

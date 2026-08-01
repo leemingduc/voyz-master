@@ -57,6 +57,9 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final response = await GeminiService.instance.chat(
         text,
+        // The current user message was just appended above; pass only prior
+        // messages so it is not duplicated in the prompt.
+        history: _messages.take(_messages.length - 1).toList(),
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
 
