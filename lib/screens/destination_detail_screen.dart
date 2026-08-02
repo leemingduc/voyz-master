@@ -5,6 +5,7 @@ import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
+import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
@@ -664,6 +665,18 @@ class _ActionButtons extends StatelessWidget {
                 destinationName: destinationName,
                 dateRange: dateRange,
               ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        GradientButton(
+          label: AppLocalizations.of(context)!.culturalTipsButton,
+          icon: Icons.theater_comedy,
+          height: 56,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  CulturalTipsScreen(destinationName: destinationName),
             ),
           ),
         ),

@@ -5,23 +5,37 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
+import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/cache_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/background_music_button.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  await SupabaseService.instance.init();
-  await Hive.initFlutter();
-  await CacheService.instance.init();
-  await SearchHistoryService.instance.init();
+  try {
+    await dotenv.load(fileName: '.env');
+    await SupabaseService.instance.init();
+    await Hive.initFlutter();
+    await CacheService.instance.init();
+    await SearchHistoryService.instance.init();
+    // Don't block app startup on background music init.
+    BackgroundMusicService.instance.init();
+  } catch (e, st) {
+    debugPrint('❌ Init error: $e\n$st');
+  }
 
   // Resolve the initial locale before rendering.
-  final initialLocale = await LocaleSettingsStore.instance.load(
-    WidgetsBinding.instance.platformDispatcher.locale,
-  );
+  Locale initialLocale;
+  try {
+    initialLocale = await LocaleSettingsStore.instance.load(
+      WidgetsBinding.instance.platformDispatcher.locale,
+    );
+  } catch (e, st) {
+    debugPrint('❌ Locale load error: $e\n$st');
+    initialLocale = const Locale('en');
+  }
 
   runApp(VoyzApp(initialLocale: initialLocale));
 }
@@ -78,6 +92,19 @@ class _VoyzAppState extends State<VoyzApp> {
                   ? deviceLocale
                   : const Locale('en'),
               home: const AuthGate(),
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    // Persistent background music toggle button
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 8,
+                      right: 12,
+                      child: const BackgroundMusicButton(),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),

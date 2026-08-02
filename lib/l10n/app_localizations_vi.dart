@@ -510,126 +510,29 @@ class AppLocalizationsVi extends AppLocalizations {
   String get savingContactInfo => 'Đang lưu…';
 
   @override
-  String get chatTitle => 'Trợ lý du lịch AI';
+  String get culturalTips => 'Mẹo văn hóa';
 
   @override
-  String get chatWelcome =>
-      'Xin chào! Tôi là trợ lý du lịch AI của bạn. 🌍✈️\n\nBạn có thể hỏi tôi về:\n• Điểm đến du lịch\n• Thủ tục visa và giấy tờ\n• Chi phí du lịch\n• Văn hóa địa phương\n• Mẹo du lịch\n\nBạn muốn biết điều gì?';
+  String get culturalDos => 'Nên làm';
 
   @override
-  String get chatError =>
-      'Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.';
+  String get culturalDonts => 'Không nên làm';
 
   @override
-  String get chatCleared => 'Đã xóa lịch sử trò chuyện. Bạn muốn hỏi gì?';
+  String get basicPhrases => 'Cụm từ cơ bản';
 
   @override
-  String get chatInputHint => 'Hỏi về du lịch...';
+  String get diningEtiquette => 'Phép tắc ăn uống';
 
   @override
-  String get chatAiReply => 'AI đang trả lời...';
+  String get sacredSites => 'Địa điểm linh thiêng';
 
   @override
-  String get compareTitle => 'So sánh điểm đến';
+  String get loadingCulturalTips => 'Đang tải mẹo văn hóa...';
 
   @override
-  String get compareInputHeader => 'Nhập tên các điểm đến';
+  String get cannotLoadCulturalTips => 'Không thể tải mẹo văn hóa';
 
   @override
-  String get compareDest1Hint => 'Điểm đến 1 (bắt buộc)';
-
-  @override
-  String get compareDest2Hint => 'Điểm đến 2 (bắt buộc)';
-
-  @override
-  String get compareDest3Hint => 'Điểm đến 3 (tùy chọn)';
-
-  @override
-  String get compareButton => 'So sánh ngay';
-
-  @override
-  String get compareLoading => 'Đang so sánh...';
-
-  @override
-  String get compareMinError => 'Vui lòng nhập ít nhất 2 điểm đến để so sánh';
-
-  @override
-  String get compareRecommendation => 'Khuyến nghị';
-
-  @override
-  String get compareDetail => 'So sánh chi tiết';
-
-  @override
-  String get comparePros => 'Ưu điểm';
-
-  @override
-  String get compareCons => 'Nhược điểm';
-
-  @override
-  String get bestTimeTitle => 'Thời điểm tốt nhất';
-
-  @override
-  String get bestTimeInputHeader => 'Nhập tên điểm đến';
-
-  @override
-  String get bestTimeHint => 'Ví dụ: Đà Lạt, Bangkok, Tokyo...';
-
-  @override
-  String get bestTimeButton => 'Phân tích ngay';
-
-  @override
-  String get bestTimeLoading => 'Đang phân tích...';
-
-  @override
-  String get bestTimeMinError => 'Vui lòng nhập tên điểm đến';
-
-  @override
-  String bestTimeBestMonth(String month) {
-    return 'Tháng tốt nhất: $month';
-  }
-
-  @override
-  String get bestTimeSeasons => 'Mùa du lịch';
-
-  @override
-  String get bestTimeMonthly => 'Dữ liệu theo tháng';
-
-  @override
-  String get bestTimeTips => 'Mẹo du lịch';
-
-  @override
-  String get aiToolsTitle => 'Công cụ AI';
-
-  @override
-  String get aiToolsSubtitle => 'Khám phá các tính năng AI mạnh mẽ';
-
-  @override
-  String get aiChatbotTitle => 'AI Chatbot';
-
-  @override
-  String get aiChatbotSubtitle => 'Trò chuyện với trợ lý du lịch AI';
-
-  @override
-  String get aiChatbotDesc =>
-      'Hỏi về điểm đến, visa, văn hóa, chi phí và nhận câu trả lời tức thì';
-
-  @override
-  String get aiCompareTitle => 'So sánh điểm đến';
-
-  @override
-  String get aiCompareSubtitle => 'So sánh 2-3 điểm đến cùng lúc';
-
-  @override
-  String get aiCompareDesc =>
-      'Xem ưu/nhược điểm, chi phí, thời tiết, hoạt động của từng điểm đến';
-
-  @override
-  String get aiBestTimeTitle => 'Thời điểm tốt nhất';
-
-  @override
-  String get aiBestTimeSubtitle => 'Phân tích thời điểm lý tưởng để du lịch';
-
-  @override
-  String get aiBestTimeDesc =>
-      'Biết tháng nào nên đi, mùa nào đẹp, giá vé rẻ nhất';
+  String get culturalTipsButton => '🎭 Mẹo văn hóa';
 }

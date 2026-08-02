@@ -511,127 +511,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savingContactInfo => 'Saving…';
 
   @override
-  String get chatTitle => 'AI Travel Assistant';
+  String get culturalTips => 'Cultural Tips';
 
   @override
-  String get chatWelcome =>
-      'Hello! I’m your AI travel assistant. 🌍✈️\n\nYou can ask me about:\n• Travel destinations\n• Visa and documents\n• Travel costs\n• Local culture\n• Travel tips\n\nWhat would you like to know?';
+  String get culturalDos => 'Do\'s';
 
   @override
-  String get chatError =>
-      'Sorry, I encountered an error processing your request. Please try again later.';
+  String get culturalDonts => 'Don\'ts';
 
   @override
-  String get chatCleared => 'Chat history cleared. What would you like to ask?';
+  String get basicPhrases => 'Basic Phrases';
 
   @override
-  String get chatInputHint => 'Ask about travel...';
+  String get diningEtiquette => 'Dining Etiquette';
 
   @override
-  String get chatAiReply => 'AI is replying...';
+  String get sacredSites => 'Sacred Sites';
 
   @override
-  String get compareTitle => 'Compare Destinations';
+  String get loadingCulturalTips => 'Loading cultural tips...';
 
   @override
-  String get compareInputHeader => 'Enter destination names';
+  String get cannotLoadCulturalTips => 'Cannot load cultural tips';
 
   @override
-  String get compareDest1Hint => 'Destination 1 (required)';
-
-  @override
-  String get compareDest2Hint => 'Destination 2 (required)';
-
-  @override
-  String get compareDest3Hint => 'Destination 3 (optional)';
-
-  @override
-  String get compareButton => 'Compare now';
-
-  @override
-  String get compareLoading => 'Comparing...';
-
-  @override
-  String get compareMinError =>
-      'Please enter at least 2 destinations to compare';
-
-  @override
-  String get compareRecommendation => 'Recommendation';
-
-  @override
-  String get compareDetail => 'Detailed Comparison';
-
-  @override
-  String get comparePros => 'Pros';
-
-  @override
-  String get compareCons => 'Cons';
-
-  @override
-  String get bestTimeTitle => 'Best Time to Travel';
-
-  @override
-  String get bestTimeInputHeader => 'Enter destination name';
-
-  @override
-  String get bestTimeHint => 'e.g. Da Lat, Bangkok, Tokyo...';
-
-  @override
-  String get bestTimeButton => 'Analyze now';
-
-  @override
-  String get bestTimeLoading => 'Analyzing...';
-
-  @override
-  String get bestTimeMinError => 'Please enter a destination name';
-
-  @override
-  String bestTimeBestMonth(String month) {
-    return 'Best month: $month';
-  }
-
-  @override
-  String get bestTimeSeasons => 'Travel Seasons';
-
-  @override
-  String get bestTimeMonthly => 'Monthly Data';
-
-  @override
-  String get bestTimeTips => 'Travel Tips';
-
-  @override
-  String get aiToolsTitle => 'AI Tools';
-
-  @override
-  String get aiToolsSubtitle => 'Explore powerful AI features';
-
-  @override
-  String get aiChatbotTitle => 'AI Chatbot';
-
-  @override
-  String get aiChatbotSubtitle => 'Chat with AI travel assistant';
-
-  @override
-  String get aiChatbotDesc =>
-      'Ask about destinations, visas, culture, costs and get instant answers';
-
-  @override
-  String get aiCompareTitle => 'Compare Destinations';
-
-  @override
-  String get aiCompareSubtitle => 'Compare 2-3 destinations at once';
-
-  @override
-  String get aiCompareDesc =>
-      'View pros/cons, costs, weather, and activities for each destination';
-
-  @override
-  String get aiBestTimeTitle => 'Best Time to Travel';
-
-  @override
-  String get aiBestTimeSubtitle => 'Analyze the ideal time to travel';
-
-  @override
-  String get aiBestTimeDesc =>
-      'Know which month to go, best season, cheapest flights';
+  String get culturalTipsButton => '🎭 Cultural Tips';
 }
