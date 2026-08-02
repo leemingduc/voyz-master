@@ -536,4 +536,128 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get culturalTipsButton => '🎭 Cultural Tips';
+
+  @override
+  String get chatTitle => 'AI Travel Chat';
+
+  @override
+  String get chatWelcome =>
+      'Hi! I\'m your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍';
+
+  @override
+  String get chatError => 'Sorry, I couldn\'t respond. Please try again.';
+
+  @override
+  String get chatCleared => 'Chat cleared. How can I help you?';
+
+  @override
+  String get chatAiReply => 'AI is typing...';
+
+  @override
+  String get chatInputHint => 'Ask me about any destination...';
+
+  @override
+  String get compareTitle => 'Compare Destinations';
+
+  @override
+  String get compareInputHeader => 'Enter destinations to compare';
+
+  @override
+  String get compareDest1Hint => 'e.g. Phu Quoc';
+
+  @override
+  String get compareDest2Hint => 'e.g. Da Nang';
+
+  @override
+  String get compareDest3Hint => 'e.g. Hoi An (optional)';
+
+  @override
+  String get compareLoading => 'Comparing...';
+
+  @override
+  String get compareButton => 'Compare Destinations';
+
+  @override
+  String get compareMinError => 'Please enter at least 2 destinations.';
+
+  @override
+  String get compareRecommendation => 'AI Recommendation';
+
+  @override
+  String get compareDetail => 'Comparison Details';
+
+  @override
+  String get comparePros => 'Pros';
+
+  @override
+  String get compareCons => 'Cons';
+
+  @override
+  String get bestTimeTitle => 'Best Time to Travel';
+
+  @override
+  String get bestTimeInputHeader => 'Find the best time to visit';
+
+  @override
+  String get bestTimeHint => 'e.g. Bali, Tokyo, Paris...';
+
+  @override
+  String get bestTimeLoading => 'Analyzing...';
+
+  @override
+  String get bestTimeButton => 'Find Best Time';
+
+  @override
+  String get bestTimeMinError => 'Please enter a destination.';
+
+  @override
+  String bestTimeBestMonth(String month) {
+    return 'Best month: $month';
+  }
+
+  @override
+  String get bestTimeSeasons => 'Seasons';
+
+  @override
+  String get bestTimeMonthly => 'Monthly Overview';
+
+  @override
+  String get bestTimeTips => 'Travel Tips';
+
+  @override
+  String get aiToolsTitle => 'AI Travel Tools';
+
+  @override
+  String get aiToolsSubtitle =>
+      'Discover powerful AI tools to plan your perfect trip';
+
+  @override
+  String get aiChatbotTitle => 'AI Chatbot';
+
+  @override
+  String get aiChatbotSubtitle => 'Chat with AI';
+
+  @override
+  String get aiChatbotDesc =>
+      'Ask any travel question and get instant AI-powered answers about destinations, tips, and more.';
+
+  @override
+  String get aiCompareTitle => 'Compare Destinations';
+
+  @override
+  String get aiCompareSubtitle => 'Side-by-side comparison';
+
+  @override
+  String get aiCompareDesc =>
+      'Compare 2-3 destinations on cost, weather, activities, and more to find your perfect match.';
+
+  @override
+  String get aiBestTimeTitle => 'Best Time to Travel';
+
+  @override
+  String get aiBestTimeSubtitle => 'Seasonal analysis';
+
+  @override
+  String get aiBestTimeDesc =>
+      'Find the ideal months to visit any destination based on weather, crowds, and local events.';
 }

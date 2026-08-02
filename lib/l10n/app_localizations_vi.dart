@@ -535,4 +535,129 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get culturalTipsButton => '🎭 Mẹo văn hóa';
+
+  @override
+  String get chatTitle => 'Chat AI Du Lịch';
+
+  @override
+  String get chatWelcome =>
+      'Xin chào! Tôi là trợ lý du lịch AI. Hãy hỏi tôi về điểm đến, mẹo du lịch hoặc lên kế hoạch cho chuyến đi tiếp theo của bạn! 🌍';
+
+  @override
+  String get chatError => 'Xin lỗi, tôi không thể phản hồi. Vui lòng thử lại.';
+
+  @override
+  String get chatCleared =>
+      'Cuộc trò chuyện đã xóa. Tôi có thể giúp gì cho bạn?';
+
+  @override
+  String get chatAiReply => 'AI đang nhập...';
+
+  @override
+  String get chatInputHint => 'Hỏi tôi về bất kỳ điểm đến nào...';
+
+  @override
+  String get compareTitle => 'So sánh điểm đến';
+
+  @override
+  String get compareInputHeader => 'Nhập các điểm đến để so sánh';
+
+  @override
+  String get compareDest1Hint => 'VD: Phú Quốc';
+
+  @override
+  String get compareDest2Hint => 'VD: Đà Nẵng';
+
+  @override
+  String get compareDest3Hint => 'VD: Hội An (tùy chọn)';
+
+  @override
+  String get compareLoading => 'Đang so sánh...';
+
+  @override
+  String get compareButton => 'So sánh điểm đến';
+
+  @override
+  String get compareMinError => 'Vui lòng nhập ít nhất 2 điểm đến.';
+
+  @override
+  String get compareRecommendation => 'Đề xuất từ AI';
+
+  @override
+  String get compareDetail => 'Chi tiết so sánh';
+
+  @override
+  String get comparePros => 'Ưu điểm';
+
+  @override
+  String get compareCons => 'Nhược điểm';
+
+  @override
+  String get bestTimeTitle => 'Thời điểm tốt nhất để du lịch';
+
+  @override
+  String get bestTimeInputHeader => 'Tìm thời điểm tốt nhất để đến';
+
+  @override
+  String get bestTimeHint => 'VD: Bali, Tokyo, Paris...';
+
+  @override
+  String get bestTimeLoading => 'Đang phân tích...';
+
+  @override
+  String get bestTimeButton => 'Tìm thời điểm tốt nhất';
+
+  @override
+  String get bestTimeMinError => 'Vui lòng nhập điểm đến.';
+
+  @override
+  String bestTimeBestMonth(String month) {
+    return 'Tháng tốt nhất: $month';
+  }
+
+  @override
+  String get bestTimeSeasons => 'Các mùa';
+
+  @override
+  String get bestTimeMonthly => 'Tổng quan theo tháng';
+
+  @override
+  String get bestTimeTips => 'Mẹo du lịch';
+
+  @override
+  String get aiToolsTitle => 'Công cụ AI Du lịch';
+
+  @override
+  String get aiToolsSubtitle =>
+      'Khám phá các công cụ AI mạnh mẽ để lên kế hoạch cho chuyến đi hoàn hảo';
+
+  @override
+  String get aiChatbotTitle => 'AI Chatbot';
+
+  @override
+  String get aiChatbotSubtitle => 'Trò chuyện với AI';
+
+  @override
+  String get aiChatbotDesc =>
+      'Đặt bất kỳ câu hỏi du lịch nào và nhận câu trả lời AI ngay lập tức về điểm đến, mẹo và nhiều hơn nữa.';
+
+  @override
+  String get aiCompareTitle => 'So sánh điểm đến';
+
+  @override
+  String get aiCompareSubtitle => 'So sánh song song';
+
+  @override
+  String get aiCompareDesc =>
+      'So sánh 2-3 điểm đến về chi phí, thời tiết, hoạt động và nhiều hơn để tìm điểm đến hoàn hảo.';
+
+  @override
+  String get aiBestTimeTitle => 'Thời điểm tốt nhất';
+
+  @override
+  String get aiBestTimeSubtitle => 'Phân tích theo mùa';
+
+  @override
+  String get aiBestTimeDesc =>
+      'Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.';
 }

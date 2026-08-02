@@ -1119,6 +1119,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'🎭 Cultural Tips'**
   String get culturalTipsButton;
+
+  /// Chat screen app bar title
+  ///
+  /// In en, this message translates to:
+  /// **'AI Travel Chat'**
+  String get chatTitle;
+
+  /// Welcome message shown when chat screen opens
+  ///
+  /// In en, this message translates to:
+  /// **'Hi! I\'m your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍'**
+  String get chatWelcome;
+
+  /// Error message when chat fails
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, I couldn\'t respond. Please try again.'**
+  String get chatError;
+
+  /// Message shown after chat history is cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Chat cleared. How can I help you?'**
+  String get chatCleared;
+
+  /// Loading indicator text while AI is replying
+  ///
+  /// In en, this message translates to:
+  /// **'AI is typing...'**
+  String get chatAiReply;
+
+  /// Hint text in the chat input field
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me about any destination...'**
+  String get chatInputHint;
+
+  /// Compare screen app bar title
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Destinations'**
+  String get compareTitle;
+
+  /// Header for the compare input section
+  ///
+  /// In en, this message translates to:
+  /// **'Enter destinations to compare'**
+  String get compareInputHeader;
+
+  /// Hint for the first destination input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Phu Quoc'**
+  String get compareDest1Hint;
+
+  /// Hint for the second destination input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Da Nang'**
+  String get compareDest2Hint;
+
+  /// Hint for the optional third destination input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Hoi An (optional)'**
+  String get compareDest3Hint;
+
+  /// Button label while compare is loading
+  ///
+  /// In en, this message translates to:
+  /// **'Comparing...'**
+  String get compareLoading;
+
+  /// Button label to trigger comparison
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Destinations'**
+  String get compareButton;
+
+  /// Error when fewer than 2 destinations are entered
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter at least 2 destinations.'**
+  String get compareMinError;
+
+  /// Section heading for AI recommendation in compare results
+  ///
+  /// In en, this message translates to:
+  /// **'AI Recommendation'**
+  String get compareRecommendation;
+
+  /// Section heading for comparison detail table
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison Details'**
+  String get compareDetail;
+
+  /// Label for pros list in compare results
+  ///
+  /// In en, this message translates to:
+  /// **'Pros'**
+  String get comparePros;
+
+  /// Label for cons list in compare results
+  ///
+  /// In en, this message translates to:
+  /// **'Cons'**
+  String get compareCons;
+
+  /// Best time screen app bar title
+  ///
+  /// In en, this message translates to:
+  /// **'Best Time to Travel'**
+  String get bestTimeTitle;
+
+  /// Header for the best time input section
+  ///
+  /// In en, this message translates to:
+  /// **'Find the best time to visit'**
+  String get bestTimeInputHeader;
+
+  /// Hint text for the best time destination input
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Bali, Tokyo, Paris...'**
+  String get bestTimeHint;
+
+  /// Button label while best time is loading
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing...'**
+  String get bestTimeLoading;
+
+  /// Button label to trigger best time analysis
+  ///
+  /// In en, this message translates to:
+  /// **'Find Best Time'**
+  String get bestTimeButton;
+
+  /// Error when destination is empty in best time screen
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a destination.'**
+  String get bestTimeMinError;
+
+  /// Best month label with month name
+  ///
+  /// In en, this message translates to:
+  /// **'Best month: {month}'**
+  String bestTimeBestMonth(String month);
+
+  /// Section heading for seasons in best time results
+  ///
+  /// In en, this message translates to:
+  /// **'Seasons'**
+  String get bestTimeSeasons;
+
+  /// Section heading for monthly data in best time results
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Overview'**
+  String get bestTimeMonthly;
+
+  /// Section heading for travel tips in best time results
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Tips'**
+  String get bestTimeTips;
+
+  /// AI Tools hub screen title
+  ///
+  /// In en, this message translates to:
+  /// **'AI Travel Tools'**
+  String get aiToolsTitle;
+
+  /// AI Tools hub screen subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Discover powerful AI tools to plan your perfect trip'**
+  String get aiToolsSubtitle;
+
+  /// Chatbot tool card title
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chatbot'**
+  String get aiChatbotTitle;
+
+  /// Chatbot tool card subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with AI'**
+  String get aiChatbotSubtitle;
+
+  /// Chatbot tool card description
+  ///
+  /// In en, this message translates to:
+  /// **'Ask any travel question and get instant AI-powered answers about destinations, tips, and more.'**
+  String get aiChatbotDesc;
+
+  /// Compare tool card title
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Destinations'**
+  String get aiCompareTitle;
+
+  /// Compare tool card subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Side-by-side comparison'**
+  String get aiCompareSubtitle;
+
+  /// Compare tool card description
+  ///
+  /// In en, this message translates to:
+  /// **'Compare 2-3 destinations on cost, weather, activities, and more to find your perfect match.'**
+  String get aiCompareDesc;
+
+  /// Best time tool card title
+  ///
+  /// In en, this message translates to:
+  /// **'Best Time to Travel'**
+  String get aiBestTimeTitle;
+
+  /// Best time tool card subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Seasonal analysis'**
+  String get aiBestTimeSubtitle;
+
+  /// Best time tool card description
+  ///
+  /// In en, this message translates to:
+  /// **'Find the ideal months to visit any destination based on weather, crowds, and local events.'**
+  String get aiBestTimeDesc;
 }
 
 class _AppLocalizationsDelegate

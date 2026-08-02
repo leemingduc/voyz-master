@@ -522,4 +522,124 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get culturalTipsButton => '🎭 문화 팁';
+
+  @override
+  String get chatTitle => 'AI 여행 채팅';
+
+  @override
+  String get chatWelcome =>
+      '안녕하세요! 저는 AI 여행 어시스턴트입니다. 여행 목적지, 팁 또는 다음 여행 계획에 대해 무엇이든 물어보세요! 🌍';
+
+  @override
+  String get chatError => '죄송합니다. 응답할 수 없습니다. 다시 시도해 주세요.';
+
+  @override
+  String get chatCleared => '채팅이 삭제되었습니다. 어떻게 도와드릴까요?';
+
+  @override
+  String get chatAiReply => 'AI가 입력 중...';
+
+  @override
+  String get chatInputHint => '목적지에 대해 물어보세요...';
+
+  @override
+  String get compareTitle => '목적지 비교';
+
+  @override
+  String get compareInputHeader => '비교할 목적지를 입력하세요';
+
+  @override
+  String get compareDest1Hint => '예: 푸꾸옥';
+
+  @override
+  String get compareDest2Hint => '예: 다낭';
+
+  @override
+  String get compareDest3Hint => '예: 호이안 (선택사항)';
+
+  @override
+  String get compareLoading => '비교 중...';
+
+  @override
+  String get compareButton => '목적지 비교';
+
+  @override
+  String get compareMinError => '최소 2개의 목적지를 입력해 주세요.';
+
+  @override
+  String get compareRecommendation => 'AI 추천';
+
+  @override
+  String get compareDetail => '비교 세부사항';
+
+  @override
+  String get comparePros => '장점';
+
+  @override
+  String get compareCons => '단점';
+
+  @override
+  String get bestTimeTitle => '여행하기 가장 좋은 시기';
+
+  @override
+  String get bestTimeInputHeader => '방문하기 가장 좋은 시기 찾기';
+
+  @override
+  String get bestTimeHint => '예: 발리, 도쿄, 파리...';
+
+  @override
+  String get bestTimeLoading => '분석 중...';
+
+  @override
+  String get bestTimeButton => '가장 좋은 시기 찾기';
+
+  @override
+  String get bestTimeMinError => '목적지를 입력해 주세요.';
+
+  @override
+  String bestTimeBestMonth(String month) {
+    return '최고의 달: $month';
+  }
+
+  @override
+  String get bestTimeSeasons => '계절';
+
+  @override
+  String get bestTimeMonthly => '월별 개요';
+
+  @override
+  String get bestTimeTips => '여행 팝';
+
+  @override
+  String get aiToolsTitle => 'AI 여행 도구';
+
+  @override
+  String get aiToolsSubtitle => '완벽한 여행을 계획하기 위한 강력한 AI 도구를 탐색하세요';
+
+  @override
+  String get aiChatbotTitle => 'AI 챗봇';
+
+  @override
+  String get aiChatbotSubtitle => 'AI와 대화하기';
+
+  @override
+  String get aiChatbotDesc => '여행 질문을 묻고 목적지, 팝 등에 대한 즉각적인 AI 답변을 얻으세요.';
+
+  @override
+  String get aiCompareTitle => '목적지 비교';
+
+  @override
+  String get aiCompareSubtitle => '비교 분석';
+
+  @override
+  String get aiCompareDesc => '2-3개의 목적지를 비용, 날씨, 활동 등으로 비교하여 완벽한 목적지를 찾아보세요.';
+
+  @override
+  String get aiBestTimeTitle => '최적의 여행 시기';
+
+  @override
+  String get aiBestTimeSubtitle => '계절별 분석';
+
+  @override
+  String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
 }

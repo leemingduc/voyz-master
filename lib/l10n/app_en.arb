@@ -509,5 +509,317 @@
   "@cannotLoadCulturalTips": {"description": "Error message when cultural tips fail to load"},
 
   "culturalTipsButton": "🎭 Cultural Tips",
-  "@culturalTipsButton": {"description": "Button label to navigate to cultural tips"}
+  "@culturalTipsButton": {"description": "Button label to navigate to cultural tips"},
+
+  "chatTitle": "AI Travel Chat",
+  "@chatTitle": {"description": "Chat screen app bar title"},
+
+  "chatWelcome": "Hi! I'm your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍",
+  "@chatWelcome": {"description": "Welcome message shown when chat screen opens"},
+
+  "chatError": "Sorry, I couldn't respond. Please try again.",
+  "@chatError": {"description": "Error message when chat fails"},
+
+  "chatCleared": "Chat cleared. How can I help you?",
+  "@chatCleared": {"description": "Message shown after chat history is cleared"},
+
+  "chatAiReply": "AI is typing...",
+  "@chatAiReply": {"description": "Loading indicator text while AI is replying"},
+
+  "chatInputHint": "Ask me about any destination...",
+  "@chatInputHint": {"description": "Hint text in the chat input field"},
+
+  "compareTitle": "Compare Destinations",
+  "@compareTitle": {"description": "Compare screen app bar title"},
+
+  "compareInputHeader": "Enter destinations to compare",
+  "@compareInputHeader": {"description": "Header for the compare input section"},
+
+  "compareDest1Hint": "e.g. Phu Quoc",
+  "@compareDest1Hint": {"description": "Hint for the first destination input"},
+
+  "compareDest2Hint": "e.g. Da Nang",
+  "@compareDest2Hint": {"description": "Hint for the second destination input"},
+
+  "compareDest3Hint": "e.g. Hoi An (optional)",
+  "@compareDest3Hint": {"description": "Hint for the optional third destination input"},
+
+  "compareLoading": "Comparing...",
+  "@compareLoading": {"description": "Button label while compare is loading"},
+
+  "compareButton": "Compare Destinations",
+  "@compareButton": {"description": "Button label to trigger comparison"},
+
+  "compareMinError": "Please enter at least 2 destinations.",
+  "@compareMinError": {"description": "Error when fewer than 2 destinations are entered"},
+
+  "compareRecommendation": "AI Recommendation",
+  "@compareRecommendation": {"description": "Section heading for AI recommendation in compare results"},
+
+  "compareDetail": "Comparison Details",
+  "@compareDetail": {"description": "Section heading for comparison detail table"},
+
+  "comparePros": "Pros",
+  "@comparePros": {"description": "Label for pros list in compare results"},
+
+  "compareCons": "Cons",
+  "@compareCons": {"description": "Label for cons list in compare results"},
+
+  "bestTimeTitle": "Best Time to Travel",
+  "@bestTimeTitle": {"description": "Best time screen app bar title"},
+
+  "bestTimeInputHeader": "Find the best time to visit",
+  "@bestTimeInputHeader": {"description": "Header for the best time input section"},
+
+  "bestTimeHint": "e.g. Bali, Tokyo, Paris...",
+  "@bestTimeHint": {"description": "Hint text for the best time destination input"},
+
+  "bestTimeLoading": "Analyzing...",
+  "@bestTimeLoading": {"description": "Button label while best time is loading"},
+
+  "bestTimeButton": "Find Best Time",
+  "@bestTimeButton": {"description": "Button label to trigger best time analysis"},
+
+  "bestTimeMinError": "Please enter a destination.",
+  "@bestTimeMinError": {"description": "Error when destination is empty in best time screen"},
+
+  "bestTimeBestMonth": "Best month: {month}",
+  "@bestTimeBestMonth": {"description": "Best month label with month name", "placeholders": {"month": {"type": "String"}}},
+
+  "bestTimeSeasons": "Seasons",
+  "@generateAiItinerary": {"description": "CTA button on destination detail to plan itinerary"},
+
+  "saveInfo": "Save Info",
+  "@saveInfo": {"description": "Button to save trip info on destination detail"},
+
+  "remove": "Remove",
+  "@remove": {"description": "Remove button label"},
+
+  "estimatedBudget": "ESTIMATED BUDGET",
+  "@estimatedBudget": {"description": "Budget section heading on destination detail"},
+
+  "bookNow": "Book Now",
+  "@bookNow": {"description": "Book now button label"},
+
+  "addToWishlist": "Add to Wishlist",
+  "@addToWishlist": {"description": "Add to wishlist button label"},
+
+  "addedToWishlist": "added to wishlist!",
+  "@addedToWishlist": {"description": "Snackbar message when item added to wishlist"},
+
+  "alreadySaved": "is already saved!",
+  "@alreadySaved": {"description": "Snackbar message when item already saved"},
+
+  "hot": "HOT",
+  "@hot": {"description": "Hot badge label for trending destinations"},
+
+  "perPerson": "/ person",
+  "@perPerson": {"description": "Price label suffix per person"},
+
+  "aiInsightPrefix": "💡 AI Insight: ",
+  "@aiInsightPrefix": {"description": "Prefix label for AI insight box"},
+
+  "defaultAiInsight": "Perfect for your wellness budget. Dry season now.",
+  "@defaultAiInsight": {"description": "Default AI insight text when saving trip"},
+
+  "vnd": "VNĐ",
+  "@vnd": {"description": "Vietnamese Dong currency symbol"},
+
+  "loginRequired": "You need to be logged in.",
+  "@loginRequired": {"description": "Error when user is not authenticated"},
+
+  "noAiResponse": "No response received from AI.",
+  "@noAiResponse": {"description": "Error when AI returns no response"},
+
+  "apiKeyNotSet": "GEMINI_API_KEY is not set. Please add your key to .env file.",
+  "@apiKeyNotSet": {"description": "Error when API key is missing"},
+
+  "invalidLoginCredentials": "Invalid login credentials. Please check your email and password.",
+  "@invalidLoginCredentials": {"description": "Error when login credentials are invalid"},
+
+  "emailNotConfirmed": "Email not confirmed. Please check your inbox.",
+  "@emailNotConfirmed": {"description": "Error when email is not confirmed"},
+
+  "userAlreadyExists": "User already exists. Please sign in instead.",
+  "@userAlreadyExists": {"description": "Error when user already exists"},
+
+  "beach": "Beach",
+  "@beach": {"description": "Beach interest label"},
+
+  "adventure": "Adventure",
+  "@adventure": {"description": "Adventure interest label"},
+
+  "culture": "Culture",
+  "@culture": {"description": "Culture interest label"},
+
+  "food": "Food",
+  "@food": {"description": "Food interest label"},
+
+  "wellness": "Wellness",
+  "@wellness": {"description": "Wellness interest label"},
+
+  "phoneNumber": "Phone number",
+  "@phoneNumber": {"description": "Phone number field label"},
+
+  "phoneHint": "+84 912 345 678",
+  "@phoneHint": {"description": "Phone number field hint text"},
+
+  "phoneInvalidChars": "Phone number can only contain digits, spaces, +, -, (, ).",
+  "@phoneInvalidChars": {"description": "Phone validation error for invalid characters"},
+
+  "phoneMinDigits": "Phone number needs at least 8 digits.",
+  "@phoneMinDigits": {"description": "Phone validation error for minimum digits"},
+
+  "contactInfoSaved": "Contact info saved.",
+  "@contactInfoSaved": {"description": "Snackbar after saving contact info"},
+
+  "saveContactInfo": "Save contact info",
+  "@saveContactInfo": {"description": "Button label to save contact information"},
+
+  "savingContactInfo": "Saving…",
+  "@savingContactInfo": {"description": "Button label while saving contact info"},
+
+  "culturalTips": "Cultural Tips",
+  "@culturalTips": {"description": "Cultural tips screen title"},
+
+  "culturalDos": "Do's",
+  "@culturalDos": {"description": "Section heading for do's"},
+
+  "culturalDonts": "Don'ts",
+  "@culturalDonts": {"description": "Section heading for don'ts"},
+
+  "basicPhrases": "Basic Phrases",
+  "@basicPhrases": {"description": "Section heading for basic phrases"},
+
+  "diningEtiquette": "Dining Etiquette",
+  "@diningEtiquette": {"description": "Section heading for dining etiquette"},
+
+  "sacredSites": "Sacred Sites",
+  "@sacredSites": {"description": "Section heading for sacred site rules"},
+
+  "loadingCulturalTips": "Loading cultural tips...",
+  "@loadingCulturalTips": {"description": "Loading message for cultural tips"},
+
+  "cannotLoadCulturalTips": "Cannot load cultural tips",
+  "@cannotLoadCulturalTips": {"description": "Error message when cultural tips fail to load"},
+
+  "culturalTipsButton": "🎭 Cultural Tips",
+  "@culturalTipsButton": {"description": "Button label to navigate to cultural tips"},
+
+  "chatTitle": "AI Travel Chat",
+  "@chatTitle": {"description": "Chat screen app bar title"},
+
+  "chatWelcome": "Hi! I'm your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍",
+  "@chatWelcome": {"description": "Welcome message shown when chat screen opens"},
+
+  "chatError": "Sorry, I couldn't respond. Please try again.",
+  "@chatError": {"description": "Error message when chat fails"},
+
+  "chatCleared": "Chat cleared. How can I help you?",
+  "@chatCleared": {"description": "Message shown after chat history is cleared"},
+
+  "chatAiReply": "AI is typing...",
+  "@chatAiReply": {"description": "Loading indicator text while AI is replying"},
+
+  "chatInputHint": "Ask me about any destination...",
+  "@chatInputHint": {"description": "Hint text in the chat input field"},
+
+  "compareTitle": "Compare Destinations",
+  "@compareTitle": {"description": "Compare screen app bar title"},
+
+  "compareInputHeader": "Enter destinations to compare",
+  "@compareInputHeader": {"description": "Header for the compare input section"},
+
+  "compareDest1Hint": "e.g. Phu Quoc",
+  "@compareDest1Hint": {"description": "Hint for the first destination input"},
+
+  "compareDest2Hint": "e.g. Da Nang",
+  "@compareDest2Hint": {"description": "Hint for the second destination input"},
+
+  "compareDest3Hint": "e.g. Hoi An (optional)",
+  "@compareDest3Hint": {"description": "Hint for the optional third destination input"},
+
+  "compareLoading": "Comparing...",
+  "@compareLoading": {"description": "Button label while compare is loading"},
+
+  "compareButton": "Compare Destinations",
+  "@compareButton": {"description": "Button label to trigger comparison"},
+
+  "compareMinError": "Please enter at least 2 destinations.",
+  "@compareMinError": {"description": "Error when fewer than 2 destinations are entered"},
+
+  "compareRecommendation": "AI Recommendation",
+  "@compareRecommendation": {"description": "Section heading for AI recommendation in compare results"},
+
+  "compareDetail": "Comparison Details",
+  "@compareDetail": {"description": "Section heading for comparison detail table"},
+
+  "comparePros": "Pros",
+  "@comparePros": {"description": "Label for pros list in compare results"},
+
+  "compareCons": "Cons",
+  "@compareCons": {"description": "Label for cons list in compare results"},
+
+  "bestTimeTitle": "Best Time to Travel",
+  "@bestTimeTitle": {"description": "Best time screen app bar title"},
+
+  "bestTimeInputHeader": "Find the best time to visit",
+  "@bestTimeInputHeader": {"description": "Header for the best time input section"},
+
+  "bestTimeHint": "e.g. Bali, Tokyo, Paris...",
+  "@bestTimeHint": {"description": "Hint text for the best time destination input"},
+
+  "bestTimeLoading": "Analyzing...",
+  "@bestTimeLoading": {"description": "Button label while best time is loading"},
+
+  "bestTimeButton": "Find Best Time",
+  "@bestTimeButton": {"description": "Button label to trigger best time analysis"},
+
+  "bestTimeMinError": "Please enter a destination.",
+  "@bestTimeMinError": {"description": "Error when destination is empty in best time screen"},
+
+  "bestTimeBestMonth": "Best month: {month}",
+  "@bestTimeBestMonth": {"description": "Best month label with month name", "placeholders": {"month": {"type": "String"}}},
+
+  "bestTimeSeasons": "Seasons",
+  "@bestTimeSeasons": {"description": "Section heading for seasons in best time results"},
+
+  "bestTimeMonthly": "Monthly Overview",
+  "@bestTimeMonthly": {"description": "Section heading for monthly data in best time results"},
+
+  "bestTimeTips": "Travel Tips",
+  "@bestTimeTips": {"description": "Section heading for travel tips in best time results"},
+
+  "aiToolsTitle": "AI Travel Tools",
+  "@aiToolsTitle": {"description": "AI Tools hub screen title"},
+
+  "aiToolsSubtitle": "Discover powerful AI tools to plan your perfect trip",
+  "@aiToolsSubtitle": {"description": "AI Tools hub screen subtitle"},
+
+  "aiChatbotTitle": "AI Chatbot",
+  "@aiChatbotTitle": {"description": "Chatbot tool card title"},
+
+  "aiChatbotSubtitle": "Chat with AI",
+  "@aiChatbotSubtitle": {"description": "Chatbot tool card subtitle"},
+
+  "aiChatbotDesc": "Ask any travel question and get instant AI-powered answers about destinations, tips, and more.",
+  "@aiChatbotDesc": {"description": "Chatbot tool card description"},
+
+  "aiCompareTitle": "Compare Destinations",
+  "@aiCompareTitle": {"description": "Compare tool card title"},
+
+  "aiCompareSubtitle": "Side-by-side comparison",
+  "@aiCompareSubtitle": {"description": "Compare tool card subtitle"},
+
+  "aiCompareDesc": "Compare 2-3 destinations on cost, weather, activities, and more to find your perfect match.",
+  "@aiCompareDesc": {"description": "Compare tool card description"},
+
+  "aiBestTimeTitle": "Best Time to Travel",
+  "@aiBestTimeTitle": {"description": "Best time tool card title"},
+
+  "aiBestTimeSubtitle": "Seasonal analysis",
+  "@aiBestTimeSubtitle": {"description": "Best time tool card subtitle"},
+
+  "aiBestTimeDesc": "Find the ideal months to visit any destination based on weather, crowds, and local events.",
+  "@aiBestTimeDesc": {"description": "Best time tool card description"}
 }

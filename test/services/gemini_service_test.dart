@@ -2,6 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
+  test('uses Gemini 3.1 Flash Lite for every AI feature', () {
+    expect(GeminiService.modelName, 'gemini-3.1-flash-lite');
+  });
+
   group('languageInstruction', () {
     test('returns Vietnamese instruction for vi', () {
       final result = GeminiService.languageInstruction('vi');
@@ -24,41 +28,49 @@ void main() {
     });
   });
 
-  group('chatLanguageInstruction', () {
-    test('uses the active chat language rather than the JSON instruction', () {
+  group('requireApiKey', () {
+    test('accepts a configured API key', () {
       expect(
-        GeminiService.chatLanguageInstruction('vi'),
-        contains('Vietnamese'),
+        GeminiService.requireApiKey('AQ.example-configured-key'),
+        'AQ.example-configured-key',
       );
-      expect(GeminiService.chatLanguageInstruction('ko'), contains('Korean'));
-      expect(GeminiService.chatLanguageInstruction('en'), contains('English'));
+    });
+
+    test('rejects missing and placeholder API keys', () {
+      expect(
+        () => GeminiService.requireApiKey(null),
+        throwsA(isA<Exception>()),
+      );
+      expect(
+        () => GeminiService.requireApiKey('YOUR_API_KEY_HERE'),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 
-  group('extractChatText', () {
-    test('returns plain text unchanged', () {
-      expect(
-        GeminiService.extractChatText('Chào bạn, mình có thể giúp gì?'),
-        'Chào bạn, mình có thể giúp gì?',
-      );
+  group('safeJsonDecode', () {
+    test('decodes plain JSON object', () {
+      final result = GeminiService.instance.safeJsonDecode('{"key":"value"}');
+      expect(result, isA<Map<String, dynamic>>());
+      expect((result as Map<String, dynamic>)['key'], 'value');
     });
 
-    test('extracts the response field from a JSON payload', () {
-      expect(
-        GeminiService.extractChatText(
-          '{"response":"Bạn nên đi Đà Nẵng vào tháng 3 nhé."}',
-        ),
-        'Bạn nên đi Đà Nẵng vào tháng 3 nhé.',
-      );
+    test('decodes JSON with markdown code fence', () {
+      final result = GeminiService.instance
+          .safeJsonDecode('```json\n{"key":"value"}\n```');
+      expect(result, isA<Map<String, dynamic>>());
     });
 
-    test('extracts nested text from a fenced JSON payload', () {
-      expect(
-        GeminiService.extractChatText(
-          '```json\n{"response":{"text":"Nội dung trả lời"}}\n```',
-        ),
-        'Nội dung trả lời',
+    test('decodes plain JSON array', () {
+      final result = GeminiService.instance.safeJsonDecode('[1, 2, 3]');
+      expect(result, isA<List<dynamic>>());
+    });
+
+    test('heals array closed with } instead of ]', () {
+      final result = GeminiService.instance.safeJsonDecode(
+        '[{"name":"Hà Nội"},{"name":"Đà Nẵng"}]',
       );
+      expect(result, isA<List<dynamic>>());
     });
   });
 }
