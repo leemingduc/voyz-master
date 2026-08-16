@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
@@ -6,12 +8,15 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
+import 'package:voyz/services/chat_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 /// AI Travel Chatbot screen — chat directly with the AI travel assistant.
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key, this.destinationName});
+
+  final String? destinationName;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -26,14 +31,27 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Add welcome message
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final l10n = AppLocalizations.of(context)!;
-      setState(() {
-        _messages.add(ChatMessage.ai(l10n.chatWelcome));
-      });
-    });
+    _loadHistory();
   }
+
+  Future<void> _loadHistory() async {
+    final history = await ChatHistoryService.instance.load();
+    if (!mounted) return;
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(history);
+      if (_messages.isEmpty) {
+        _messages.add(
+          ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome),
+        );
+      }
+    });
+    unawaited(_persistMessages());
+  }
+
+  Future<void> _persistMessages() =>
+      ChatHistoryService.instance.save(_messages);
 
   @override
   void dispose() {
@@ -50,6 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages.add(ChatMessage.user(text));
       _isSending = true;
     });
+    unawaited(_persistMessages());
 
     _messageController.clear();
     _scrollToBottom();
@@ -61,6 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
         // messages so it is not duplicated in the prompt.
         history: _messages.take(_messages.length - 1).toList(),
         languageCode: LocaleProvider.of(context).value.languageCode,
+        destinationName: widget.destinationName,
       );
 
       if (mounted) {
@@ -68,6 +88,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.add(ChatMessage.ai(response));
           _isSending = false;
         });
+        unawaited(_persistMessages());
         _scrollToBottom();
       }
     } catch (e) {
@@ -77,6 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.add(ChatMessage.ai(l10n.chatError));
           _isSending = false;
         });
+        unawaited(_persistMessages());
         _scrollToBottom();
       }
     }
@@ -138,6 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 _messages.clear();
                 _messages.add(ChatMessage.ai(l10n.chatCleared));
               });
+              unawaited(_persistMessages());
             },
           ),
         ],

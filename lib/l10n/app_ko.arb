@@ -213,5 +213,18 @@
   "aiCompareDesc": "2-3개의 목적지를 비용, 날씨, 활동 등으로 비교하여 완벽한 목적지를 찾아보세요.",
   "aiBestTimeTitle": "최적의 여행 시기",
   "aiBestTimeSubtitle": "계절별 분석",
-  "aiBestTimeDesc": "날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요."
+  "aiBestTimeDesc": "날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.",
+
+  "currencySelectorTitle": "표시 통화",
+  "currencySelectorDescription": "Voyz의 가격은 최신 기준 환율로 환산됩니다.",
+  "currencyVietnameseDong": "베트남 동",
+  "currencyUsDollar": "미국 달러",
+  "currencyEuro": "유로",
+  "currencyKoreanWon": "대한민국 원",
+  "currencyJapaneseYen": "일본 엔",
+  "currencyThaiBaht": "태국 바트",
+  "currencyBritishPound": "영국 파운드",
+  "currencyAustralianDollar": "호주 달러",
+  "currencySingaporeDollar": "싱가포르 달러",
+  "currencyCanadianDollar": "캐나다 달러"
 }

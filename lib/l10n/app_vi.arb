@@ -213,5 +213,36 @@
   "aiCompareDesc": "So sánh 2-3 điểm đến về chi phí, thời tiết, hoạt động và nhiều hơn để tìm điểm đến hoàn hảo.",
   "aiBestTimeTitle": "Thời điểm tốt nhất",
   "aiBestTimeSubtitle": "Phân tích theo mùa",
-  "aiBestTimeDesc": "Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương."
+  "aiBestTimeDesc": "Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.",
+
+  "contextCompareSuggestions": "So sánh các gợi ý này",
+  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
+
+  "contextBestTime": "Khi nào nên đi?",
+  "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},
+
+  "contextAskAboutDestination": "Hỏi AI về nơi này",
+  "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
+
+  "refineForBudget": "Tối ưu theo ngân sách",
+  "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
+
+  "refineForFamily": "Phù hợp trẻ em/người lớn tuổi",
+  "@refineForFamily": {"description": "Action to make an itinerary more suitable for children or older adults"},
+
+  "refineLessTravel": "Ít di chuyển hơn",
+  "@refineLessTravel": {"description": "Action to reduce travel time between itinerary stops"},
+
+  "currencySelectorTitle": "Tiền tệ hiển thị",
+  "currencySelectorDescription": "Giá trong Voyz được quy đổi theo tỉ giá tham chiếu mới nhất.",
+  "currencyVietnameseDong": "Đồng Việt Nam",
+  "currencyUsDollar": "Đô la Mỹ",
+  "currencyEuro": "Euro",
+  "currencyKoreanWon": "Won Hàn Quốc",
+  "currencyJapaneseYen": "Yên Nhật",
+  "currencyThaiBaht": "Baht Thái",
+  "currencyBritishPound": "Bảng Anh",
+  "currencyAustralianDollar": "Đô la Úc",
+  "currencySingaporeDollar": "Đô la Singapore",
+  "currencyCanadianDollar": "Đô la Canada"
 }

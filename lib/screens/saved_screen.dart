@@ -4,11 +4,13 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
+import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
 /// Saved & Wishlist screen — displays saved trips and wishlist items.
 class SavedScreen extends StatefulWidget {
@@ -47,6 +49,23 @@ class _SavedScreenState extends State<SavedScreen> {
     final wishlistCount = provider.wishlistItems.length;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AIToolsScreen()));
+        },
+        backgroundColor: AppTheme.primaryPink,
+        icon: const Icon(Icons.auto_awesome, color: Colors.white),
+        label: Text(
+          AppLocalizations.of(context)!.aiToolsTitle,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -59,7 +78,10 @@ class _SavedScreenState extends State<SavedScreen> {
           child: Column(
             children: [
               // ── Header ──
-              _Header(workspaceCount: workspaceCount, wishlistCount: wishlistCount),
+              _Header(
+                workspaceCount: workspaceCount,
+                wishlistCount: wishlistCount,
+              ),
 
               // ── Content ──
               Expanded(
@@ -291,30 +313,43 @@ class _SavedItemCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorWidget: (_, e, s) => Container(
                     color: const Color(0xFF1E293B),
-                    child: const Icon(Icons.image, color: Colors.white24, size: 48),
+                    child: const Icon(
+                      Icons.image,
+                      color: Colors.white24,
+                      size: 48,
+                    ),
                   ),
                 ),
                 Positioned(
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       gradient: isFullTrip ? AppTheme.brandGradient : null,
-                      color: isFullTrip ? null : Colors.white.withValues(alpha: 0.15),
+                      color: isFullTrip
+                          ? null
+                          : Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isFullTrip ? Icons.dashboard_customize : Icons.favorite,
+                          isFullTrip
+                              ? Icons.dashboard_customize
+                              : Icons.favorite,
                           size: 12,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isFullTrip ? 'Workspace' : AppLocalizations.of(context)!.wishlist,
+                          isFullTrip
+                              ? 'Workspace'
+                              : AppLocalizations.of(context)!.wishlist,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -329,7 +364,10 @@ class _SavedItemCard extends StatelessWidget {
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(8),
@@ -366,13 +404,18 @@ class _SavedItemCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Text(
+                    CurrencyAmountText(
                       item.price,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: theme.colorScheme.tertiary,
                       ),
+                      originalStyle: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      textAlign: TextAlign.right,
                     ),
                   ],
                 ),
@@ -384,12 +427,18 @@ class _SavedItemCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -417,25 +466,38 @@ class _SavedItemCard extends StatelessWidget {
                       onRemoved?.call();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(AppLocalizations.of(context)!.savedItemRemoved),
+                          content: Text(
+                            AppLocalizations.of(context)!.savedItemRemoved,
+                          ),
                           backgroundColor: const Color(0xFF475569),
                           behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           duration: const Duration(seconds: 2),
                         ),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                          const Icon(
+                            Icons.delete_outline,
+                            size: 16,
+                            color: Color(0xFFEF4444),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             AppLocalizations.of(context)!.remove,
@@ -473,7 +535,10 @@ class _TrustRow extends StatelessWidget {
         const _MiniBadge(icon: Icons.psychology, label: 'AI match'),
         const _MiniBadge(icon: Icons.payments, label: 'Cost estimate'),
         if (item.rating > 0)
-          _MiniBadge(icon: Icons.star, label: '${item.rating.toStringAsFixed(1)} reference'),
+          _MiniBadge(
+            icon: Icons.star,
+            label: '${item.rating.toStringAsFixed(1)} reference',
+          ),
       ],
     );
   }
@@ -488,7 +553,8 @@ class _WorkspacePanel extends StatelessWidget {
     required String title,
     required String hint,
     required ValueChanged<String> onSubmit,
-  }) showAddDialog;
+  })
+  showAddDialog;
 
   @override
   Widget build(BuildContext context) {
@@ -507,16 +573,27 @@ class _WorkspacePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.dashboard_customize, color: Colors.white70, size: 18),
+              const Icon(
+                Icons.dashboard_customize,
+                color: Colors.white70,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Trip Workspace',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
               ),
               const Spacer(),
               Text(
                 '$doneCount/${item.checklist.length} ready',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -552,12 +629,16 @@ class _WorkspacePanel extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 13),
             decoration: InputDecoration(
               labelText: 'Notes',
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+              labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+              ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
             ),
             onChanged: (value) => provider.updateWorkspaceNotes(item, value),
@@ -595,8 +676,13 @@ class _WorkspacePanel extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ...item.bookingRefs.map((ref) => _MiniBadge(icon: Icons.confirmation_number, label: ref)),
-                ...item.sharedWith.map((person) => _MiniBadge(icon: Icons.person, label: person)),
+                ...item.bookingRefs.map(
+                  (ref) =>
+                      _MiniBadge(icon: Icons.confirmation_number, label: ref),
+                ),
+                ...item.sharedWith.map(
+                  (person) => _MiniBadge(icon: Icons.person, label: person),
+                ),
               ],
             ),
           ],
@@ -619,19 +705,32 @@ class _WorkspaceStatRow extends StatelessWidget {
       runSpacing: 8,
       children: [
         const _MiniBadge(icon: Icons.favorite, label: 'Wishlist'),
-        _MiniBadge(icon: Icons.calendar_today, label: trip?.departDate == null ? 'Flexible dates' : 'Itinerary ready'),
-        _MiniBadge(icon: Icons.payments, label: item.price.isEmpty ? 'Budget TBD' : item.price),
-        _MiniBadge(icon: Icons.note_alt, label: item.workspaceNotes.isEmpty ? 'No notes' : 'Notes saved'),
+        _MiniBadge(
+          icon: Icons.calendar_today,
+          label: trip?.departDate == null
+              ? 'Flexible dates'
+              : 'Itinerary ready',
+        ),
+        _MiniBadge(
+          icon: Icons.payments,
+          label: item.price.isEmpty ? 'Budget TBD' : item.price,
+          moneyValue: item.price.isEmpty ? null : item.price,
+        ),
+        _MiniBadge(
+          icon: Icons.note_alt,
+          label: item.workspaceNotes.isEmpty ? 'No notes' : 'Notes saved',
+        ),
       ],
     );
   }
 }
 
 class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({required this.icon, required this.label});
+  const _MiniBadge({required this.icon, required this.label, this.moneyValue});
 
   final IconData icon;
   final String label;
+  final String? moneyValue;
 
   @override
   Widget build(BuildContext context) {
@@ -648,14 +747,25 @@ class _MiniBadge extends StatelessWidget {
           const Icon(Icons.circle, color: Colors.transparent, size: 0),
           Icon(icon, color: const Color(0xFF94A3B8), size: 13),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.68),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+          if (moneyValue == null)
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.68),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else
+            CurrencyAmountText(
+              moneyValue!,
+              showOriginal: false,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.68),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -663,7 +773,11 @@ class _MiniBadge extends StatelessWidget {
 }
 
 class _ActionChipButton extends StatelessWidget {
-  const _ActionChipButton({required this.icon, required this.label, required this.onTap});
+  const _ActionChipButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -678,7 +792,9 @@ class _ActionChipButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.primaryPink.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.24)),
+          border: Border.all(
+            color: AppTheme.primaryPink.withValues(alpha: 0.24),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

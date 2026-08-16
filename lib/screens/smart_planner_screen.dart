@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:voyz/data/mock_data.dart';
+import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -10,12 +11,14 @@ import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/services/search_history_service.dart';
+import 'package:voyz/services/currency_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/interest_chip.dart';
+import 'package:voyz/widgets/shared/currency_selector.dart';
 
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
@@ -181,6 +184,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         departDate: _departDate,
         returnDate: _returnDate,
         budget: _budgetController.text,
+        currency: CurrencyProvider.of(context).value,
         participants: _participantsController.text,
         ageRange: _ageRangeController.text,
         additionalNotes: _notesController.text,
@@ -188,6 +192,37 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         selectedInterests: selected,
       ),
     );
+  }
+
+  Future<void> _changeCurrency(String currentCode) async {
+    final selectedCode = await showCurrencySelector(context);
+    if (!mounted || selectedCode == null || selectedCode == currentCode) return;
+
+    final enteredBudget = double.tryParse(_budgetController.text);
+    if (enteredBudget != null) {
+      try {
+        final converted = await ExchangeRateService.instance.convert(
+          ParsedMoney(
+            amount: enteredBudget,
+            currencyCode: currentCode,
+            isEstimate: false,
+          ),
+          selectedCode,
+        );
+        if (!mounted) return;
+        final decimalDigits = {'VND', 'KRW', 'JPY'}.contains(selectedCode)
+            ? 0
+            : 2;
+        _budgetController.text = converted!.amount
+            .toStringAsFixed(decimalDigits)
+            .replaceFirst(RegExp(r'\.0+$'), '');
+      } catch (_) {
+        // The selected currency still applies; the user can edit the budget
+        // when no online or cached reference rate is available.
+      }
+    }
+    if (!mounted) return;
+    await CurrencyProvider.of(context).setDisplayCurrency(selectedCode);
   }
 
   Future<void> _onGetSuggestions() async {
@@ -207,6 +242,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final displayCurrency = CurrencyProvider.of(context).value;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -217,9 +253,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         },
         backgroundColor: AppTheme.primaryPink,
         icon: const Icon(Icons.auto_awesome, color: Colors.white),
-        label: const Text(
-          'AI Tools',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        label: Text(
+          l10n.aiToolsTitle,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -339,7 +378,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildBudgetRow(l10n),
+                      _buildBudgetRow(l10n, displayCurrency),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -645,7 +684,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  Widget _buildBudgetRow(AppLocalizations l10n) {
+  Widget _buildBudgetRow(AppLocalizations l10n, String displayCurrency) {
     return GlassCard(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -716,46 +755,50 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           ),
           Expanded(
-            child: Row(
-              children: [
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _changeCurrency(displayCurrency),
+              child: Row(
+                children: [
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.currency_exchange,
+                      color: Color(0xFF94A3B8),
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.currency_exchange,
-                    color: Color(0xFF94A3B8),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.currency.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF64748B),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.currency.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.vnd,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFFE2E8F0),
+                        const SizedBox(height: 2),
+                        Text(
+                          displayCurrency,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFFE2E8F0),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

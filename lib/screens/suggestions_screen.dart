@@ -6,12 +6,14 @@ import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
+import 'package:voyz/screens/compare_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
+import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
 /// AI Travel Suggestions screen — scrollable list of AI-recommended destinations.
 class SuggestionsScreen extends StatefulWidget {
@@ -100,6 +102,32 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      floatingActionButton: _suggestions.length < 2
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CompareScreen(
+                      initialDestinations: _suggestions
+                          .take(3)
+                          .map((suggestion) => suggestion.name)
+                          .toList(),
+                    ),
+                  ),
+                );
+              },
+              backgroundColor: AppTheme.primaryPink,
+              icon: const Icon(Icons.compare_arrows, color: Colors.white),
+              label: Text(
+                AppLocalizations.of(context)!.contextCompareSuggestions,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -464,13 +492,18 @@ class _CardHeader extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
+            CurrencyAmountText(
               data['price'] as String,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: theme.colorScheme.tertiary,
               ),
+              originalStyle: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF94A3B8),
+              ),
+              textAlign: TextAlign.right,
             ),
             Text(
               l10n.perPerson,

@@ -660,4 +660,59 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get aiBestTimeDesc =>
       'Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.';
+
+  @override
+  String get contextCompareSuggestions => 'So sánh các gợi ý này';
+
+  @override
+  String get contextBestTime => 'Khi nào nên đi?';
+
+  @override
+  String get contextAskAboutDestination => 'Hỏi AI về nơi này';
+
+  @override
+  String get refineForBudget => 'Tối ưu theo ngân sách';
+
+  @override
+  String get refineForFamily => 'Phù hợp trẻ em/người lớn tuổi';
+
+  @override
+  String get refineLessTravel => 'Ít di chuyển hơn';
+
+  @override
+  String get currencySelectorTitle => 'Tiền tệ hiển thị';
+
+  @override
+  String get currencySelectorDescription =>
+      'Giá trong Voyz được quy đổi theo tỉ giá tham chiếu mới nhất.';
+
+  @override
+  String get currencyVietnameseDong => 'Đồng Việt Nam';
+
+  @override
+  String get currencyUsDollar => 'Đô la Mỹ';
+
+  @override
+  String get currencyEuro => 'Euro';
+
+  @override
+  String get currencyKoreanWon => 'Won Hàn Quốc';
+
+  @override
+  String get currencyJapaneseYen => 'Yên Nhật';
+
+  @override
+  String get currencyThaiBaht => 'Baht Thái';
+
+  @override
+  String get currencyBritishPound => 'Bảng Anh';
+
+  @override
+  String get currencyAustralianDollar => 'Đô la Úc';
+
+  @override
+  String get currencySingaporeDollar => 'Đô la Singapore';
+
+  @override
+  String get currencyCanadianDollar => 'Đô la Canada';
 }

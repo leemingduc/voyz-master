@@ -38,6 +38,15 @@ class GeminiService {
     };
   }
 
+  /// Returns a language instruction for the conversational, plain-text chat.
+  static String chatLanguageInstruction(String languageCode) {
+    return switch (languageCode) {
+      'vi' => 'Reply in Vietnamese.',
+      'ko' => 'Reply in Korean.',
+      _ => 'Reply in English.',
+    };
+  }
+
   /// The single Gemini model used by every AI feature in the app.
   static const modelName = 'gemini-3.1-flash-lite';
 
@@ -332,7 +341,7 @@ Trả về JSON array với đúng $limit phần tử, mỗi phần tử có c�
   "matchPercent": 85,
   "rating": 4.5,
   "reviewCount": 120,
-  "price": "~4.2M VNĐ",
+  "price": "~4.2M ${trip.currency}",
   "aiInsight": "Nhận xét ngắn gọn về sự phù hợp với người dùng",
   "isTopMatch": false
 }
@@ -427,12 +436,12 @@ Trả về JSON object với cấu trúc:
   "tags": ["🌿 Wellness", "🏖️ Beach", "🤿 Diving", "🌅 Scenic"],
   "weather": "Sunny, 32°C",
   "dateRange": "$dateInfo",
-  "totalBudget": "~4.2M VNĐ",
+  "totalBudget": "~4.2M ${trip.currency}",
   "budgetBreakdown": [
-    {"label": "Transport", "amount": "1.7M", "fraction": 0.40, "icon": "flight"},
-    {"label": "Stay", "amount": "1.2M", "fraction": 0.30, "icon": "hotel"},
-    {"label": "Food", "amount": "0.8M", "fraction": 0.20, "icon": "restaurant"},
-    {"label": "Activities", "amount": "0.5M", "fraction": 0.10, "icon": "kayaking"}
+    {"label": "Transport", "amount": "1.7M ${trip.currency}", "fraction": 0.40, "icon": "flight"},
+    {"label": "Stay", "amount": "1.2M ${trip.currency}", "fraction": 0.30, "icon": "hotel"},
+    {"label": "Food", "amount": "0.8M ${trip.currency}", "fraction": 0.20, "icon": "restaurant"},
+    {"label": "Activities", "amount": "0.5M ${trip.currency}", "fraction": 0.10, "icon": "kayaking"}
   ]
 }
 
@@ -441,7 +450,7 @@ Quy tắc:
 - weather: thời tiết thực tế cho thời gian du lịch
 - budgetBreakdown: chia ngân sách thành 4 loại, tổng fraction = 1.0
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
-- Số liệu phải phù hợp với ngân sách $budget
+- Mọi trường tiền tệ phải ghi cả số tiền và mã ${trip.currency}, đồng thời phù hợp với ngân sách $budget
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
 - $langInst
 ''';
@@ -461,11 +470,13 @@ Quy tắc:
     int limit = 4,
     bool forceRefresh = false,
     String languageCode = 'vi',
+    String? additionalInstruction,
   }) async {
     final cacheKey = _cache.buildKey('itinerary', {
       'name': destinationName,
       'numDays': numDays,
       'lang': languageCode,
+      'instruction': additionalInstruction,
     });
 
     // Check cache
@@ -485,13 +496,13 @@ Quy tắc:
       trip,
       limit,
       languageCode,
+      additionalInstruction,
     );
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
       throw Exception('noAiResponse');
     }
-
 
     // Save to cache
     await _cache.put(cacheKey, text);
@@ -515,6 +526,7 @@ Quy tắc:
     TripData trip,
     int limit,
     String languageCode,
+    String? additionalInstruction,
   ) {
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
@@ -530,6 +542,8 @@ Quy tắc:
 Bạn là chuyên gia du lịch AI. Hãy lên kế hoạch du lịch chi tiết $numDays ngày tại "$destinationName".
 
 Thời gian: $dateInfo
+
+${additionalInstruction == null || additionalInstruction.trim().isEmpty ? '' : 'Ưu tiên điều chỉnh: ${additionalInstruction.trim()}'}
 
 Trả về JSON object với cấu trúc:
 {
@@ -578,8 +592,9 @@ Quy tắc:
     String message, {
     required List<ChatMessage> history,
     String languageCode = 'vi',
+    String? destinationName,
   }) async {
-    final langInst = languageInstruction(languageCode);
+    final langInst = chatLanguageInstruction(languageCode);
 
     // Build conversation turns from history
     final contents = <Content>[];
@@ -589,7 +604,11 @@ Quy tắc:
       Content.text(
         'You are a friendly AI travel assistant. Help users plan trips, '
         'discover destinations, and answer travel-related questions. '
-        'Be concise, helpful, and enthusiastic about travel. $langInst',
+        'Be concise, helpful, and enthusiastic about travel. '
+        'Reply only with natural, plain text. Never return JSON, code fences, '
+        'a schema, or a list of data types. '
+        '${destinationName == null || destinationName.isEmpty ? '' : 'The user is currently viewing $destinationName; keep the answer grounded in that destination. '} '
+        '$langInst',
       ),
     );
 
@@ -608,6 +627,7 @@ Quy tắc:
     // Use a text-only model config for chat (not JSON mode)
     final chatModel = _createModel(
       generationConfig: GenerationConfig(
+        responseMimeType: 'text/plain',
         temperature: 0.8,
         maxOutputTokens: 1024,
       ),
@@ -634,7 +654,8 @@ Quy tắc:
     final langInst = languageInstruction(languageCode);
     final destList = destinations.map((d) => '"$d"').join(', ');
 
-    final prompt = '''
+    final prompt =
+        '''
 Bạn là chuyên gia du lịch AI. Hãy so sánh các điểm đến sau: $destList.
 
 Trả về JSON object với cấu trúc:
@@ -707,7 +728,8 @@ Quy tắc:
 
     final langInst = languageInstruction(languageCode);
 
-    final prompt = '''
+    final prompt =
+        '''
 Bạn là chuyên gia du lịch AI. Hãy phân tích thời điểm tốt nhất để du lịch đến "$destination".
 
 Trả về JSON object với cấu trúc:

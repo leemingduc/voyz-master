@@ -642,4 +642,58 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
+
+  @override
+  String get contextCompareSuggestions => 'Compare these suggestions';
+
+  @override
+  String get contextBestTime => 'When should I go?';
+
+  @override
+  String get contextAskAboutDestination => 'Ask AI about this place';
+
+  @override
+  String get refineForBudget => 'Optimize for budget';
+
+  @override
+  String get refineForFamily => 'Better for children or seniors';
+
+  @override
+  String get refineLessTravel => 'Less travel between stops';
+
+  @override
+  String get currencySelectorTitle => '표시 통화';
+
+  @override
+  String get currencySelectorDescription => 'Voyz의 가격은 최신 기준 환율로 환산됩니다.';
+
+  @override
+  String get currencyVietnameseDong => '베트남 동';
+
+  @override
+  String get currencyUsDollar => '미국 달러';
+
+  @override
+  String get currencyEuro => '유로';
+
+  @override
+  String get currencyKoreanWon => '대한민국 원';
+
+  @override
+  String get currencyJapaneseYen => '일본 엔';
+
+  @override
+  String get currencyThaiBaht => '태국 바트';
+
+  @override
+  String get currencyBritishPound => '영국 파운드';
+
+  @override
+  String get currencyAustralianDollar => '호주 달러';
+
+  @override
+  String get currencySingaporeDollar => '싱가포르 달러';
+
+  @override
+  String get currencyCanadianDollar => '캐나다 달러';
 }

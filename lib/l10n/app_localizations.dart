@@ -1353,6 +1353,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Find the ideal months to visit any destination based on weather, crowds, and local events.'**
   String get aiBestTimeDesc;
+
+  /// Action to compare the current destination suggestions
+  ///
+  /// In en, this message translates to:
+  /// **'Compare these suggestions'**
+  String get contextCompareSuggestions;
+
+  /// Action to analyze the best time for the current destination
+  ///
+  /// In en, this message translates to:
+  /// **'When should I go?'**
+  String get contextBestTime;
+
+  /// Action to open AI chat with the current destination context
+  ///
+  /// In en, this message translates to:
+  /// **'Ask AI about this place'**
+  String get contextAskAboutDestination;
+
+  /// Action to optimize an itinerary for the user's budget
+  ///
+  /// In en, this message translates to:
+  /// **'Optimize for budget'**
+  String get refineForBudget;
+
+  /// Action to make an itinerary more suitable for children or older adults
+  ///
+  /// In en, this message translates to:
+  /// **'Better for children or seniors'**
+  String get refineForFamily;
+
+  /// Action to reduce travel time between itinerary stops
+  ///
+  /// In en, this message translates to:
+  /// **'Less travel between stops'**
+  String get refineLessTravel;
+
+  /// Title of the display currency picker
+  ///
+  /// In en, this message translates to:
+  /// **'Display currency'**
+  String get currencySelectorTitle;
+
+  /// Description in the display currency picker
+  ///
+  /// In en, this message translates to:
+  /// **'Prices throughout Voyz are converted using the latest available reference rate.'**
+  String get currencySelectorDescription;
+
+  /// No description provided for @currencyVietnameseDong.
+  ///
+  /// In en, this message translates to:
+  /// **'Vietnamese đồng'**
+  String get currencyVietnameseDong;
+
+  /// No description provided for @currencyUsDollar.
+  ///
+  /// In en, this message translates to:
+  /// **'US dollar'**
+  String get currencyUsDollar;
+
+  /// No description provided for @currencyEuro.
+  ///
+  /// In en, this message translates to:
+  /// **'Euro'**
+  String get currencyEuro;
+
+  /// No description provided for @currencyKoreanWon.
+  ///
+  /// In en, this message translates to:
+  /// **'South Korean won'**
+  String get currencyKoreanWon;
+
+  /// No description provided for @currencyJapaneseYen.
+  ///
+  /// In en, this message translates to:
+  /// **'Japanese yen'**
+  String get currencyJapaneseYen;
+
+  /// No description provided for @currencyThaiBaht.
+  ///
+  /// In en, this message translates to:
+  /// **'Thai baht'**
+  String get currencyThaiBaht;
+
+  /// No description provided for @currencyBritishPound.
+  ///
+  /// In en, this message translates to:
+  /// **'British pound'**
+  String get currencyBritishPound;
+
+  /// No description provided for @currencyAustralianDollar.
+  ///
+  /// In en, this message translates to:
+  /// **'Australian dollar'**
+  String get currencyAustralianDollar;
+
+  /// No description provided for @currencySingaporeDollar.
+  ///
+  /// In en, this message translates to:
+  /// **'Singapore dollar'**
+  String get currencySingaporeDollar;
+
+  /// No description provided for @currencyCanadianDollar.
+  ///
+  /// In en, this message translates to:
+  /// **'Canadian dollar'**
+  String get currencyCanadianDollar;
 }
 
 class _AppLocalizationsDelegate
