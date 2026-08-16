@@ -660,4 +660,59 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiBestTimeDesc =>
       'Find the ideal months to visit any destination based on weather, crowds, and local events.';
+
+  @override
+  String get contextCompareSuggestions => 'Compare these suggestions';
+
+  @override
+  String get contextBestTime => 'When should I go?';
+
+  @override
+  String get contextAskAboutDestination => 'Ask AI about this place';
+
+  @override
+  String get refineForBudget => 'Optimize for budget';
+
+  @override
+  String get refineForFamily => 'Better for children or seniors';
+
+  @override
+  String get refineLessTravel => 'Less travel between stops';
+
+  @override
+  String get currencySelectorTitle => 'Display currency';
+
+  @override
+  String get currencySelectorDescription =>
+      'Prices throughout Voyz are converted using the latest available reference rate.';
+
+  @override
+  String get currencyVietnameseDong => 'Vietnamese đồng';
+
+  @override
+  String get currencyUsDollar => 'US dollar';
+
+  @override
+  String get currencyEuro => 'Euro';
+
+  @override
+  String get currencyKoreanWon => 'South Korean won';
+
+  @override
+  String get currencyJapaneseYen => 'Japanese yen';
+
+  @override
+  String get currencyThaiBaht => 'Thai baht';
+
+  @override
+  String get currencyBritishPound => 'British pound';
+
+  @override
+  String get currencyAustralianDollar => 'Australian dollar';
+
+  @override
+  String get currencySingaporeDollar => 'Singapore dollar';
+
+  @override
+  String get currencyCanadianDollar => 'Canadian dollar';
 }

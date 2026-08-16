@@ -28,6 +28,13 @@ void main() {
     });
   });
 
+  group('chatLanguageInstruction', () {
+    test('returns Vietnamese plain-text instruction for vi', () {
+      final result = GeminiService.chatLanguageInstruction('vi');
+      expect(result, 'Reply in Vietnamese.');
+    });
+  });
+
   group('requireApiKey', () {
     test('accepts a configured API key', () {
       expect(

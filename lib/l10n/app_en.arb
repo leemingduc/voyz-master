@@ -821,5 +821,38 @@
   "@aiBestTimeSubtitle": {"description": "Best time tool card subtitle"},
 
   "aiBestTimeDesc": "Find the ideal months to visit any destination based on weather, crowds, and local events.",
-  "@aiBestTimeDesc": {"description": "Best time tool card description"}
+  "@aiBestTimeDesc": {"description": "Best time tool card description"},
+
+  "contextCompareSuggestions": "Compare these suggestions",
+  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
+
+  "contextBestTime": "When should I go?",
+  "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},
+
+  "contextAskAboutDestination": "Ask AI about this place",
+  "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
+
+  "refineForBudget": "Optimize for budget",
+  "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
+
+  "refineForFamily": "Better for children or seniors",
+  "@refineForFamily": {"description": "Action to make an itinerary more suitable for children or older adults"},
+
+  "refineLessTravel": "Less travel between stops",
+  "@refineLessTravel": {"description": "Action to reduce travel time between itinerary stops"},
+
+  "currencySelectorTitle": "Display currency",
+  "@currencySelectorTitle": {"description": "Title of the display currency picker"},
+  "currencySelectorDescription": "Prices throughout Voyz are converted using the latest available reference rate.",
+  "@currencySelectorDescription": {"description": "Description in the display currency picker"},
+  "currencyVietnameseDong": "Vietnamese đồng",
+  "currencyUsDollar": "US dollar",
+  "currencyEuro": "Euro",
+  "currencyKoreanWon": "South Korean won",
+  "currencyJapaneseYen": "Japanese yen",
+  "currencyThaiBaht": "Thai baht",
+  "currencyBritishPound": "British pound",
+  "currencyAustralianDollar": "Australian dollar",
+  "currencySingaporeDollar": "Singapore dollar",
+  "currencyCanadianDollar": "Canadian dollar"
 }

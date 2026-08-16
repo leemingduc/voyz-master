@@ -24,6 +24,13 @@ class ItineraryPlan {
       proTip: json['proTip'] as String? ?? '',
     );
   }
+
+  Map<String, dynamic> toMap() => {
+    'destinationName': destinationName,
+    'dateRange': dateRange,
+    'days': days.map((day) => day.toMap()).toList(),
+    'proTip': proTip,
+  };
 }
 
 /// A single day within the itinerary.
@@ -52,6 +59,13 @@ class ItineraryDay {
           [],
     );
   }
+
+  Map<String, dynamic> toMap() => {
+    'dayNumber': dayNumber,
+    'title': title,
+    'subtitle': subtitle,
+    'items': items.map((item) => item.toMap()).toList(),
+  };
 }
 
 /// A single activity/event within a day of the itinerary.
@@ -82,6 +96,5 @@ class ItineraryItem {
     'title': title,
     'description': description,
     'icon': icon,
-    'isFirst': false,
   };
 }

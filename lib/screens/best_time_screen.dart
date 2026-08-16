@@ -13,7 +13,9 @@ import 'package:voyz/widgets/shared/gradient_button.dart';
 
 /// AI Best Time to Travel screen — analyze when to visit a destination.
 class BestTimeScreen extends StatefulWidget {
-  const BestTimeScreen({super.key});
+  const BestTimeScreen({super.key, this.initialDestination});
+
+  final String? initialDestination;
 
   @override
   State<BestTimeScreen> createState() => _BestTimeScreenState();
@@ -25,6 +27,16 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
   BestTimeTravel? _bestTime;
   bool _isLoading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final destination = widget.initialDestination?.trim();
+    if (destination != null && destination.isNotEmpty) {
+      _destinationController.text = destination;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _analyze());
+    }
+  }
 
   @override
   void dispose() {

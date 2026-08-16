@@ -13,7 +13,9 @@ import 'package:voyz/widgets/shared/gradient_button.dart';
 
 /// AI Destination Comparison screen — compare 2-3 destinations side by side.
 class CompareScreen extends StatefulWidget {
-  const CompareScreen({super.key});
+  const CompareScreen({super.key, this.initialDestinations = const []});
+
+  final List<String> initialDestinations;
 
   @override
   State<CompareScreen> createState() => _CompareScreenState();
@@ -27,6 +29,18 @@ class _CompareScreenState extends State<CompareScreen> {
   DestinationComparison? _comparison;
   bool _isLoading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final destinations = widget.initialDestinations;
+    if (destinations.isNotEmpty) _dest1Controller.text = destinations[0];
+    if (destinations.length > 1) _dest2Controller.text = destinations[1];
+    if (destinations.length > 2) _dest3Controller.text = destinations[2];
+    if (destinations.length > 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _compare());
+    }
+  }
 
   @override
   void dispose() {

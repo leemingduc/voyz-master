@@ -30,6 +30,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
   int _selectedDay = 0;
   ItineraryPlan? _plan;
   bool _isLoading = true;
+  bool _isRefining = false;
   String? _error;
 
   @override
@@ -45,7 +46,17 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     });
 
     try {
-      final trip = SavedTripsProvider.of(context).currentTrip;
+      final provider = SavedTripsProvider.of(context);
+      final savedPlan = provider.itineraryFor(widget.destinationName);
+      if (savedPlan != null) {
+        setState(() {
+          _plan = savedPlan;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final trip = provider.currentTrip;
       // Calculate number of days from date range or default to 3
       int numDays = 3;
       if (trip.departDate != null && trip.returnDate != null) {
@@ -66,6 +77,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
           _plan = plan;
           _isLoading = false;
         });
+        provider.saveItinerary(plan);
       }
     } catch (e) {
       if (mounted) {
@@ -74,6 +86,41 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _refinePlan(String instruction) async {
+    if (_isRefining || _plan == null) return;
+
+    setState(() => _isRefining = true);
+    try {
+      final provider = SavedTripsProvider.of(context);
+      final trip = provider.currentTrip;
+      var numDays = _plan!.days.length;
+      if (numDays < 1) numDays = 3;
+
+      final plan = await GeminiService.instance.getItineraryPlan(
+        widget.destinationName,
+        numDays,
+        trip,
+        limit: 3,
+        forceRefresh: true,
+        languageCode: LocaleProvider.of(context).value.languageCode,
+        additionalInstruction: instruction,
+      );
+      if (!mounted) return;
+      setState(() {
+        _plan = plan;
+        _selectedDay = 0;
+        _isRefining = false;
+      });
+      provider.saveItinerary(plan);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isRefining = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -238,6 +285,19 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                             ),
                             const SizedBox(height: 24),
                             _Timeline(items: currentDay.items),
+                            const SizedBox(height: 8),
+                            _RefinementActions(
+                              isLoading: _isRefining,
+                              onBudget: () => _refinePlan(
+                                'Ưu tiên giảm tổng chi phí và giữ các lựa chọn có giá trị tốt.',
+                              ),
+                              onFamily: () => _refinePlan(
+                                'Ưu tiên lịch trình phù hợp cho trẻ em hoặc người lớn tuổi, với nhịp độ thoải mái.',
+                              ),
+                              onLessTravel: () => _refinePlan(
+                                'Ưu tiên các điểm gần nhau để giảm thời gian và quãng đường di chuyển.',
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -364,6 +424,55 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
           ),
         ),
         const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _RefinementActions extends StatelessWidget {
+  const _RefinementActions({
+    required this.isLoading,
+    required this.onBudget,
+    required this.onFamily,
+    required this.onLessTravel,
+  });
+
+  final bool isLoading;
+  final VoidCallback onBudget;
+  final VoidCallback onFamily;
+  final VoidCallback onLessTravel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isLoading) ...[
+          const LinearProgressIndicator(),
+          const SizedBox(height: 12),
+        ],
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: isLoading ? null : onBudget,
+              icon: const Icon(Icons.savings_outlined, size: 18),
+              label: Text(l10n.refineForBudget),
+            ),
+            OutlinedButton.icon(
+              onPressed: isLoading ? null : onFamily,
+              icon: const Icon(Icons.family_restroom, size: 18),
+              label: Text(l10n.refineForFamily),
+            ),
+            OutlinedButton.icon(
+              onPressed: isLoading ? null : onLessTravel,
+              icon: const Icon(Icons.directions_walk, size: 18),
+              label: Text(l10n.refineLessTravel),
+            ),
+          ],
+        ),
       ],
     );
   }

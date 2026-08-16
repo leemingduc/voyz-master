@@ -87,15 +87,15 @@ class MockData {
   static const List<Map<String, dynamic>> budgetBreakdown = [
     {
       'label': 'Transport',
-      'amount': '1.7M',
+      'amount': '1.7M VNĐ',
       'fraction': 0.40,
       'icon': 'flight',
     },
-    {'label': 'Stay', 'amount': '1.2M', 'fraction': 0.30, 'icon': 'hotel'},
-    {'label': 'Food', 'amount': '0.8M', 'fraction': 0.20, 'icon': 'restaurant'},
+    {'label': 'Stay', 'amount': '1.2M VNĐ', 'fraction': 0.30, 'icon': 'hotel'},
+    {'label': 'Food', 'amount': '0.8M VNĐ', 'fraction': 0.20, 'icon': 'restaurant'},
     {
       'label': 'Activities',
-      'amount': '0.5M',
+      'amount': '0.5M VNĐ',
       'fraction': 0.10,
       'icon': 'kayaking',
     },

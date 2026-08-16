@@ -7,6 +7,8 @@ import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
+import 'package:voyz/screens/best_time_screen.dart';
+import 'package:voyz/screens/chat_screen.dart';
 import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
@@ -15,6 +17,7 @@ import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
 /// Destination Detail screen — hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
@@ -591,12 +594,16 @@ class _BudgetCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  CurrencyAmountText(
                     totalBudget,
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
+                    ),
+                    originalStyle: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF94A3B8),
                     ),
                   ),
                 ],
@@ -647,12 +654,28 @@ class _BudgetCard extends StatelessWidget {
                     color: _colors[i % _colors.length],
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '${item.label}: ${item.amount}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${item.label}: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      CurrencyAmountText(
+                        item.amount,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                        originalStyle: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );
@@ -692,6 +715,36 @@ class _ActionButtons extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _OutlineBtn(
+                label: AppLocalizations.of(context)!.contextBestTime,
+                icon: Icons.calendar_month,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        BestTimeScreen(initialDestination: destinationName),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _OutlineBtn(
+                label: AppLocalizations.of(context)!.contextAskAboutDestination,
+                icon: Icons.auto_awesome,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ChatScreen(destinationName: destinationName),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         GradientButton(
