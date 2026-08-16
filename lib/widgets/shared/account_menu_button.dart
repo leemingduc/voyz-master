@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/screens/auth_gate.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/screens/profile_screen.dart';
 import 'package:voyz/services/supabase_service.dart';
 
@@ -48,6 +49,13 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openFriends(BuildContext context) async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FriendsScreen()));
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -59,6 +67,7 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
       tooltip: email,
       onSelected: (value) {
         if (value == 'profile') _openProfile(context);
+        if (value == 'friends') _openFriends(context);
         if (value == 'logout') _confirmLogout(context);
       },
       itemBuilder: (context) => [
@@ -81,6 +90,16 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
               const Icon(Icons.manage_accounts_outlined, size: 18),
               const SizedBox(width: 8),
               Text(l10n.profile),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'friends',
+          child: Row(
+            children: [
+              Icon(Icons.people_alt_outlined, size: 18),
+              SizedBox(width: 8),
+              Text('Friends'),
             ],
           ),
         ),

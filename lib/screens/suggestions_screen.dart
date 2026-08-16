@@ -44,7 +44,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
       // ── Phase 1: Hiển thị text ngay (~1-2 giây) ──
       final textOnly = await GeminiService.instance.getSuggestions(
         trip,
-        limit: 10,
+        limit: 8,
         forceRefresh: forceRefresh,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );

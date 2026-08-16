@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
@@ -16,6 +18,11 @@ class _LocalizedProbe extends StatelessWidget {
 }
 
 void main() {
+  setUpAll(() {
+    final tempDir = Directory.systemTemp.createTempSync('voyz_widget_test');
+    Hive.init(tempDir.path);
+  });
+
   testWidgets('App launches with splash screen', (WidgetTester tester) async {
     await tester.pumpWidget(
       SavedTripsProvider(

@@ -492,17 +492,6 @@ Quy tắc:
       throw Exception('noAiResponse');
     }
 
-    // Debug: log raw AI response
-    debugPrint('=== AI Response for Itinerary ===');
-    debugPrint('Destination: $destinationName, Days: $numDays');
-    debugPrint('Response length: ${text.length} chars');
-    debugPrint(
-      'First 500 chars: ${text.length > 500 ? text.substring(0, 500) : text}',
-    );
-    debugPrint(
-      'Last 200 chars: ${text.length > 200 ? text.substring(text.length - 200) : text}',
-    );
-    debugPrint('=================================');
 
     // Save to cache
     await _cache.put(cacheKey, text);

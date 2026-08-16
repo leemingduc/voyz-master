@@ -43,6 +43,8 @@ class _SavedScreenState extends State<SavedScreen> {
   Widget build(BuildContext context) {
     final provider = SavedTripsProvider.of(context);
     final allItems = provider.savedItems;
+    final workspaceCount = provider.tripWorkspaces.length;
+    final wishlistCount = provider.wishlistItems.length;
 
     return Scaffold(
       body: Container(
@@ -57,7 +59,7 @@ class _SavedScreenState extends State<SavedScreen> {
           child: Column(
             children: [
               // ── Header ──
-              const _Header(),
+              _Header(workspaceCount: workspaceCount, wishlistCount: wishlistCount),
 
               // ── Content ──
               Expanded(
@@ -78,7 +80,10 @@ class _SavedScreenState extends State<SavedScreen> {
 // ── Header ────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.workspaceCount, required this.wishlistCount});
+
+  final int workspaceCount;
+  final int wishlistCount;
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +109,20 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                AppLocalizations.of(context)!.saved,
-                style: const TextStyle(
+              const Text(
+                'Trip Workspace',
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$workspaceCount workspaces / $wishlistCount wishlist',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -216,6 +229,43 @@ class _SavedItemCard extends StatelessWidget {
   final SavedItem item;
   final VoidCallback? onRemoved;
 
+  Future<void> _showAddDialog(
+    BuildContext context, {
+    required String title,
+    required String hint,
+    required ValueChanged<String> onSubmit,
+  }) async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1B2E),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value != null) onSubmit(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -231,7 +281,6 @@ class _SavedItemCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Image ──
           AspectRatio(
             aspectRatio: 16 / 8,
             child: Stack(
@@ -242,42 +291,30 @@ class _SavedItemCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorWidget: (_, e, s) => Container(
                     color: const Color(0xFF1E293B),
-                    child: const Icon(
-                      Icons.image,
-                      color: Colors.white24,
-                      size: 48,
-                    ),
+                    child: const Icon(Icons.image, color: Colors.white24, size: 48),
                   ),
                 ),
-                // Badge
                 Positioned(
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       gradient: isFullTrip ? AppTheme.brandGradient : null,
-                      color: isFullTrip
-                          ? null
-                          : Colors.white.withValues(alpha: 0.15),
+                      color: isFullTrip ? null : Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isFullTrip ? Icons.bookmark : Icons.favorite,
+                          isFullTrip ? Icons.dashboard_customize : Icons.favorite,
                           size: 12,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isFullTrip
-                              ? AppLocalizations.of(context)!.savedTrip
-                              : AppLocalizations.of(context)!.wishlist,
+                          isFullTrip ? 'Workspace' : AppLocalizations.of(context)!.wishlist,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -288,15 +325,11 @@ class _SavedItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Match percentage
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(8),
@@ -314,14 +347,11 @@ class _SavedItemCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Content ──
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Name + Price
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -347,55 +377,20 @@ class _SavedItemCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-
-                // Rating
-                Row(
-                  children: [
-                    ...List.generate(
-                      item.rating.floor(),
-                      (_) => const Icon(
-                        Icons.star,
-                        size: 14,
-                        color: Color(0xFFFF8E53),
-                      ),
-                    ),
-                    if (item.rating - item.rating.floor() >= 0.5)
-                      const Icon(
-                        Icons.star_half,
-                        size: 14,
-                        color: Color(0xFFFF8E53),
-                      ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '(${item.reviewCount} ${AppLocalizations.of(context)!.reviewsCount})',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
+                _TrustRow(item: item),
                 const SizedBox(height: 12),
-
-                // AI Insight
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    ),
+                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '💡 ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
+                      Icon(Icons.auto_awesome, size: 14, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           item.aiInsight,
@@ -409,9 +404,11 @@ class _SavedItemCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (isFullTrip) ...[
+                  const SizedBox(height: 14),
+                  _WorkspacePanel(item: item, showAddDialog: _showAddDialog),
+                ],
                 const SizedBox(height: 12),
-
-                // Remove button
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
@@ -420,38 +417,25 @@ class _SavedItemCard extends StatelessWidget {
                       onRemoved?.call();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.savedItemRemoved,
-                          ),
+                          content: Text(AppLocalizations.of(context)!.savedItemRemoved),
                           backgroundColor: const Color(0xFF475569),
                           behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           duration: const Duration(seconds: 2),
                         ),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.delete_outline,
-                            size: 16,
-                            color: Color(0xFFEF4444),
-                          ),
+                          const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
                           const SizedBox(width: 4),
                           Text(
                             AppLocalizations.of(context)!.remove,
@@ -470,6 +454,247 @@ class _SavedItemCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TrustRow extends StatelessWidget {
+  const _TrustRow({required this.item});
+
+  final SavedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        const _MiniBadge(icon: Icons.psychology, label: 'AI match'),
+        const _MiniBadge(icon: Icons.payments, label: 'Cost estimate'),
+        if (item.rating > 0)
+          _MiniBadge(icon: Icons.star, label: '${item.rating.toStringAsFixed(1)} reference'),
+      ],
+    );
+  }
+}
+
+class _WorkspacePanel extends StatelessWidget {
+  const _WorkspacePanel({required this.item, required this.showAddDialog});
+
+  final SavedItem item;
+  final Future<void> Function(
+    BuildContext context, {
+    required String title,
+    required String hint,
+    required ValueChanged<String> onSubmit,
+  }) showAddDialog;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = SavedTripsProvider.of(context);
+    final doneCount = item.checklist.where((entry) => entry.isDone).length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.dashboard_customize, color: Colors.white70, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                'Trip Workspace',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+              ),
+              const Spacer(),
+              Text(
+                '$doneCount/${item.checklist.length} ready',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _WorkspaceStatRow(item: item),
+          const SizedBox(height: 12),
+          ...List.generate(item.checklist.length, (index) {
+            final entry = item.checklist[index];
+            return CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              value: entry.isDone,
+              onChanged: (_) => provider.toggleChecklistItem(item, index),
+              title: Text(
+                entry.text,
+                style: TextStyle(
+                  color: entry.isDone
+                      ? Colors.white.withValues(alpha: 0.38)
+                      : Colors.white.withValues(alpha: 0.78),
+                  decoration: entry.isDone ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.white38,
+                  fontSize: 12,
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          TextFormField(
+            initialValue: item.workspaceNotes,
+            minLines: 2,
+            maxLines: 4,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: InputDecoration(
+              labelText: 'Notes',
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+            ),
+            onChanged: (value) => provider.updateWorkspaceNotes(item, value),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ActionChipButton(
+                icon: Icons.confirmation_number,
+                label: 'Add booking',
+                onTap: () => showAddDialog(
+                  context,
+                  title: 'Add booking',
+                  hint: 'Flight, hotel, tour code...',
+                  onSubmit: (value) => provider.addBookingRef(item, value),
+                ),
+              ),
+              _ActionChipButton(
+                icon: Icons.group_add,
+                label: 'Share with',
+                onTap: () => showAddDialog(
+                  context,
+                  title: 'Share with',
+                  hint: 'Name or email',
+                  onSubmit: (value) => provider.addSharedPerson(item, value),
+                ),
+              ),
+            ],
+          ),
+          if (item.bookingRefs.isNotEmpty || item.sharedWith.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...item.bookingRefs.map((ref) => _MiniBadge(icon: Icons.confirmation_number, label: ref)),
+                ...item.sharedWith.map((person) => _MiniBadge(icon: Icons.person, label: person)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkspaceStatRow extends StatelessWidget {
+  const _WorkspaceStatRow({required this.item});
+
+  final SavedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final trip = item.tripData;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        const _MiniBadge(icon: Icons.favorite, label: 'Wishlist'),
+        _MiniBadge(icon: Icons.calendar_today, label: trip?.departDate == null ? 'Flexible dates' : 'Itinerary ready'),
+        _MiniBadge(icon: Icons.payments, label: item.price.isEmpty ? 'Budget TBD' : item.price),
+        _MiniBadge(icon: Icons.note_alt, label: item.workspaceNotes.isEmpty ? 'No notes' : 'Notes saved'),
+      ],
+    );
+  }
+}
+
+class _MiniBadge extends StatelessWidget {
+  const _MiniBadge({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.circle, color: Colors.transparent, size: 0),
+          Icon(icon, color: const Color(0xFF94A3B8), size: 13),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.68),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionChipButton extends StatelessWidget {
+  const _ActionChipButton({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryPink.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.primaryPink.withValues(alpha: 0.24)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppTheme.primaryPink, size: 15),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.primaryPink,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
