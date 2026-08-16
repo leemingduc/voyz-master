@@ -58,7 +58,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         widget.destinationName,
         numDays,
         trip,
-        limit: 4,
+        limit: 3,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (mounted) {

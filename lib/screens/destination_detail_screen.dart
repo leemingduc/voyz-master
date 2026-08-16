@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
@@ -54,6 +56,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           _detail = detail;
           _isLoading = false;
         });
+        unawaited(_prefetchItinerary());
       }
     } catch (e) {
       if (mounted) {
@@ -62,6 +65,28 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _prefetchItinerary() async {
+    try {
+      final trip = SavedTripsProvider.of(context).currentTrip;
+      int numDays = 3;
+      if (trip.departDate != null && trip.returnDate != null) {
+        numDays = trip.returnDate!.difference(trip.departDate!).inDays;
+        if (numDays < 1) numDays = 1;
+        if (numDays > 7) numDays = 7;
+      }
+
+      await GeminiService.instance.getItineraryPlan(
+        widget.destinationName,
+        numDays,
+        trip,
+        limit: 3,
+        languageCode: LocaleProvider.of(context).value.languageCode,
+      );
+    } catch (error) {
+      debugPrint('Itinerary prefetch skipped: $error');
     }
   }
 

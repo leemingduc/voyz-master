@@ -98,8 +98,8 @@ class _VoyzAppState extends State<VoyzApp> {
                     child ?? const SizedBox.shrink(),
                     // Persistent background music toggle button
                     Positioned(
-                      top: MediaQuery.of(context).padding.top + 8,
-                      right: 12,
+                      left: 12,
+                      bottom: MediaQuery.of(context).padding.bottom + 92,
                       child: const BackgroundMusicButton(),
                     ),
                   ],
