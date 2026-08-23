@@ -12,19 +12,19 @@ import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/models/itinerary_plan.dart';
 
-import 'package:voyz/services/cache_service.dart';
+import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/image_service.dart';
 
 /// Central service for interacting with the Gemini Flash 3 API.
 ///
 /// Prompts include a language instruction so the AI responds in the
-/// user's active locale. All methods check Hive cache first; only
+/// user's active locale. All methods check Multi-Tier cache first; only
 /// calls the API on cache miss.
 class GeminiService {
   GeminiService._();
   static final GeminiService instance = GeminiService._();
 
-  final CacheService _cache = CacheService.instance;
+  final AiCacheService _aiCache = AiCacheService.instance;
 
   // ── Language helpers ────────────────────────────────────────────────
 
@@ -86,6 +86,35 @@ class GeminiService {
     return _model!;
   }
 
+  /// Asynchronously pre-caches image URLs in the background and updates the multi-tier cache.
+  void _precacheAndStoreImages(
+    String cacheKey,
+    List<DestinationSuggestion> suggestions, {
+    required String featureType,
+    String? destination,
+    required String languageCode,
+  }) {
+    Future.microtask(() async {
+      try {
+        final names = suggestions.map((s) => s.name).toList();
+        final imageUrls = await ImageService.instance.getImageUrls(names);
+        final cached = await _aiCache.getResponse(cacheKey);
+        if (cached != null) {
+          await _aiCache.putResponse(
+            cacheKey,
+            cached.payload,
+            featureType: featureType,
+            destination: destination,
+            languageCode: languageCode,
+            imageUrls: imageUrls,
+          );
+        }
+      } catch (e) {
+        debugPrint('Image pre-caching error (non-fatal): $e');
+      }
+    });
+  }
+
   // ── Explore (independent, no TripData needed) ─────────────────────────
 
   /// Get trending travel destinations for free exploration.
@@ -99,15 +128,15 @@ class GeminiService {
     bool forceRefresh = false,
     String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('explore_trending', {
+    final cacheKey = _aiCache.buildKey('explore_trending', {
       'limit': limit,
       'lang': languageCode,
     });
 
     if (!forceRefresh) {
-      final cached = _cache.get(cacheKey);
+      final cached = await _aiCache.getResponse(cacheKey);
       if (cached != null) {
-        return parseSuggestionsSync(cached);
+        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
       }
     }
 
@@ -148,19 +177,35 @@ Quy tắc:
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    await _cache.put(cacheKey, text);
-    return parseSuggestionsSync(text);
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'explore_trending',
+      languageCode: languageCode,
+    );
+
+    final suggestions = parseSuggestionsSync(text);
+
+    // Pre-cache images in background so next time they load instantly
+    _precacheAndStoreImages(
+      cacheKey,
+      suggestions,
+      featureType: 'explore_trending',
+      languageCode: languageCode,
+    );
+
+    return suggestions;
   }
 
   // ── Suggestions ──────────────────────────────────────────────────────────
 
   /// Get AI travel suggestions based on user's trip preferences.
   ///
-  /// **Phase 1 (fast, ~1-2s):** Returns text-only suggestions immediately.
-  /// Images are left as empty strings so the UI can render right away.
+  /// **Phase 1 (fast, ~1-2s or <100ms on cache):** Returns suggestions immediately.
+  /// If pre-cached images are available from the multi-tier cache, they are rendered right away.
   ///
   /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
-  /// image URLs asynchronously while the user is already browsing the results.
+  /// image URLs asynchronously if not already cached.
   ///
   /// [trip] contains destination, budget, interests, dates, etc.
   /// [limit] controls the number of suggestions returned (default 10).
@@ -172,7 +217,7 @@ Quy tắc:
     String languageCode = 'vi',
   }) async {
     // Build cache key from the inputs that actually affect the result
-    final cacheKey = _cache.buildKey('suggestions', {
+    final cacheKey = _aiCache.buildKey('suggestions', {
       'destination': trip.destination,
       'budget': trip.budget,
       'currency': trip.currency,
@@ -181,13 +226,11 @@ Quy tắc:
       'lang': languageCode,
     });
 
-    // Check cache
+    // Check Multi-Tier cache (Memory -> Hive -> Supabase)
     if (!forceRefresh) {
-      final cached = _cache.get(cacheKey);
+      final cached = await _aiCache.getResponse(cacheKey);
       if (cached != null) {
-        // Cache hit: parse text synchronously, no image fetch needed here.
-        // CachedNetworkImage will handle images from its own persistent cache.
-        return parseSuggestionsSync(cached);
+        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
       }
     }
 
@@ -197,11 +240,27 @@ Quy tắc:
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    // Save to cache
-    await _cache.put(cacheKey, text);
+    // Save to multi-tier cache
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'suggestions',
+      destination: trip.destination.isNotEmpty ? trip.destination : null,
+      languageCode: languageCode,
+    );
 
-    // Phase 1: return text-only list instantly (no image fetching yet).
-    return parseSuggestionsSync(text);
+    final suggestions = parseSuggestionsSync(text);
+
+    // Pre-cache images in background
+    _precacheAndStoreImages(
+      cacheKey,
+      suggestions,
+      featureType: 'suggestions',
+      destination: trip.destination.isNotEmpty ? trip.destination : null,
+      languageCode: languageCode,
+    );
+
+    return suggestions;
   }
 
   /// Phase 2: Back-fill image URLs into an existing list of suggestions.
@@ -211,13 +270,21 @@ Quy tắc:
   Future<List<DestinationSuggestion>> enrichSuggestionsWithImages(
     List<DestinationSuggestion> suggestions,
   ) async {
-    final names = suggestions.map((s) => s.name).toList();
-    final imageUrls = await ImageService.instance.getImageUrls(names);
+    final missingNames = suggestions
+        .where((s) => s.imageUrl.isEmpty)
+        .map((s) => s.name)
+        .toList();
+
+    if (missingNames.isEmpty) {
+      return suggestions;
+    }
+
+    final imageUrls = await ImageService.instance.getImageUrls(missingNames);
 
     return suggestions.map((s) {
       return DestinationSuggestion(
         name: s.name,
-        imageUrl: imageUrls[s.name] ?? '',
+        imageUrl: (s.imageUrl.isNotEmpty) ? s.imageUrl : (imageUrls[s.name] ?? ''),
         matchPercent: s.matchPercent,
         rating: s.rating,
         reviewCount: s.reviewCount,
@@ -228,11 +295,13 @@ Quy tắc:
     }).toList();
   }
 
-  /// Synchronously parse raw JSON text into text-only DestinationSuggestions.
+  /// Synchronously parse raw JSON text into DestinationSuggestions.
   ///
-  /// Images are left as empty strings — they are loaded lazily by the widget
-  /// layer (CachedNetworkImage) or back-filled via [enrichSuggestionsWithImages].
-  List<DestinationSuggestion> parseSuggestionsSync(String text) {
+  /// If [imageUrls] map is provided, image URLs are attached immediately.
+  List<DestinationSuggestion> parseSuggestionsSync(
+    String text, {
+    Map<String, String>? imageUrls,
+  }) {
     final decoded = safeJsonDecode(text);
     final List<dynamic> jsonList;
     if (decoded is List) {
@@ -255,8 +324,10 @@ Quy tắc:
 
     final suggestions = jsonList.whereType<Map>().map((e) {
       final rawMap = Map<String, dynamic>.from(e);
+      final name = rawMap['name']?.toString() ?? '';
+      final cachedImage = imageUrls?[name] ?? '';
       final map = <String, dynamic>{
-        'name': rawMap['name']?.toString() ?? '',
+        'name': name,
         'matchPercent': (rawMap['matchPercent'] is num)
             ? (rawMap['matchPercent'] as num).toInt()
             : int.tryParse(rawMap['matchPercent']?.toString() ?? '') ?? 0,
@@ -272,7 +343,7 @@ Quy tắc:
             ? rawMap['isTopMatch'] as bool
             : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
       };
-      return DestinationSuggestion.fromJson(map, '');
+      return DestinationSuggestion.fromJson(map, cachedImage);
     }).toList();
 
     // Mark the first item as top match if none is flagged.
@@ -369,16 +440,16 @@ Quy tắc:
     bool forceRefresh = false,
     String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('detail', {
+    final cacheKey = _aiCache.buildKey('detail', {
       'name': destinationName,
       'lang': languageCode,
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = _cache.get(cacheKey);
+      final cached = await _aiCache.getResponse(cacheKey);
       if (cached != null) {
-        return _parseDetail(cached, destinationName);
+        return _parseDetail(cached.payload, destinationName);
       }
     }
 
@@ -391,7 +462,13 @@ Quy tắc:
     }
 
     // Save to cache
-    await _cache.put(cacheKey, text);
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'detail',
+      destination: destinationName,
+      languageCode: languageCode,
+    );
 
     return _parseDetail(text, destinationName);
   }
@@ -472,7 +549,7 @@ Quy tắc:
     String languageCode = 'vi',
     String? additionalInstruction,
   }) async {
-    final cacheKey = _cache.buildKey('itinerary', {
+    final cacheKey = _aiCache.buildKey('itinerary', {
       'name': destinationName,
       'numDays': numDays,
       'lang': languageCode,
@@ -481,10 +558,10 @@ Quy tắc:
 
     // Check cache
     if (!forceRefresh) {
-      final cached = _cache.get(cacheKey);
+      final cached = await _aiCache.getResponse(cacheKey);
       if (cached != null) {
         final Map<String, dynamic> json =
-            safeJsonDecode(cached) as Map<String, dynamic>;
+            safeJsonDecode(cached.payload) as Map<String, dynamic>;
         return ItineraryPlan.fromJson(json);
       }
     }
@@ -505,7 +582,13 @@ Quy tắc:
     }
 
     // Save to cache
-    await _cache.put(cacheKey, text);
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'itinerary',
+      destination: destinationName,
+      languageCode: languageCode,
+    );
 
     try {
       final Map<String, dynamic> json =
@@ -651,6 +734,18 @@ Quy tắc:
     List<String> destinations, {
     String languageCode = 'vi',
   }) async {
+    final cacheKey = _aiCache.buildKey('comparison', {
+      'destinations': destinations,
+      'lang': languageCode,
+    });
+
+    final cached = await _aiCache.getResponse(cacheKey);
+    if (cached != null) {
+      final Map<String, dynamic> json =
+          safeJsonDecode(cached.payload) as Map<String, dynamic>;
+      return DestinationComparison.fromJson(json);
+    }
+
     final langInst = languageInstruction(languageCode);
     final destList = destinations.map((d) => '"$d"').join(', ');
 
@@ -698,6 +793,13 @@ Quy tắc:
       throw Exception('noAiResponse');
     }
 
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'comparison',
+      languageCode: languageCode,
+    );
+
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
     return DestinationComparison.fromJson(json);
@@ -713,16 +815,16 @@ Quy tắc:
     String destination, {
     String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('best_time', {
+    final cacheKey = _aiCache.buildKey('best_time', {
       'dest': destination,
       'lang': languageCode,
     });
 
     // Check cache
-    final cached = _cache.get(cacheKey);
+    final cached = await _aiCache.getResponse(cacheKey);
     if (cached != null) {
       final Map<String, dynamic> json =
-          safeJsonDecode(cached) as Map<String, dynamic>;
+          safeJsonDecode(cached.payload) as Map<String, dynamic>;
       return BestTimeTravel.fromJson(json);
     }
 
@@ -781,7 +883,13 @@ Quy tắc:
     }
 
     // Save to cache
-    await _cache.put(cacheKey, text);
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'best_time',
+      destination: destination,
+      languageCode: languageCode,
+    );
 
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
@@ -799,16 +907,16 @@ Quy tắc:
     bool forceRefresh = false,
     String languageCode = 'vi',
   }) async {
-    final cacheKey = _cache.buildKey('cultural_tips', {
+    final cacheKey = _aiCache.buildKey('cultural_tips', {
       'name': destinationName,
       'lang': languageCode,
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = _cache.get(cacheKey);
+      final cached = await _aiCache.getResponse(cacheKey);
       if (cached != null) {
-        return _parseCulturalTips(cached, destinationName);
+        return _parseCulturalTips(cached.payload, destinationName);
       }
     }
 
@@ -821,7 +929,13 @@ Quy tắc:
     }
 
     // Save to cache
-    await _cache.put(cacheKey, text);
+    await _aiCache.putResponse(
+      cacheKey,
+      text,
+      featureType: 'cultural_tips',
+      destination: destinationName,
+      languageCode: languageCode,
+    );
 
     return _parseCulturalTips(text, destinationName);
   }

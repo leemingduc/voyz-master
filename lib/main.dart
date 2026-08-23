@@ -6,6 +6,7 @@ import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
+import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/cache_service.dart';
 import 'package:voyz/services/currency_service.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
   try {
     await Hive.initFlutter();
     await CacheService.instance.init();
+    await AiCacheService.instance.init();
     await SearchHistoryService.instance.init();
     await ExchangeRateService.instance.init();
     initialDisplayCurrency = await CurrencySettingsStore.instance.load();
