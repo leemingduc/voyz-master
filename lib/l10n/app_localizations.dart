@@ -490,6 +490,36 @@ abstract class AppLocalizations {
   /// **'e.g. 5000000'**
   String get budgetHint;
 
+  /// Budget tier section label
+  ///
+  /// In en, this message translates to:
+  /// **'Budget Tier'**
+  String get budgetTier;
+
+  /// Economy budget tier
+  ///
+  /// In en, this message translates to:
+  /// **'Economy'**
+  String get budgetTierEconomy;
+
+  /// Moderate budget tier
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get budgetTierModerate;
+
+  /// Premium budget tier
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get budgetTierPremium;
+
+  /// Luxury budget tier
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury'**
+  String get budgetTierLuxury;
+
   /// Currency field label
   ///
   /// In en, this message translates to:

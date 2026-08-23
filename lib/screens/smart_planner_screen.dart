@@ -11,14 +11,12 @@ import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/services/search_history_service.dart';
-import 'package:voyz/services/currency_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/interest_chip.dart';
-import 'package:voyz/widgets/shared/currency_selector.dart';
 
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
@@ -30,11 +28,11 @@ class SmartPlannerScreen extends StatefulWidget {
 class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   final _promptController = TextEditingController();
   final _destinationController = TextEditingController();
-  final _budgetController = TextEditingController();
   final _participantsController = TextEditingController();
   final _ageRangeController = TextEditingController();
   final _notesController = TextEditingController();
 
+  String _selectedBudgetTier = 'moderate';
   DateTime? _departDate;
   DateTime? _returnDate;
   late List<bool> _selectedInterests;
@@ -65,7 +63,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _destinationController.text = trip.destination;
         _departDate = trip.departDate;
         _returnDate = trip.returnDate;
-        _budgetController.text = trip.budget;
+        _selectedBudgetTier = trip.budget.isNotEmpty ? trip.budget : 'moderate';
         _participantsController.text = trip.participants;
         _ageRangeController.text = trip.ageRange;
         _notesController.text = trip.additionalNotes;
@@ -86,7 +84,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   void dispose() {
     _promptController.dispose();
     _destinationController.dispose();
-    _budgetController.dispose();
     _participantsController.dispose();
     _ageRangeController.dispose();
     _notesController.dispose();
@@ -138,7 +135,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     if (_destinationController.text.trim().isEmpty ||
         _departDate == null ||
         _returnDate == null ||
-        _budgetController.text.trim().isEmpty ||
+        _selectedBudgetTier.trim().isEmpty ||
         _participantsController.text.trim().isEmpty ||
         _ageRangeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +180,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         destination: _destinationController.text,
         departDate: _departDate,
         returnDate: _returnDate,
-        budget: _budgetController.text,
+        budget: _selectedBudgetTier,
         currency: CurrencyProvider.of(context).value,
         participants: _participantsController.text,
         ageRange: _ageRangeController.text,
@@ -192,37 +189,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         selectedInterests: selected,
       ),
     );
-  }
-
-  Future<void> _changeCurrency(String currentCode) async {
-    final selectedCode = await showCurrencySelector(context);
-    if (!mounted || selectedCode == null || selectedCode == currentCode) return;
-
-    final enteredBudget = double.tryParse(_budgetController.text);
-    if (enteredBudget != null) {
-      try {
-        final converted = await ExchangeRateService.instance.convert(
-          ParsedMoney(
-            amount: enteredBudget,
-            currencyCode: currentCode,
-            isEstimate: false,
-          ),
-          selectedCode,
-        );
-        if (!mounted) return;
-        final decimalDigits = {'VND', 'KRW', 'JPY'}.contains(selectedCode)
-            ? 0
-            : 2;
-        _budgetController.text = converted!.amount
-            .toStringAsFixed(decimalDigits)
-            .replaceFirst(RegExp(r'\.0+$'), '');
-      } catch (_) {
-        // The selected currency still applies; the user can edit the budget
-        // when no online or cached reference rate is available.
-      }
-    }
-    if (!mounted) return;
-    await CurrencyProvider.of(context).setDisplayCurrency(selectedCode);
   }
 
   Future<void> _onGetSuggestions() async {
@@ -242,7 +208,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final displayCurrency = CurrencyProvider.of(context).value;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -378,7 +343,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildBudgetRow(l10n, displayCurrency),
+                      _buildBudgetTierSelector(l10n),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -684,122 +649,146 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
   }
 
-  Widget _buildBudgetRow(AppLocalizations l10n, String displayCurrency) {
+  Widget _buildBudgetTierSelector(AppLocalizations l10n) {
+    final tiers = [
+      (
+        key: 'economy',
+        label: l10n.budgetTierEconomy,
+        badge: '🪙',
+      ),
+      (
+        key: 'moderate',
+        label: l10n.budgetTierModerate,
+        badge: '☕',
+      ),
+      (
+        key: 'premium',
+        label: l10n.budgetTierPremium,
+        badge: '💎',
+      ),
+      (
+        key: 'luxury',
+        label: l10n.budgetTierLuxury,
+        badge: '👑',
+      ),
+    ];
+
     return GlassCard(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.payments,
-                    color: Color(0xFF94A3B8),
-                    size: 20,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.budget.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF64748B),
-                        ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Color(0xFF94A3B8),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.budgetTier.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF64748B),
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = (constraints.maxWidth - 24) / 4;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: tiers.map((tier) {
+                  final isSelected = _selectedBudgetTier.toLowerCase() == tier.key;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () {
+                      setState(() {
+                        _selectedBudgetTier = tier.key;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: itemWidth,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 4,
                       ),
-                      const SizedBox(height: 2),
-                      TextField(
-                        controller: _budgetController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? const LinearGradient(
+                                colors: [
+                                  Color(0xFFE91E63),
+                                  Color(0xFFFF4081),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: isSelected
+                            ? null
+                            : const Color(0xFF1E293B).withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFFFF80AB)
+                              : Colors.white.withValues(alpha: 0.08),
+                          width: isSelected ? 1.5 : 1,
                         ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d*'),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFFE91E63).withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tier.badge,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tier.label,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFFCBD5E1),
+                            ),
                           ),
                         ],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: l10n.budgetHint,
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 40,
-            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-          ),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => _changeCurrency(displayCurrency),
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      Icons.currency_exchange,
-                      color: Color(0xFF94A3B8),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.currency.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          displayCurrency,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ],
       ),
