@@ -211,6 +211,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetHint => 'e.g. 5000000';
 
   @override
+  String get budgetTier => 'Budget Tier';
+
+  @override
+  String get budgetTierEconomy => 'Economy';
+
+  @override
+  String get budgetTierModerate => 'Moderate';
+
+  @override
+  String get budgetTierPremium => 'Premium';
+
+  @override
+  String get budgetTierLuxury => 'Luxury';
+
+  @override
   String get currency => 'Currency';
 
   @override

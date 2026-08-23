@@ -210,6 +210,21 @@ class AppLocalizationsVi extends AppLocalizations {
   String get budgetHint => 'vd. 5000000';
 
   @override
+  String get budgetTier => 'Phân khúc ngân sách';
+
+  @override
+  String get budgetTierEconomy => 'Bình dân';
+
+  @override
+  String get budgetTierModerate => 'Trung bình';
+
+  @override
+  String get budgetTierPremium => 'Cao cấp';
+
+  @override
+  String get budgetTierLuxury => 'Hạng sang';
+
+  @override
   String get currency => 'Tiền tệ';
 
   @override

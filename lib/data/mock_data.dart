@@ -32,44 +32,44 @@ class MockData {
     {
       'name': 'Côn Đảo, Vietnam',
       'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuD80FbU1ZxfueAUUWKR7XyjmN9bvxplR8TDjnwnn8r7c8f17IHQCZVUOP3GzkryHJlsVWyK5mW4FYIPJapdR8Dt8dAnp9gfyvxIIw7e44v3DRwz0xaOOqLxDizWaY5JaVw_fH6WlPc5MuaBRLgNAaB4LYzfWvEpoFMzNSIdrd_5M6Lrvhneg8GES-JtcUlxZYyOFJeTt6AHdm1rtyuNmaR8cP4qbVNjWpqD0jSFeHWgNbUuhj_00vL53F8e7wsORrgn_7MDAGFlE_A',
+          'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1200&q=80',
       'matchPercent': 98,
-      'rating': 4.5,
-      'reviewCount': 120,
-      'price': '~4.2M VNĐ',
+      'rating': 4.7,
+      'reviewCount': 1420,
+      'price': '~4.8M VNĐ',
       'aiInsight':
-          'Perfect for your wellness budget. Dry season now — best conditions of the year.',
+          'Bãi biển nguyên sơ, làn nước trong xanh màu ngọc bích và không gian nghỉ dưỡng tĩnh lặng hoàn hảo.',
       'isTopMatch': true,
     },
     {
       'name': 'Phú Quốc, Vietnam',
       'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCgsNyLnIesjUjaXFGT5ibGButcaojYwEP1xbYEpw6FW9Eqary49L_WAyhptrnwRDQ2SavSS8YI0HI6fRUjtRSMVkFMp0e49HHfHjp-sGbMF18wbQhqXoqCiuUaNpnWMGW8bRtI3GlqydnB7wSPnEbTKAXmMf6FveaHANavCrQvnLQYa4J2pb_xWbZt5H01XSoJcFniRBUxAFGXmC6T6Qa57VitgMB2M4GCo5t9eJb9qw6WaTJeBiqDZXxOdJZp0ov4xy6VffHLZIs',
+          'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1200&q=80',
       'matchPercent': 92,
-      'rating': 5.0,
-      'reviewCount': 450,
-      'price': '~3.8M VNĐ',
+      'rating': 4.8,
+      'reviewCount': 3250,
+      'price': '~5.2M VNĐ',
       'aiInsight':
-          'Great value for money. Suits your beach + relaxation preference.',
+          'Bãi Sao cát trắng mịn, hoàng hôn rực rỡ tại Thị trấn Hoàng Hôn và ẩm thực hải sản phong phú.',
       'isTopMatch': false,
     },
     {
       'name': 'Đà Nẵng, Vietnam',
       'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDKEZDG6D0KnziIG-l_8kLA4xvZJ4IIHPHUt5EHzzvRSyeHhJEPAzJHJ1KSBK2XjphQxjVnStF1-lUxr0Y8s0iw_C3VBS4bRxSVrBjVAorjxq1xC_5u8U98uJ7aLA_mqxtBXJxfiX9kBP4UWRAD8qvWPTFRCn4FXnLn8VadxI_n7T_f0MY6IIKLuswvo3QyyEkyEByEhSx1y5C4JzgYy6RoBf_JMBAgo9cRpGHwvwm3BYlAQdD66BBfzM10pfgjVwAi3F-MoD1FPZ0',
-      'matchPercent': 85,
-      'rating': 4.0,
-      'reviewCount': 300,
-      'price': '~3.5M VNĐ',
+          'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1200&q=80',
+      'matchPercent': 88,
+      'rating': 4.6,
+      'reviewCount': 4100,
+      'price': '~4.5M VNĐ',
       'aiInsight':
-          'Vibrant city with beautiful beaches and amazing street food.',
+          'Thành phố biển đáng sống, Cầu Vàng Bà Nà Hills và bãi biển Mỹ Khê tuyệt đẹp.',
       'isTopMatch': false,
     },
   ];
 
   // ── Destination Detail ────────────────────────────────────────────────
   static const String detailHeroImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuD9mKE5z6lt8WySqOaYHRkne9ZruciDlXdjhHmrzWfnUhZ75XOFLu6Gw80QNF4mFhsiDDNMcwAwWghAoSsirumh5QIWq0D2UH2syDIvaHu3e1Yu45V8bMec3pwRzR4UB63UwtE3Pu-Gm-g3FE9EG0SVGwYKnbYrh8e4wN0v60VTsCyRXXSTYfBGf5klyAdAtNqRkKOTkMDWUoFiS2XA2CeMRBaUkHfwDg9ZLryzs1gv1hBTWXKR8bAi5myXVQVxecOqw8uMi5tmUJ8';
+      'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1200&q=80';
 
   static const String detailLocation = 'Ba Ria - Vung Tau';
   static const String detailName = 'Côn Đảo, Vietnam';

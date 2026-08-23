@@ -122,15 +122,39 @@ class GeminiService {
   ///
   /// [limit] number of destinations to return.
   /// [forceRefresh] if true, bypasses the cache.
+  static final List<String> _randomExploreThemes = [
+    'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
+    'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
+    'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính',
+    'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm',
+    'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát',
+    'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến',
+    'Kỳ quan thiên nhiên, quần thể hang động tráng lệ và cảnh quan độc nhất vô nhị',
+    'Vùng đất văn hóa bản địa độc đáo, lễ hội sắc màu và ẩm thực phong phú',
+  ];
+
+  /// Get trending or randomly discovered travel destinations for free exploration.
+  /// Does NOT require any user input — perfect for the Explore tab.
+  ///
+  /// [limit] number of destinations to return.
+  /// [forceRefresh] if true, generates a completely new random batch of destinations.
+  /// [category] optional specific travel category / theme.
   /// [languageCode] locale code for language-aware prompts (vi, en, ko).
   Future<List<DestinationSuggestion>> getExploreTrending({
     int limit = 10,
     bool forceRefresh = false,
+    String? category,
     String languageCode = 'vi',
   }) async {
+    final randomSeed = DateTime.now().millisecondsSinceEpoch % 100000;
+    final theme = category ??
+        _randomExploreThemes[randomSeed % _randomExploreThemes.length];
+
     final cacheKey = _aiCache.buildKey('explore_trending', {
       'limit': limit,
       'lang': languageCode,
+      if (!forceRefresh && category != null) 'category': category,
+      if (forceRefresh) 'nonce': randomSeed,
     });
 
     if (!forceRefresh) {
@@ -141,33 +165,32 @@ class GeminiService {
     }
 
     final langInst = languageInstruction(languageCode);
-    final prompt =
-        '''
-Bạn là chuyên gia du lịch AI. Hãy gợi ý $limit điểm đến du lịch đang thịnh hành nhất hiện nay, bao gồm cả trong nước Việt Nam và quốc tế.
+    final prompt = '''
+Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý một danh sách $limit điểm đến du lịch ĐỘC ĐÁO, MỚI LẠ và NGẪU NHIÊN theo chủ đề:
+👉 "$theme"
 
-Ưu tiên các điểm đến:
-- Đa dạng vùng miền (biển, núi, thành phố, thiên nhiên hoang sơ)
-- Phù hợp với mùa du lịch hiện tại
-- Có cả địa điểm bình dân và cao cấp
-- Mix giữa Việt Nam và quốc tế
+Yêu cầu tạo danh sách ngẫu nhiên & tươi mới:
+- HÃY ĐA DẠNG HÓA TỐI ĐA các địa điểm, tránh lặp lại các gợi ý cũ!
+- Kết hợp cả các điểm đến hấp dẫn tại Việt Nam và các kỳ quan trên thế giới.
+- Bao gồm cả những viên ngọc ẩn (Hidden Gems) ít người biết và các điểm đến biểu tượng.
+- Giá cả ước tính và số liệu đánh giá phải chân thực, hợp lý.
 
 Trả về JSON array với đúng $limit phần tử, mỗi phần tử:
 {
   "name": "Tên địa điểm, Quốc gia",
-  "matchPercent": 85,
-  "rating": 4.5,
-  "reviewCount": 1200,
-  "price": "~4.2M VNĐ",
-  "aiInsight": "Lý do nên đến ngay thời điểm này (1-2 câu)",
+  "matchPercent": 95,
+  "rating": 4.7,
+  "reviewCount": 1820,
+  "price": "~4.5M VNĐ",
+  "aiInsight": "Lý do bất ngờ và hấp dẫn nhất nên khám phá địa điểm này ngay (1-2 câu)",
   "isTopMatch": false
 }
 
 Quy tắc:
-- matchPercent thể hiện mức độ trending (60-99)
-- rating từ 1.0-5.0
-- reviewCount là ước tính số đánh giá
-- price là chi phí ước tính cho 1 người/chuyến
-- aiInsight nên đề cập lý do trending (mùa lễ hội, thời tiết đẹp, ...)
+- matchPercent thể hiện mức độ phù hợp và trending (65-99, sắp xếp giảm dần)
+- rating từ 4.2 - 4.9
+- reviewCount là ước tính số đánh giá thực tế (300 - 4500)
+- price là chi phí ước tính thực tế cho 1 người/chuyến (ghi kèm đơn vị tiền tệ)
 - Phần tử đầu tiên có isTopMatch = true
 - CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
 - $langInst
@@ -364,6 +387,34 @@ Quy tắc:
     return suggestions;
   }
 
+  /// Formats the budget tier into clear, realistic guidance for the AI model.
+  static String _describeBudgetTier(String tier, String currency) {
+    final lower = tier.toLowerCase();
+    if (lower == 'economy' || lower.contains('bình dân') || lower.contains('알뜰')) {
+      return 'Phân khúc Bình dân / Tiết kiệm: '
+          'Lựa chọn homestay/khách sạn bình dân 1-2 sao, quán ăn địa phương/đường phố, '
+          'di chuyển bằng xe máy/xe buýt/tàu. Ước tính chi phí thực tế: ~1.5M - 3.5M $currency cho chuyến 3 ngày trong nước, '
+          'hoặc tương đương \$150-\$350 $currency cho chuyến quốc tế.';
+    }
+    if (lower == 'premium' || lower.contains('cao cấp') || lower.contains('고급')) {
+      return 'Phân khúc Cao cấp: '
+          'Lựa chọn khách sạn 4-5 sao / resort cao cấp, nhà hàng chất lượng, '
+          'xe đưa đón riêng / chuyến bay giờ đẹp, tour trải nghiệm chất lượng cao. Ước tính chi phí thực tế: ~9M - 18M $currency cho chuyến 3 ngày trong nước, '
+          'hoặc tương đương \$900-\$2200 $currency cho chuyến quốc tế.';
+    }
+    if (lower == 'luxury' || lower.contains('hạng sang') || lower.contains('럭셔리')) {
+      return 'Phân khúc Hạng sang / Siêu sang: '
+          'Lựa chọn resort 5 sao quốc tế / villa riêng tư sang trọng bậc nhất, ẩm thực fine dining / Michelin, '
+          'dịch vụ VIP / du thuyền / trải nghiệm độc quyền. Ước tính chi phí thực tế: ~22M - 60M+ $currency cho chuyến 3 ngày trong nước, '
+          'hoặc tương đương \$2500-\$7000+ $currency cho chuyến quốc tế.';
+    }
+    // Default: moderate / trung bình
+    return 'Phân khúc Trung bình / Tiêu chuẩn: '
+        'Lựa chọn khách sạn 3 sao / boutique hotel tiện nghi, nhà hàng đặc sản địa phương sạch sẽ, '
+        'di chuyển taxi / xe công nghệ thuận tiện. Ước tính chi phí thực tế: ~4M - 8M $currency cho chuyến 3 ngày trong nước, '
+        'hoặc tương đương \$450-\$850 $currency cho chuyến quốc tế.';
+  }
+
   String _buildSuggestionsPrompt(
     TripData trip,
     int limit,
@@ -377,9 +428,7 @@ Quy tắc:
         ? trip.destination
         : 'Việt Nam';
 
-    final budget = trip.budget.isNotEmpty
-        ? '${trip.budget} ${trip.currency}'
-        : 'không giới hạn';
+    final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
 
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? 'từ ${_formatDate(trip.departDate!)} đến ${_formatDate(trip.returnDate!)}'
@@ -396,11 +445,11 @@ Quy tắc:
     final langInst = languageInstruction(languageCode);
 
     return '''
-Bạn là chuyên gia du lịch AI. Hãy gợi ý $limit điểm đến du lịch phù hợp nhất.
+Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý $limit điểm đến du lịch phù hợp nhất dựa trên thông tin thực tế.
 
 Thông tin người dùng:
 - Điểm đến mong muốn: $destination
-- Ngân sách: $budget
+- Mức ngân sách: $budgetDescription
 - Sở thích: $interests
 - Thời gian: $dateInfo
 - Số người: ${trip.participants.isNotEmpty ? trip.participants : 'không rõ'}
@@ -410,21 +459,21 @@ Trả về JSON array với đúng $limit phần tử, mỗi phần tử có c�
 {
   "name": "Tên địa điểm, Quốc gia",
   "matchPercent": 85,
-  "rating": 4.5,
-  "reviewCount": 120,
-  "price": "~4.2M ${trip.currency}",
-  "aiInsight": "Nhận xét ngắn gọn về sự phù hợp với người dùng",
+  "rating": 4.6,
+  "reviewCount": 1420,
+  "price": "~4.5M ${trip.currency}",
+  "aiInsight": "Nhận xét thực tế và hữu ích về sự phù hợp với chuyến đi của người dùng",
   "isTopMatch": false
 }
 
-Quy tắc:
-- matchPercent từ 60-99, sắp xếp giảm dần theo matchPercent
-- rating từ 1.0-5.0
-- reviewCount là số lượng đánh giá ước tính
-- price phải phù hợp với ngân sách người dùng, ghi bằng ${trip.currency}
-- aiInsight phải cụ thể, liên quan đến sở thích và ngân sách người dùng
-- Chỉ có 1 phần tử đầu tiên có isTopMatch = true
-- CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
+Quy tắc quan trọng:
+- price: Phải là con số thực tế theo giá thị trường hiện tại (ước tính chi phí tổng cho 1 người/chuyến đi) tương ứng với phân khúc ngân sách đã chọn và vị trí địa lý của điểm đến (ghi kèm đơn vị ${trip.currency}).
+- matchPercent: Từ 65-98, sắp xếp giảm dần theo matchPercent.
+- rating: Đánh giá thực tế từ 4.1 - 4.9 sao.
+- reviewCount: Số lượng đánh giá thực tế ước tính (thường từ 250 đến 4500 đánh giá).
+- aiInsight: Viết cô đọng, sắc sảo, nêu rõ điểm nổi bật vì sao điểm đến này đáng đi trong mùa/phân khúc này.
+- Chỉ có đúng 1 phần tử đầu tiên có isTopMatch = true.
+- CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác.
 - $langInst
 ''';
   }
@@ -473,7 +522,7 @@ Quy tắc:
     return _parseDetail(text, destinationName);
   }
 
-  /// Parse raw JSON text into a DestinationDetail with image.
+  /// Parse raw JSON text into a DestinationDetail with image and photo gallery.
   Future<DestinationDetail> _parseDetail(
     String text,
     String destinationName,
@@ -482,7 +531,21 @@ Quy tắc:
         safeJsonDecode(text) as Map<String, dynamic>;
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
-    return DestinationDetail.fromJson(json, imageUrl);
+
+    final rawLandmarks = (json['galleryLandmarks'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+
+    final gallery = await ImageService.instance.getLandmarkPhotos(
+      name,
+      rawLandmarks.isNotEmpty
+          ? rawLandmarks
+          : [name, '$name beach', '$name city', '$name mountain'],
+    );
+
+    return DestinationDetail.fromJson(json, imageUrl, gallery: gallery);
   }
 
   String _buildDetailPrompt(
@@ -494,41 +557,46 @@ Quy tắc:
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
         : 'Mar 15 - Mar 18';
 
-    final budget = trip.budget.isNotEmpty
-        ? '${trip.budget} ${trip.currency}'
-        : '5M VNĐ';
-
+    final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
     final langInst = languageInstruction(languageCode);
 
     return '''
-Bạn là chuyên gia du lịch AI. Hãy cung cấp thông tin chi tiết về điểm đến "$destinationName".
+Bạn là chuyên gia tư vấn du lịch AI. Hãy cung cấp thông tin chi tiết, ước tính chi phí thực tế và các địa danh biểu tượng cụ thể cho điểm đến "$destinationName".
 
-Ngân sách người dùng: $budget
-Thời gian: $dateInfo
+Mức ngân sách & phân khúc: $budgetDescription
+Thời gian dự kiến: $dateInfo
 
 Trả về JSON object với cấu trúc:
 {
   "name": "$destinationName",
-  "location": "Tỉnh/Vùng",
-  "tags": ["🌿 Wellness", "🏖️ Beach", "🤿 Diving", "🌅 Scenic"],
-  "weather": "Sunny, 32°C",
+  "location": "Tỉnh/Vùng, Quốc gia",
+  "tags": ["🌿 Nghỉ dưỡng", "🏖️ Biển đảo", "🤿 Lặn biển", "🌅 Cảnh đẹp"],
+  "weather": "Nắng đẹp, 28-32°C",
   "dateRange": "$dateInfo",
-  "totalBudget": "~4.2M ${trip.currency}",
+  "totalBudget": "~4.8M ${trip.currency}",
+  "galleryLandmarks": [
+    "Tên địa danh/thắng cảnh nổi tiếng 1 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 2 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 3 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 4 cụ thể của $destinationName"
+  ],
   "budgetBreakdown": [
-    {"label": "Transport", "amount": "1.7M ${trip.currency}", "fraction": 0.40, "icon": "flight"},
-    {"label": "Stay", "amount": "1.2M ${trip.currency}", "fraction": 0.30, "icon": "hotel"},
-    {"label": "Food", "amount": "0.8M ${trip.currency}", "fraction": 0.20, "icon": "restaurant"},
+    {"label": "Transport", "amount": "1.8M ${trip.currency}", "fraction": 0.38, "icon": "flight"},
+    {"label": "Stay", "amount": "1.5M ${trip.currency}", "fraction": 0.31, "icon": "hotel"},
+    {"label": "Food", "amount": "1.0M ${trip.currency}", "fraction": 0.21, "icon": "restaurant"},
     {"label": "Activities", "amount": "0.5M ${trip.currency}", "fraction": 0.10, "icon": "kayaking"}
   ]
 }
 
 Quy tắc:
-- tags: 4 thẻ phù hợp nhất với điểm đến, có emoji phía trước
-- weather: thời tiết thực tế cho thời gian du lịch
-- budgetBreakdown: chia ngân sách thành 4 loại, tổng fraction = 1.0
+- galleryLandmarks: 4 địa danh/thắng cảnh/công trình nổi tiếng và đặc trưng nhất của $destinationName (ví dụ: Đà Nẵng thì là Cầu Vàng Bà Nà Hills, Bãi biển Mỹ Khê, Cầu Rồng, Bán đảo Sơn Trà).
+- totalBudget: Phải là ước tính chi phí thực tế cho 1 người/chuyến đi dựa trên phân khúc ngân sách đã chọn và chi phí thực tế của $destinationName.
+- budgetBreakdown: Phân chia chi phí thực tế thành 4 nhóm (Transport - Đi lại, Stay - Lưu trú, Food - Ăn uống, Activities - Vui chơi/Tham quan). Tổng 4 khoản tiền phải bằng đúng totalBudget, và tổng fraction = 1.0.
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
-- Mọi trường tiền tệ phải ghi cả số tiền và mã ${trip.currency}, đồng thời phù hợp với ngân sách $budget
-- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
+- tags: 4 thẻ ngắn gọn, đặc trưng nhất cho điểm đến, có kèm emoji.
+- weather: Dự báo thời tiết thực tế theo mùa của điểm đến.
+- Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.
 - $langInst
 ''';
   }

@@ -205,6 +205,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get budgetHint => '예: 5000000';
 
   @override
+  String get budgetTier => '예산 수준';
+
+  @override
+  String get budgetTierEconomy => '알뜰';
+
+  @override
+  String get budgetTierModerate => '표준';
+
+  @override
+  String get budgetTierPremium => '고급';
+
+  @override
+  String get budgetTierLuxury => '최고급';
+
+  @override
   String get currency => '통화';
 
   @override

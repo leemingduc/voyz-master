@@ -196,6 +196,21 @@
   "budgetHint": "e.g. 5000000",
   "@budgetHint": {"description": "Budget field hint"},
 
+  "budgetTier": "Budget Tier",
+  "@budgetTier": {"description": "Budget tier section label"},
+
+  "budgetTierEconomy": "Economy",
+  "@budgetTierEconomy": {"description": "Economy budget tier"},
+
+  "budgetTierModerate": "Moderate",
+  "@budgetTierModerate": {"description": "Moderate budget tier"},
+
+  "budgetTierPremium": "Premium",
+  "@budgetTierPremium": {"description": "Premium budget tier"},
+
+  "budgetTierLuxury": "Luxury",
+  "@budgetTierLuxury": {"description": "Luxury budget tier"},
+
   "currency": "Currency",
   "@currency": {"description": "Currency field label"},
 
