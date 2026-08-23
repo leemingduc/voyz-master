@@ -28,6 +28,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<DestinationSuggestion> _destinations = [];
   bool _isLoading = true;
   String? _error;
+  String _selectedCategoryKey = 'random';
+
+  static const List<(String key, String label, String? promptCategory)> _categories = [
+    ('random', '🎲 Ngẫu nhiên', null),
+    ('beach', '🏖️ Biển đảo', 'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ'),
+    ('mountain', '🏔️ Vùng núi & Đèo', 'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang'),
+    ('heritage', '🏯 Cổ kính & Di sản', 'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính'),
+    ('city', '🏙️ Đô thị sôi động', 'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm'),
+    ('wellness', '🌿 Nghỉ dưỡng thiên nhiên', 'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát'),
+    ('hidden_gems', '💎 Độc lạ (Hidden Gems)', 'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến'),
+  ];
 
   @override
   void initState() {
@@ -35,7 +46,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadExplore());
   }
 
-  Future<void> _loadExplore({bool forceRefresh = false}) async {
+  Future<void> _loadExplore({bool forceRefresh = false, String? categoryPrompt}) async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -46,6 +57,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final results = await GeminiService.instance.getExploreTrending(
         limit: 10,
         forceRefresh: forceRefresh,
+        category: categoryPrompt,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
       if (mounted) {
@@ -75,6 +87,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
         });
       }
     }
+  }
+
+  void _onSelectCategory(String key, String? categoryPrompt) {
+    if (_selectedCategoryKey == key && key != 'random') return;
+    setState(() {
+      _selectedCategoryKey = key;
+    });
+    _loadExplore(forceRefresh: true, categoryPrompt: categoryPrompt);
   }
 
   void _onNavTap(int index) {
@@ -131,7 +151,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
           child: Column(
             children: [
               _buildHeader(theme),
-              Expanded(child: _buildBody(theme)),
+              _buildCategoryBar(),
+              Expanded(
+                child: RefreshIndicator(
+                  color: AppTheme.primaryPink,
+                  backgroundColor: const Color(0xFF1E1B2E),
+                  onRefresh: () => _loadExplore(
+                    forceRefresh: true,
+                    categoryPrompt: _categories
+                        .firstWhere((c) => c.$1 == _selectedCategoryKey)
+                        .$3,
+                  ),
+                  child: _buildBody(theme),
+                ),
+              ),
             ],
           ),
         ),
@@ -174,19 +207,91 @@ class _ExploreScreenState extends State<ExploreScreen> {
           const AccountMenuButton(),
           const SizedBox(width: 10),
 
-          // Refresh button
+          // Random Shuffle / Refresh button
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF7C3AED), Color(0xFFE91E63)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white70, size: 22),
-              onPressed: () => _loadExplore(forceRefresh: true),
-              tooltip: AppLocalizations.of(context)!.refresh,
+              icon: const Icon(Icons.casino, color: Colors.white, size: 22),
+              onPressed: () {
+                _loadExplore(
+                  forceRefresh: true,
+                  categoryPrompt: _categories
+                      .firstWhere((c) => c.$1 == _selectedCategoryKey)
+                      .$3,
+                );
+              },
+              tooltip: 'Khám phá ngẫu nhiên địa điểm mới',
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Category Filter Bar ───────────────────────────────────────────────
+
+  Widget _buildCategoryBar() {
+    return SizedBox(
+      height: 46,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final isSelected = _selectedCategoryKey == cat.$1;
+
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _onSelectCategory(cat.$1, cat.$3),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFE91E63), Color(0xFFFF4081)],
+                      )
+                    : null,
+                color: isSelected
+                    ? null
+                    : Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFFF80AB)
+                      : Colors.white.withValues(alpha: 0.1),
+                  width: isSelected ? 1.5 : 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  cat.$2,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

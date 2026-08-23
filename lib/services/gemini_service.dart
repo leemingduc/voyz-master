@@ -122,15 +122,39 @@ class GeminiService {
   ///
   /// [limit] number of destinations to return.
   /// [forceRefresh] if true, bypasses the cache.
+  static final List<String> _randomExploreThemes = [
+    'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
+    'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
+    'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính',
+    'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm',
+    'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát',
+    'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến',
+    'Kỳ quan thiên nhiên, quần thể hang động tráng lệ và cảnh quan độc nhất vô nhị',
+    'Vùng đất văn hóa bản địa độc đáo, lễ hội sắc màu và ẩm thực phong phú',
+  ];
+
+  /// Get trending or randomly discovered travel destinations for free exploration.
+  /// Does NOT require any user input — perfect for the Explore tab.
+  ///
+  /// [limit] number of destinations to return.
+  /// [forceRefresh] if true, generates a completely new random batch of destinations.
+  /// [category] optional specific travel category / theme.
   /// [languageCode] locale code for language-aware prompts (vi, en, ko).
   Future<List<DestinationSuggestion>> getExploreTrending({
     int limit = 10,
     bool forceRefresh = false,
+    String? category,
     String languageCode = 'vi',
   }) async {
+    final randomSeed = DateTime.now().millisecondsSinceEpoch % 100000;
+    final theme = category ??
+        _randomExploreThemes[randomSeed % _randomExploreThemes.length];
+
     final cacheKey = _aiCache.buildKey('explore_trending', {
       'limit': limit,
       'lang': languageCode,
+      if (!forceRefresh && category != null) 'category': category,
+      if (forceRefresh) 'nonce': randomSeed,
     });
 
     if (!forceRefresh) {
@@ -141,33 +165,32 @@ class GeminiService {
     }
 
     final langInst = languageInstruction(languageCode);
-    final prompt =
-        '''
-Bạn là chuyên gia du lịch AI. Hãy gợi ý $limit điểm đến du lịch đang thịnh hành nhất hiện nay, bao gồm cả trong nước Việt Nam và quốc tế.
+    final prompt = '''
+Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý một danh sách $limit điểm đến du lịch ĐỘC ĐÁO, MỚI LẠ và NGẪU NHIÊN theo chủ đề:
+👉 "$theme"
 
-Ưu tiên các điểm đến:
-- Đa dạng vùng miền (biển, núi, thành phố, thiên nhiên hoang sơ)
-- Phù hợp với mùa du lịch hiện tại
-- Có cả địa điểm bình dân và cao cấp
-- Mix giữa Việt Nam và quốc tế
+Yêu cầu tạo danh sách ngẫu nhiên & tươi mới:
+- HÃY ĐA DẠNG HÓA TỐI ĐA các địa điểm, tránh lặp lại các gợi ý cũ!
+- Kết hợp cả các điểm đến hấp dẫn tại Việt Nam và các kỳ quan trên thế giới.
+- Bao gồm cả những viên ngọc ẩn (Hidden Gems) ít người biết và các điểm đến biểu tượng.
+- Giá cả ước tính và số liệu đánh giá phải chân thực, hợp lý.
 
 Trả về JSON array với đúng $limit phần tử, mỗi phần tử:
 {
   "name": "Tên địa điểm, Quốc gia",
-  "matchPercent": 85,
-  "rating": 4.5,
-  "reviewCount": 1200,
-  "price": "~4.2M VNĐ",
-  "aiInsight": "Lý do nên đến ngay thời điểm này (1-2 câu)",
+  "matchPercent": 95,
+  "rating": 4.7,
+  "reviewCount": 1820,
+  "price": "~4.5M VNĐ",
+  "aiInsight": "Lý do bất ngờ và hấp dẫn nhất nên khám phá địa điểm này ngay (1-2 câu)",
   "isTopMatch": false
 }
 
 Quy tắc:
-- matchPercent thể hiện mức độ trending (60-99)
-- rating từ 1.0-5.0
-- reviewCount là ước tính số đánh giá
-- price là chi phí ước tính cho 1 người/chuyến
-- aiInsight nên đề cập lý do trending (mùa lễ hội, thời tiết đẹp, ...)
+- matchPercent thể hiện mức độ phù hợp và trending (65-99, sắp xếp giảm dần)
+- rating từ 4.2 - 4.9
+- reviewCount là ước tính số đánh giá thực tế (300 - 4500)
+- price là chi phí ước tính thực tế cho 1 người/chuyến (ghi kèm đơn vị tiền tệ)
 - Phần tử đầu tiên có isTopMatch = true
 - CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
 - $langInst
