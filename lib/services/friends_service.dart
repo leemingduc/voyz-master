@@ -262,6 +262,22 @@ class FriendsService {
     });
   }
 
+  /// Realtime stream for messages in a friendship conversation.
+  Stream<List<FriendMessage>> streamMessages(String friendshipId) {
+    return _client
+        .from('friend_messages')
+        .stream(primaryKey: ['id'])
+        .eq('friendship_id', friendshipId)
+        .order('created_at', ascending: true)
+        .map(
+          (rows) => rows
+              .map<FriendMessage>(
+                (row) => FriendMessage.fromMap(Map<String, dynamic>.from(row)),
+              )
+              .toList(),
+        );
+  }
+
   Future<void> sendMessage(String friendshipId, String body) async {
     final trimmed = body.trim();
     if (trimmed.isEmpty) return;

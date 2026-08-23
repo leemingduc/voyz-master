@@ -389,19 +389,35 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   List<FriendMessage> _messages = [];
-  Timer? _timer;
+  StreamSubscription<List<FriendMessage>>? _streamSub;
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
+    _initRealtimeMessages();
+  }
+
+  void _initRealtimeMessages() {
     _loadMessages();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) => _loadMessages(silent: true));
+    try {
+      _streamSub = FriendsService.instance
+          .streamMessages(widget.friendship.id)
+          .listen((messages) {
+        if (!mounted) return;
+        setState(() => _messages = messages);
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }, onError: (error) {
+        debugPrint('Friend chat realtime stream error: $error');
+      });
+    } catch (e) {
+      debugPrint('Friend chat stream setup error: $e');
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _streamSub?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -429,7 +445,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     try {
       await FriendsService.instance.sendMessage(widget.friendship.id, body);
       _messageController.clear();
-      await _loadMessages();
+      await _loadMessages(silent: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

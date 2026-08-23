@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/trip_data.dart';
@@ -7,7 +8,7 @@ import 'package:voyz/models/itinerary_plan.dart';
 import 'package:voyz/services/supabase_service.dart';
 
 /// InheritedWidget-based provider for sharing trip data and saved items
-/// across screens without adding a state management dependency.
+/// across screens with two-way Offline-First Cloud Sync (Hive + Supabase).
 class SavedTripsProvider extends StatefulWidget {
   const SavedTripsProvider({super.key, required this.child});
   final Widget child;
@@ -96,6 +97,113 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
         ..clear()
         ..addAll(itineraries);
     });
+
+    // Background two-way sync with Supabase Cloud
+    if (userId != 'anonymous') {
+      unawaited(_syncFromSupabase(userId));
+    }
+  }
+
+  Future<void> _syncFromSupabase(String userId) async {
+    try {
+      final client = SupabaseService.instance.client;
+
+      // 1. Fetch saved trips from cloud
+      final tripRows = await client
+          .from('saved_trips')
+          .select()
+          .eq('user_id', userId)
+          .order('saved_at', ascending: false);
+
+      final cloudItems = <SavedItem>[];
+      for (final row in tripRows) {
+        final map = Map<String, dynamic>.from(row);
+        final isWishlist = map['is_wishlist'] == true;
+        final rawTripData = map['trip_data'];
+        TripData? tripData;
+        if (!isWishlist && rawTripData is Map) {
+          tripData = TripData.fromMap(rawTripData);
+        }
+
+        final rawChecklist = map['checklist'];
+        List<WorkspaceChecklistItem>? checklist;
+        if (rawChecklist is List) {
+          checklist = rawChecklist
+              .whereType<Map>()
+              .map(WorkspaceChecklistItem.fromMap)
+              .toList();
+        }
+
+        cloudItems.add(
+          SavedItem(
+            name: map['name']?.toString() ?? '',
+            imageUrl: map['image_url']?.toString() ?? '',
+            price: map['price']?.toString() ?? '',
+            matchPercent: (map['match_percent'] as num?)?.toInt() ?? 0,
+            rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+            reviewCount: (map['review_count'] as num?)?.toInt() ?? 0,
+            aiInsight: map['ai_insight']?.toString() ?? '',
+            tripData: tripData,
+            savedAt: DateTime.tryParse(map['saved_at']?.toString() ?? ''),
+            checklist: checklist,
+            workspaceNotes: map['workspace_notes']?.toString() ?? '',
+            bookingRefs: TripData.stringList(map['booking_refs']),
+            sharedWith: TripData.stringList(map['shared_with']),
+          ),
+        );
+      }
+
+      // 2. Fetch saved itineraries from cloud
+      final itineraryRows = await client
+          .from('saved_itineraries')
+          .select()
+          .eq('user_id', userId);
+
+      final cloudItineraries = <String, ItineraryPlan>{};
+      for (final row in itineraryRows) {
+        final map = Map<String, dynamic>.from(row);
+        final destName = map['destination_name']?.toString() ?? '';
+        final rawPlan = map['plan_data'];
+        if (destName.isNotEmpty && rawPlan is Map) {
+          final plan = ItineraryPlan.fromJson(Map<String, dynamic>.from(rawPlan));
+          cloudItineraries[destName] = plan;
+        }
+      }
+
+      if (!mounted || userId != _currentUserId) return;
+
+      // Merge cloud items with local items (if local has items not on cloud, push them)
+      final existingNames = cloudItems.map((e) => e.name).toSet();
+      for (final localItem in _savedItems) {
+        if (!existingNames.contains(localItem.name)) {
+          cloudItems.add(localItem);
+          _syncItemToCloud(localItem, userId);
+        }
+      }
+
+      cloudItems.sort((a, b) => b.savedAt.compareTo(a.savedAt));
+
+      // Update state and cache
+      setState(() {
+        _savedItems
+          ..clear()
+          ..addAll(cloudItems);
+        _itineraries.addAll(cloudItineraries);
+      });
+
+      // Update local Hive box
+      final box = _box;
+      if (box != null) {
+        for (final item in cloudItems) {
+          await box.put(item.name, item.toMap());
+        }
+        for (final entry in cloudItineraries.entries) {
+          await box.put('$_itineraryPrefix${entry.key}', entry.value.toMap());
+        }
+      }
+    } catch (e) {
+      debugPrint('SavedTripsProvider Supabase sync error: $e');
+    }
   }
 
   Future<void> _persist() {
@@ -117,6 +225,76 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       }
     });
     return _persistenceQueue;
+  }
+
+  void _syncItemToCloud(SavedItem item, [String? targetUserId]) {
+    final userId = targetUserId ?? _currentUserId;
+    if (userId == 'anonymous') return;
+
+    final client = SupabaseService.instance.client;
+    final payload = {
+      'user_id': userId,
+      'name': item.name,
+      'image_url': item.imageUrl,
+      'price': item.price,
+      'match_percent': item.matchPercent,
+      'rating': item.rating,
+      'review_count': item.reviewCount,
+      'ai_insight': item.aiInsight,
+      'is_wishlist': item.tripData == null,
+      'trip_data': item.tripData?.toMap(),
+      'checklist': item.checklist.map((e) => e.toMap()).toList(),
+      'workspace_notes': item.workspaceNotes,
+      'booking_refs': item.bookingRefs,
+      'shared_with': item.sharedWith,
+      'saved_at': item.savedAt.toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    client
+        .from('saved_trips')
+        .upsert(payload, onConflict: 'user_id,name')
+        .then((_) {})
+        .catchError((e) {
+      debugPrint('Error syncing saved item to Supabase: $e');
+    });
+  }
+
+  void _deleteItemFromCloud(String name) {
+    final userId = _currentUserId;
+    if (userId == 'anonymous') return;
+
+    final client = SupabaseService.instance.client;
+    client
+        .from('saved_trips')
+        .delete()
+        .eq('user_id', userId)
+        .eq('name', name)
+        .then((_) {})
+        .catchError((e) {
+      debugPrint('Error deleting saved item from Supabase: $e');
+    });
+  }
+
+  void _syncItineraryToCloud(String destinationName, ItineraryPlan plan) {
+    final userId = _currentUserId;
+    if (userId == 'anonymous') return;
+
+    final client = SupabaseService.instance.client;
+    final payload = {
+      'user_id': userId,
+      'destination_name': destinationName,
+      'plan_data': plan.toMap(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    client
+        .from('saved_itineraries')
+        .upsert(payload, onConflict: 'user_id,destination_name')
+        .then((_) {})
+        .catchError((e) {
+      debugPrint('Error syncing itinerary to Supabase: $e');
+    });
   }
 
   String get _currentUserId {
@@ -152,6 +330,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     if (plan.destinationName.isEmpty) return;
     setState(() => _itineraries[plan.destinationName] = plan);
     _persist();
+    _syncItineraryToCloud(plan.destinationName, plan);
   }
 
   /// Save the full trip (planner data + destination detail) to the saved list.
@@ -166,22 +345,21 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     required String aiInsight,
   }) {
     if (_savedItems.any((e) => e.name == name)) return false;
+    final item = SavedItem(
+      name: name,
+      imageUrl: imageUrl,
+      price: price,
+      matchPercent: matchPercent,
+      rating: rating,
+      reviewCount: reviewCount,
+      aiInsight: aiInsight,
+      tripData: _currentTrip.copyWith(),
+    );
     setState(() {
-      _savedItems.insert(
-        0,
-        SavedItem(
-          name: name,
-          imageUrl: imageUrl,
-          price: price,
-          matchPercent: matchPercent,
-          rating: rating,
-          reviewCount: reviewCount,
-          aiInsight: aiInsight,
-          tripData: _currentTrip.copyWith(),
-        ),
-      );
+      _savedItems.insert(0, item);
     });
     _persist();
+    _syncItemToCloud(item);
     return true;
   }
 
@@ -197,22 +375,21 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     required String aiInsight,
   }) {
     if (_savedItems.any((e) => e.name == name)) return false;
+    final item = SavedItem(
+      name: name,
+      imageUrl: imageUrl,
+      price: price,
+      matchPercent: matchPercent,
+      rating: rating,
+      reviewCount: reviewCount,
+      aiInsight: aiInsight,
+      tripData: null,
+    );
     setState(() {
-      _savedItems.insert(
-        0,
-        SavedItem(
-          name: name,
-          imageUrl: imageUrl,
-          price: price,
-          matchPercent: matchPercent,
-          rating: rating,
-          reviewCount: reviewCount,
-          aiInsight: aiInsight,
-          tripData: null,
-        ),
-      );
+      _savedItems.insert(0, item);
     });
     _persist();
+    _syncItemToCloud(item);
     return true;
   }
 
@@ -221,6 +398,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     if (index == -1) return;
     setState(() => _savedItems[index] = updated);
     _persist();
+    _syncItemToCloud(updated);
   }
 
   void toggleChecklistItem(SavedItem item, int index) {
@@ -260,6 +438,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   void removeSavedItem(SavedItem item) {
     setState(() => _savedItems.remove(item));
     _persist();
+    _deleteItemFromCloud(item.name);
   }
 
   @override
