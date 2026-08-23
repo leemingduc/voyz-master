@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:voyz/models/destination_detail.dart';
 
 /// Service to fetch real, high-quality, authentic destination photography.
 ///
@@ -188,6 +189,23 @@ class ImageService {
     final futures = names.map((name) => getImageUrl(name));
     final urls = await Future.wait(futures);
     return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
+  }
+
+  /// Fetches multiple supplementary photos for specific landmarks of a destination.
+  Future<List<DestinationLandmarkPhoto>> getLandmarkPhotos(
+    String destinationName,
+    List<String> landmarkTitles,
+  ) async {
+    final futures = landmarkTitles.map((title) async {
+      final url = await getImageUrl(
+        title.isNotEmpty ? '$title, $destinationName' : destinationName,
+      );
+      return DestinationLandmarkPhoto(
+        title: title,
+        imageUrl: url,
+      );
+    });
+    return Future.wait(futures);
   }
 
   // ── Normalization Helper ────────────────────────────────────────────────

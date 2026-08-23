@@ -32,6 +32,7 @@ class DestinationDetailScreen extends StatefulWidget {
 
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   DestinationDetail? _detail;
+  String? _activeHeroUrl;
   bool _isLoading = true;
   String? _error;
 
@@ -57,6 +58,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       if (mounted) {
         setState(() {
           _detail = detail;
+          _activeHeroUrl = detail.imageUrl;
           _isLoading = false;
         });
         unawaited(_prefetchItinerary());
@@ -280,7 +282,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               SliverToBoxAdapter(
                 child: _HeroSection(
                   theme: theme,
-                  imageUrl: d.imageUrl,
+                  imageUrl: _activeHeroUrl ?? d.imageUrl,
                   onShare: () => _onShare(context),
                 ),
               ),
@@ -301,6 +303,18 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                       ),
                       const SizedBox(height: 16),
                       _TagsRow(tags: d.tags),
+                      if (d.gallery.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _LandmarkGallerySection(
+                          gallery: d.gallery,
+                          fallbackUrl: d.imageUrl,
+                          onSelectPhoto: (url) {
+                            setState(() {
+                              _activeHeroUrl = url;
+                            });
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       _WeatherCard(
                         theme: theme,
@@ -851,3 +865,174 @@ class _OutlineBtn extends StatelessWidget {
     );
   }
 }
+
+class _LandmarkGallerySection extends StatefulWidget {
+  const _LandmarkGallerySection({
+    required this.gallery,
+    required this.fallbackUrl,
+    required this.onSelectPhoto,
+  });
+
+  final List<DestinationLandmarkPhoto> gallery;
+  final String fallbackUrl;
+  final ValueChanged<String> onSelectPhoto;
+
+  @override
+  State<_LandmarkGallerySection> createState() =>
+      _LandmarkGallerySectionState();
+}
+
+class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.gallery.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.photo_library_outlined,
+                color: Color(0xFFE91E63),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'THẮNG CẢNH BIỂU TƯỢNG & ẢNH THỰC TẾ',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.gallery.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final photo = widget.gallery[index];
+              final isSelected = _selectedIndex == index;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                  widget.onSelectPhoto(photo.imageUrl);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFE91E63)
+                          : Colors.white.withValues(alpha: 0.1),
+                      width: isSelected ? 2.5 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFE91E63).withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: photo.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, _) => Container(
+                            color: const Color(0xFF1E1B2E),
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                          errorWidget: (_, _, _) => Container(
+                            color: const Color(0xFF1E1B2E),
+                            child: const Icon(Icons.landscape, color: Colors.white24),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.85),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                          child: Text(
+                            photo.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        if (isSelected)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE91E63),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+

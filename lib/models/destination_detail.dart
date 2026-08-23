@@ -8,6 +8,7 @@ class DestinationDetail {
   final String dateRange;
   final String totalBudget;
   final List<BudgetItem> budgetBreakdown;
+  final List<DestinationLandmarkPhoto> gallery;
 
   const DestinationDetail({
     required this.name,
@@ -18,12 +19,14 @@ class DestinationDetail {
     required this.dateRange,
     required this.totalBudget,
     required this.budgetBreakdown,
+    this.gallery = const [],
   });
 
   factory DestinationDetail.fromJson(
     Map<String, dynamic> json,
-    String imageUrl,
-  ) {
+    String imageUrl, {
+    List<DestinationLandmarkPhoto> gallery = const [],
+  }) {
     return DestinationDetail(
       name: json['name'] as String? ?? '',
       location: json['location'] as String? ?? '',
@@ -39,8 +42,32 @@ class DestinationDetail {
               ?.map((e) => BudgetItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      gallery: gallery,
     );
   }
+}
+
+/// A specific landmark photo in the destination gallery.
+class DestinationLandmarkPhoto {
+  final String title;
+  final String imageUrl;
+
+  const DestinationLandmarkPhoto({
+    required this.title,
+    required this.imageUrl,
+  });
+
+  factory DestinationLandmarkPhoto.fromJson(Map<String, dynamic> json) {
+    return DestinationLandmarkPhoto(
+      title: json['title'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'imageUrl': imageUrl,
+  };
 }
 
 /// A single line-item in the estimated budget breakdown.

@@ -522,7 +522,7 @@ Quy tắc quan trọng:
     return _parseDetail(text, destinationName);
   }
 
-  /// Parse raw JSON text into a DestinationDetail with image.
+  /// Parse raw JSON text into a DestinationDetail with image and photo gallery.
   Future<DestinationDetail> _parseDetail(
     String text,
     String destinationName,
@@ -531,7 +531,21 @@ Quy tắc quan trọng:
         safeJsonDecode(text) as Map<String, dynamic>;
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
-    return DestinationDetail.fromJson(json, imageUrl);
+
+    final rawLandmarks = (json['galleryLandmarks'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+
+    final gallery = await ImageService.instance.getLandmarkPhotos(
+      name,
+      rawLandmarks.isNotEmpty
+          ? rawLandmarks
+          : [name, '$name beach', '$name city', '$name mountain'],
+    );
+
+    return DestinationDetail.fromJson(json, imageUrl, gallery: gallery);
   }
 
   String _buildDetailPrompt(
@@ -547,7 +561,7 @@ Quy tắc quan trọng:
     final langInst = languageInstruction(languageCode);
 
     return '''
-Bạn là chuyên gia tư vấn du lịch AI. Hãy cung cấp thông tin chi tiết và ước tính chi phí thực tế cho điểm đến "$destinationName".
+Bạn là chuyên gia tư vấn du lịch AI. Hãy cung cấp thông tin chi tiết, ước tính chi phí thực tế và các địa danh biểu tượng cụ thể cho điểm đến "$destinationName".
 
 Mức ngân sách & phân khúc: $budgetDescription
 Thời gian dự kiến: $dateInfo
@@ -560,6 +574,12 @@ Trả về JSON object với cấu trúc:
   "weather": "Nắng đẹp, 28-32°C",
   "dateRange": "$dateInfo",
   "totalBudget": "~4.8M ${trip.currency}",
+  "galleryLandmarks": [
+    "Tên địa danh/thắng cảnh nổi tiếng 1 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 2 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 3 cụ thể của $destinationName",
+    "Tên địa danh/thắng cảnh nổi tiếng 4 cụ thể của $destinationName"
+  ],
   "budgetBreakdown": [
     {"label": "Transport", "amount": "1.8M ${trip.currency}", "fraction": 0.38, "icon": "flight"},
     {"label": "Stay", "amount": "1.5M ${trip.currency}", "fraction": 0.31, "icon": "hotel"},
@@ -569,6 +589,7 @@ Trả về JSON object với cấu trúc:
 }
 
 Quy tắc:
+- galleryLandmarks: 4 địa danh/thắng cảnh/công trình nổi tiếng và đặc trưng nhất của $destinationName (ví dụ: Đà Nẵng thì là Cầu Vàng Bà Nà Hills, Bãi biển Mỹ Khê, Cầu Rồng, Bán đảo Sơn Trà).
 - totalBudget: Phải là ước tính chi phí thực tế cho 1 người/chuyến đi dựa trên phân khúc ngân sách đã chọn và chi phí thực tế của $destinationName.
 - budgetBreakdown: Phân chia chi phí thực tế thành 4 nhóm (Transport - Đi lại, Stay - Lưu trú, Food - Ăn uống, Activities - Vui chơi/Tham quan). Tổng 4 khoản tiền phải bằng đúng totalBudget, và tổng fraction = 1.0.
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
