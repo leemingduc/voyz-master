@@ -28,7 +28,7 @@ void main() {
 
     test('passes a real image url through unchanged', () {
       const url =
-          'https://commons.wikimedia.org/wiki/Special:FilePath/Phu_Quoc_Beach.jpg?width=1280';
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Phu_Quoc_Beach.jpg/1280px-Phu_Quoc_Beach.jpg';
       final suggestion = DestinationSuggestion.fromSupabase({
         'name': 'Phu Quoc, Vietnam',
         'image_url': url,

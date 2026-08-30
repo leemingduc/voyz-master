@@ -28,7 +28,7 @@ void main() {
         payload: '[{"name": "Phu Quoc"}]',
         imageUrls: {
           'Phu Quoc':
-              'https://commons.wikimedia.org/wiki/Special:FilePath/Phu_Quoc_Beach.jpg?width=1280',
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Phu_Quoc_Beach.jpg/1280px-Phu_Quoc_Beach.jpg',
         },
       );
 
@@ -39,7 +39,7 @@ void main() {
       expect(
         fromMap.imageUrls['Phu Quoc'],
         equals(
-          'https://commons.wikimedia.org/wiki/Special:FilePath/Phu_Quoc_Beach.jpg?width=1280',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Phu_Quoc_Beach.jpg/1280px-Phu_Quoc_Beach.jpg',
         ),
       );
     });
@@ -77,10 +77,11 @@ void main() {
   group('sanitizeImageUrls', () {
     // Pre-caching từng lưu URL bịa và URL từ dịch vụ đã chết vào cache đa
     // tầng. Allowlist theo host chặn tái nhiễm từ mọi tầng.
-    test('keeps wikimedia and supabase hosts, drops everything else', () {
+    test('keeps direct-hit CORS hosts, drops everything else', () {
       final input = {
         'A':
             'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/X.jpg/1280px-X.jpg',
+        // Special:FilePath redirect: hop đầu không có ACAO, browser chặn.
         'B':
             'https://commons.wikimedia.org/wiki/Special:FilePath/Y.jpg?width=1280',
         'C':
@@ -92,7 +93,7 @@ void main() {
 
       final out = AiCacheService.sanitizeImageUrls(input);
 
-      expect(out.keys, unorderedEquals(['A', 'B', 'C']));
+      expect(out.keys, unorderedEquals(['A', 'C']));
     });
 
     test('applies on deserialization so poisoned entries are dropped on read',
@@ -102,7 +103,7 @@ void main() {
         'imageUrls': {
           'Dead': 'https://loremflickr.com/960/640/Dead',
           'Alive':
-              'https://commons.wikimedia.org/wiki/Special:FilePath/Alive.jpg?width=1280',
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Alive.jpg/1280px-Alive.jpg',
         },
       });
 

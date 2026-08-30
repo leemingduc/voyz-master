@@ -51,9 +51,11 @@ class AiCacheService {
   // phiên trước. Cache là cache, được phép mất.
   static const String _boxName = 'gemini_multi_tier_cache_v2';
 
+  // Chỉ host phục vụ ảnh TRỰC TIẾP kèm CORS header. commons.wikimedia.org
+  // không nằm đây vì Special:FilePath redirect và hop đó không có ACAO,
+  // browser sẽ chặn dù curl thấy 200.
   static const List<String> _allowedImageHosts = [
     'upload.wikimedia.org',
-    'commons.wikimedia.org',
   ];
 
   final Map<String, CachedAiResponse> _memoryCache = {};

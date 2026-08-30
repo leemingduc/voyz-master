@@ -1,7 +1,9 @@
--- Fix fabricated/broken seed image URLs from 20260829000100.
--- All file names below verified end-to-end (HTTP 200, image/jpeg) via
--- tool/verify_image_urls.dart. Special:FilePath computes the correct
--- thumb path server-side, avoiding hand-guessed hash paths (400/404).
+-- Special:FilePath redirects from commons.wikimedia.org, which does NOT send
+-- Access-Control-Allow-Origin; browsers fail the redirect hop even though the
+-- final upload.wikimedia.org hop is CORS-enabled (curl cannot see this).
+-- Seed image URLs must therefore be DIRECT upload.wikimedia.org URLs.
+-- All URLs below verified: HTTP 200, image/jpeg, ACAO=*, no redirect
+-- (tool/verify_image_urls.dart now enforces exactly this).
 
 update public.destinations set
   image_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Da_Nang_-_Dragon_Bridge.jpg/1280px-Da_Nang_-_Dragon_Bridge.jpg',

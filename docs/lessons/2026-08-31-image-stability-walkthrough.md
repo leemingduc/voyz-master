@@ -63,11 +63,22 @@ Cache đa tầng đã lưu sẵn các URL hỏng từ những phiên trước, n
 - **`sanitizeImageUrls` allowlist theo host** (`upload.wikimedia.org`, `commons.wikimedia.org`, `*.supabase.co`), áp ở MỌI đường đọc và ghi (memory, Hive, Supabase). Allowlist ổn định hơn blocklist: thay vì đuổi theo từng dịch vụ chết (unsplash rồi loremflickr rồi gì nữa?), ta khai báo nguồn nào được phép và mặc định từ chối phần còn lại.
 - Test của bạn nào khóa hành vi cũ (ép model tự chèn fallback URL) được viết lại theo contract mới. Test tồn tại để khóa CONTRACT, khi contract đổi có chủ đích thì test đổi theo, kèm comment giải thích vì sao.
 
+## 3.5. Hậu ký: chính người review cũng dính bẫy (commit sửa CORS sau merge)
+
+Trung thực để học: phiên bản đầu của fix này dùng URL dạng `Special:FilePath?width=1280` cho seed, vì nó để server tự tính hash path. Tôi đã verify bằng curl (200 + image/jpeg) và tự tin. Nhưng khi demo trên browser, toàn bộ 5 ảnh seed bị chặn CORS.
+
+Lý do: `Special:FilePath` nằm trên `commons.wikimedia.org` và trả 302 redirect sang `upload.wikimedia.org`. Browser kiểm tra CORS trên TỪNG hop của chuỗi redirect; hop đầu (`commons.wikimedia.org`) không gửi `Access-Control-Allow-Origin`, nên browser dừng ngay tại đó. curl không có khái niệm CORS nên `curl -L` thấy 200 hoàn hảo.
+
+Đây chính xác là vi phạm mục 3 trong checklist bên dưới, do chính người viết checklist phạm phải. Bài học kép:
+
+- Công cụ kiểm chứng phải mô phỏng đúng MÔI TRƯỜNG THẬT sẽ dùng tài nguyên. Với web app, "URL sống" nghĩa là: 200 trực tiếp không redirect, content-type ảnh, VÀ có ACAO header. Verifier đã được nâng cấp để đòi đủ 3 điều kiện này (xem `tool/verify_image_urls.dart`), và bản nâng cấp bắt được đúng 5 URL lỗi trước khi sửa.
+- Fix: resolve `Special:FilePath` MỘT LẦN lúc verify để lấy URL trực tiếp `upload.wikimedia.org` (host này gửi `ACAO: *`), lưu URL trực tiếp vào seed (migration `20260831000400`). Allowlist trong `AiCacheService` cũng siết lại: chỉ còn host phục vụ ảnh direct-hit.
+
 ## 4. Checklist rút ra cho mọi lần đưa URL bên thứ ba vào app
 
 1. URL do AI (hoặc bạn) "nhớ ra" mặc định là bịa cho đến khi script verify nói ngược lại.
-2. Verify nghĩa là: follow redirect đến cùng, status 200, content-type đúng loại. HEAD 302 không phải bằng chứng.
-3. Chạy trên web thì hỏi thêm: dịch vụ có gửi `Access-Control-Allow-Origin` không? Không có là chết trên CanvasKit dù mở bằng trình duyệt thấy bình thường.
+2. Verify nghĩa là: status 200 TRỰC TIẾP (không redirect), content-type đúng loại. HEAD 302 không phải bằng chứng, và curl -L thấy 200 cũng chưa phải bằng chứng cho browser.
+3. Chạy trên web thì bắt buộc: response có `Access-Control-Allow-Origin`, và KHÔNG có redirect trong đường đi (browser kiểm CORS trên từng hop). curl không mô phỏng CORS, phải kiểm header một cách tường minh.
 4. URL dữ liệu để trong DB/seed, không hardcode trong code.
 5. Fallback phải phân biệt "kết quả rỗng" và "exception", và tầng cuối cùng phải là thứ KHÔNG THỂ hỏng (placeholder local), không phải một HTTP call khác.
 6. Có cache ở giữa thì sửa nguồn chưa đủ: phải xử lý dữ liệu hỏng đã nằm trong cache (xoay version hoặc sanitize khi đọc).

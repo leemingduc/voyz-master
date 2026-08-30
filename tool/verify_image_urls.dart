@@ -1,8 +1,13 @@
 // tool/verify_image_urls.dart
 //
 // Quét mọi URL ảnh Wikimedia trong supabase/migrations/*.sql và kiểm chứng
-// từng URL bằng GET follow-redirect. PHẢI follow đến cùng: HEAD 302 trên
-// Special:FilePath KHÔNG chứng minh file tồn tại (redirect đích có thể 404).
+// từng URL theo đúng điều kiện browser cần:
+//   1. Trả 200 TRỰC TIẾP, không qua redirect. Browser kiểm CORS trên TỪNG
+//      hop; Special:FilePath redirect từ commons.wikimedia.org (không có
+//      ACAO header) nên chết trên web dù curl -L thấy 200.
+//   2. Content-type phải là image/*.
+//   3. Response phải có Access-Control-Allow-Origin (Flutter web CanvasKit
+//      tải ảnh bằng fetch, không có ACAO là chặn).
 // Chạy: dart run tool/verify_image_urls.dart
 import 'dart:io';
 
@@ -40,19 +45,31 @@ Future<void> main() async {
   for (final url in urls) {
     // Wikimedia rate-limit burst request không có User-Agent (trả 429),
     // nên cần UA mô tả rõ + nghỉ ngắn giữa các request.
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
     try {
       final request = http.Request('GET', Uri.parse(url))
         ..headers['User-Agent'] =
             'VoyzSeedImageVerifier/1.0 (student project; verify seed URLs)'
-        ..followRedirects = true
-        ..maxRedirects = 5;
+        ..headers['Origin'] = 'http://localhost:8080'
+        ..followRedirects = false;
       final response =
           await client.send(request).timeout(const Duration(seconds: 20));
       final contentType = response.headers['content-type'] ?? '';
-      final ok = response.statusCode == 200 && contentType.startsWith('image/');
+      final acao = response.headers['access-control-allow-origin'] ?? '';
+      final problems = <String>[
+        if (response.statusCode >= 300 && response.statusCode < 400)
+          'redirect (browser CORS breaks on redirect hops)',
+        if (response.statusCode == 200 && !contentType.startsWith('image/'))
+          'not an image',
+        if (response.statusCode == 200 && acao.isEmpty)
+          'no Access-Control-Allow-Origin header',
+      ];
+      final ok = response.statusCode == 200 &&
+          contentType.startsWith('image/') &&
+          acao.isNotEmpty;
       stdout.writeln(
-        '${ok ? 'OK  ' : 'FAIL'} ${response.statusCode} $contentType  $url',
+        '${ok ? 'OK  ' : 'FAIL'} ${response.statusCode} $contentType ACAO=$acao'
+        '${problems.isEmpty ? '' : ' [${problems.join('; ')}]'}  $url',
       );
       if (!ok) failures++;
       await response.stream.drain<void>();

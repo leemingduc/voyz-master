@@ -408,14 +408,14 @@ values
     'Central Coast, Vietnam',
     'city',
     array['Beach', 'City', 'Food', 'Bridges'],
-    'https://commons.wikimedia.org/wiki/Special:FilePath/Da_Nang_-_Dragon_Bridge.jpg?width=1280',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Da_Nang_-_Dragon_Bridge.jpg/1280px-Da_Nang_-_Dragon_Bridge.jpg',
     '~5M VND',
     'A compact coastal city with beaches, night markets, and quick access to Hoi An and Ba Na Hills.',
     98,
     4.8,
     1280,
     '{"weather":"Sunny, 26-32C","dateRange":"Flexible","totalBudget":"~5M VND","budgetBreakdown":[{"label":"Transport","amount":"1.5M VND","fraction":0.3,"icon":"flight"},{"label":"Stay","amount":"1.6M VND","fraction":0.32,"icon":"hotel"},{"label":"Food","amount":"1.1M VND","fraction":0.22,"icon":"restaurant"},{"label":"Activities","amount":"0.8M VND","fraction":0.16,"icon":"kayaking"}]}'::jsonb,
-    '[{"title":"Dragon Bridge","imageUrl":"https://commons.wikimedia.org/wiki/Special:FilePath/Da_Nang_-_Dragon_Bridge.jpg?width=1280"},{"title":"Golden Bridge","imageUrl":"https://commons.wikimedia.org/wiki/Special:FilePath/Aerial_view_of_the_Golden_Bridge%2C_Ba_Na_Hills%2C_Da_Nang%2C_Vietnam.jpg?width=1280"}]'::jsonb
+    '[{"title":"Dragon Bridge","imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Da_Nang_-_Dragon_Bridge.jpg/1280px-Da_Nang_-_Dragon_Bridge.jpg"},{"title":"Golden Bridge","imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Aerial_view_of_the_Golden_Bridge%2C_Ba_Na_Hills%2C_Da_Nang%2C_Vietnam.jpg/1280px-Aerial_view_of_the_Golden_Bridge%2C_Ba_Na_Hills%2C_Da_Nang%2C_Vietnam.jpg"}]'::jsonb
   ),
   (
     'hoi-an-vietnam',
@@ -424,14 +424,14 @@ values
     'Quang Nam, Vietnam',
     'heritage',
     array['Heritage', 'Lanterns', 'Food', 'Old Town'],
-    'https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg?width=1280',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg/1280px-H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg',
     '~4M VND',
     'Lantern-lit streets, riverside cafes, tailor shops, and slow evenings make this a high-value cultural escape.',
     96,
     4.7,
     2140,
     '{"weather":"Warm, 25-31C","dateRange":"Flexible","totalBudget":"~4M VND","budgetBreakdown":[{"label":"Transport","amount":"1.1M VND","fraction":0.28,"icon":"flight"},{"label":"Stay","amount":"1.3M VND","fraction":0.32,"icon":"hotel"},{"label":"Food","amount":"1M VND","fraction":0.25,"icon":"restaurant"},{"label":"Activities","amount":"0.6M VND","fraction":0.15,"icon":"kayaking"}]}'::jsonb,
-    '[{"title":"Hoi An Ancient Town","imageUrl":"https://commons.wikimedia.org/wiki/Special:FilePath/H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg?width=1280"}]'::jsonb
+    '[{"title":"Hoi An Ancient Town","imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg/1280px-H%E1%BB%99i_An%2C_Ancient_Town%2C_2020-01_CN-06.jpg"}]'::jsonb
   ),
   (
     'ha-giang-vietnam',
@@ -440,14 +440,14 @@ values
     'Northern Highlands, Vietnam',
     'mountain',
     array['Mountains', 'Road Trip', 'Views', 'Culture'],
-    'https://commons.wikimedia.org/wiki/Special:FilePath/M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg?width=1280',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg/1280px-M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg',
     '~4.5M VND',
     'One of Vietnam''s most dramatic road trips, with limestone passes and small villages spread across high valleys.',
     95,
     4.9,
     860,
     '{"weather":"Cool, 16-26C","dateRange":"Flexible","totalBudget":"~4.5M VND","budgetBreakdown":[{"label":"Transport","amount":"1.7M VND","fraction":0.38,"icon":"flight"},{"label":"Stay","amount":"1M VND","fraction":0.22,"icon":"hotel"},{"label":"Food","amount":"0.9M VND","fraction":0.2,"icon":"restaurant"},{"label":"Activities","amount":"0.9M VND","fraction":0.2,"icon":"kayaking"}]}'::jsonb,
-    '[{"title":"Ma Pi Leng Pass","imageUrl":"https://commons.wikimedia.org/wiki/Special:FilePath/M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg?width=1280"}]'::jsonb
+    '[{"title":"Ma Pi Leng Pass","imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg/1280px-M%C3%A3_P%C3%AD_L%C3%A8ng_Pass%2C_Vietnam.jpg"}]'::jsonb
   ),
   (
     'phu-quoc-vietnam',
@@ -456,14 +456,14 @@ values
     'Kien Giang, Vietnam',
     'beach',
     array['Beach', 'Island', 'Seafood', 'Resort'],
-    'https://commons.wikimedia.org/wiki/Special:FilePath/Phu_Quoc_Beach.jpg?width=1280',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Phu_Quoc_Beach.jpg/1280px-Phu_Quoc_Beach.jpg',
     '~6M VND',
     'A flexible island trip with easy flights, resort choices, sunset beaches, and seafood-heavy nights.',
     94,
     4.6,
     1750,
     '{"weather":"Tropical, 27-32C","dateRange":"Flexible","totalBudget":"~6M VND","budgetBreakdown":[{"label":"Transport","amount":"1.8M VND","fraction":0.3,"icon":"flight"},{"label":"Stay","amount":"2.2M VND","fraction":0.37,"icon":"hotel"},{"label":"Food","amount":"1.2M VND","fraction":0.2,"icon":"restaurant"},{"label":"Activities","amount":"0.8M VND","fraction":0.13,"icon":"kayaking"}]}'::jsonb,
-    '[{"title":"Phu Quoc Beach","imageUrl":"https://commons.wikimedia.org/wiki/Special:FilePath/Phu_Quoc_Beach.jpg?width=1280"}]'::jsonb
+    '[{"title":"Phu Quoc Beach","imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Phu_Quoc_Beach.jpg/1280px-Phu_Quoc_Beach.jpg"}]'::jsonb
   )
 on conflict (slug) do update set
   name = excluded.name,
