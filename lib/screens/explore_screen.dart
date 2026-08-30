@@ -7,6 +7,7 @@ import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
+import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
@@ -53,13 +54,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      // ── Phase 1: Hiển thị text ngay lập tức ──
-      final results = await GeminiService.instance.getExploreTrending(
+      var results = await DestinationRepository.instance.getFeaturedDestinations(
+        categoryKey: _selectedCategoryKey,
         limit: 10,
         forceRefresh: forceRefresh,
-        category: categoryPrompt,
-        languageCode: LocaleProvider.of(context).value.languageCode,
       );
+
+      if (results.isEmpty) {
+        results = await GeminiService.instance.getExploreTrending(
+          limit: 10,
+          forceRefresh: forceRefresh,
+          category: categoryPrompt,
+          languageCode: LocaleProvider.of(context).value.languageCode,
+        );
+      }
+
       if (mounted) {
         setState(() {
           _destinations = results;
@@ -67,17 +76,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
         });
       }
 
-      // ── Phase 2: Tải ảnh song song trong nền ──
-      try {
-        final withImages = await GeminiService.instance
-            .enrichSuggestionsWithImages(results);
-        if (mounted) {
-          setState(() {
-            _destinations = withImages;
-          });
+      if (results.any((item) => item.imageUrl.isEmpty)) {
+        try {
+          final withImages = await GeminiService.instance
+              .enrichSuggestionsWithImages(results);
+          if (mounted) {
+            setState(() {
+              _destinations = withImages;
+            });
+          }
+        } catch (e) {
+          debugPrint('Error loading explore images in background: $e');
         }
-      } catch (e) {
-        debugPrint('Error loading explore images in background: $e');
       }
     } catch (e) {
       if (mounted) {

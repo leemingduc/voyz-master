@@ -36,6 +36,22 @@ class DestinationSuggestion {
     );
   }
 
+
+  factory DestinationSuggestion.fromSupabase(
+    Map<String, dynamic> row, {
+    bool isTopMatch = false,
+  }) {
+    return DestinationSuggestion(
+      name: row['name']?.toString() ?? '',
+      imageUrl: row['image_url']?.toString() ?? '',
+      matchPercent: (row['match_percent'] as num?)?.toInt() ?? 0,
+      rating: (row['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: (row['review_count'] as num?)?.toInt() ?? 0,
+      price: row['price']?.toString() ?? '',
+      aiInsight: row['ai_insight']?.toString() ?? '',
+      isTopMatch: isTopMatch,
+    );
+  }
   /// Convert to Map for compatibility with existing UI widgets.
   Map<String, dynamic> toMap() => {
     'name': name,
@@ -47,4 +63,16 @@ class DestinationSuggestion {
     'aiInsight': aiInsight,
     'isTopMatch': isTopMatch,
   };
+  factory DestinationSuggestion.fromMap(Map<dynamic, dynamic> map) {
+    return DestinationSuggestion(
+      name: map['name']?.toString() ?? '',
+      imageUrl: map['imageUrl']?.toString() ?? '',
+      matchPercent: (map['matchPercent'] as num?)?.toInt() ?? 0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: (map['reviewCount'] as num?)?.toInt() ?? 0,
+      price: map['price']?.toString() ?? '',
+      aiInsight: map['aiInsight']?.toString() ?? '',
+      isTopMatch: map['isTopMatch'] == true,
+    );
+  }
 }

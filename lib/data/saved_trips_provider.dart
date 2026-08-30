@@ -37,6 +37,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   Box<Map>? _box;
   String? _activeUserId;
   StreamSubscription? _authSubscription;
+  StreamSubscription? _savedTripsSubscription;
   Future<void> _persistenceQueue = Future.value();
 
   TripData get currentTrip => _currentTrip;
@@ -101,6 +102,10 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     // Background two-way sync with Supabase Cloud
     if (userId != 'anonymous') {
       unawaited(_syncFromSupabase(userId));
+      _subscribeToSavedTrips(userId);
+    } else {
+      unawaited(_savedTripsSubscription?.cancel());
+      _savedTripsSubscription = null;
     }
   }
 
@@ -112,7 +117,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       final tripRows = await client
           .from('saved_trips')
           .select()
-          .eq('user_id', userId)
           .order('saved_at', ascending: false);
 
       final cloudItems = <SavedItem>[];
@@ -136,6 +140,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
 
         cloudItems.add(
           SavedItem(
+            cloudId: map['id']?.toString(),
             name: map['name']?.toString() ?? '',
             imageUrl: map['image_url']?.toString() ?? '',
             price: map['price']?.toString() ?? '',
@@ -260,6 +265,23 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     });
   }
 
+  void _subscribeToSavedTrips(String userId) {
+    if (_activeUserId == userId && _savedTripsSubscription != null) return;
+    unawaited(_savedTripsSubscription?.cancel());
+    try {
+      _savedTripsSubscription = SupabaseService.instance.client
+          .from('saved_trips')
+          .stream(primaryKey: ['id'])
+          .order('saved_at', ascending: false)
+          .listen((_) {
+            if (mounted && userId == _currentUserId) {
+              unawaited(_syncFromSupabase(userId));
+            }
+          });
+    } catch (error) {
+      debugPrint('Saved trips realtime subscription skipped: $error');
+    }
+  }
   void _deleteItemFromCloud(String name) {
     final userId = _currentUserId;
     if (userId == 'anonymous') return;
@@ -432,6 +454,28 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       item,
       item.copyWith(sharedWith: [...item.sharedWith, trimmed]),
     );
+    _syncCollaboratorToCloud(item, trimmed);
+  }
+
+  void _syncCollaboratorToCloud(SavedItem item, String emailOrName) {
+    final userId = _currentUserId;
+    final cloudId = item.cloudId;
+    final email = emailOrName.trim();
+    if (userId == 'anonymous' || cloudId == null || !email.contains('@')) return;
+
+    SupabaseService.instance.client.from('trip_collaborators').upsert(
+      {
+        'trip_id': cloudId,
+        'owner_id': userId,
+        'collaborator_email': email.toLowerCase(),
+        'role': 'editor',
+        'status': 'pending',
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      onConflict: 'trip_id,collaborator_email',
+    ).catchError((error) {
+      debugPrint('Error syncing collaborator to Supabase: $error');
+    });
   }
 
   /// Remove an item from saved list.
@@ -444,6 +488,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _savedTripsSubscription?.cancel();
     super.dispose();
   }
 

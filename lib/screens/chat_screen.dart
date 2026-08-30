@@ -35,7 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await ChatHistoryService.instance.load();
+    final history = await ChatHistoryService.instance.load(destinationName: widget.destinationName);
     if (!mounted) return;
     setState(() {
       _messages
@@ -51,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _persistMessages() =>
-      ChatHistoryService.instance.save(_messages);
+      ChatHistoryService.instance.save(_messages, destinationName: widget.destinationName);
 
   @override
   void dispose() {

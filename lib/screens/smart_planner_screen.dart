@@ -10,6 +10,7 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/ai_tools_screen.dart';
+import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
@@ -57,8 +58,25 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
+      UserProfile? profile;
+      try {
+        profile = await ProfileService.instance.loadCurrentProfile();
+        await CurrencyProvider.of(context).setDisplayCurrency(
+          trip.currency.isNotEmpty ? trip.currency : profile.preferredCurrency,
+        );
+      } catch (_) {}
+      if (!mounted) return;
+
+      final preferredStyles = profile?.travelStyles
+              .map((style) => style.toLowerCase().replaceAll(' ', '_'))
+              .toSet() ??
+          const <String>{};
+      final selectedInterestKeys = trip.selectedInterests.isNotEmpty
+          ? trip.selectedInterests.toSet()
+          : preferredStyles;
+
       setState(() {
         _destinationController.text = trip.destination;
         _departDate = trip.departDate;
@@ -71,7 +89,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
         _selectedInterests = List.filled(MockData.interests.length, false);
         for (int i = 0; i < MockData.interests.length; i++) {
-          if (trip.selectedInterests.contains(MockData.interests[i])) {
+          if (selectedInterestKeys.contains(MockData.interests[i])) {
             _selectedInterests[i] = true;
           }
         }

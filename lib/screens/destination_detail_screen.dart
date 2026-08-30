@@ -13,13 +13,15 @@ import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/services/community_review_service.dart';
+import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
-/// Destination Detail screen — hero image, tags, weather, budget breakdown.
+/// Destination Detail screen - hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
   const DestinationDetailScreen({super.key, required this.destinationName});
 
@@ -33,6 +35,12 @@ class DestinationDetailScreen extends StatefulWidget {
 class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   DestinationDetail? _detail;
   String? _activeHeroUrl;
+  String? _destinationId;
+  final _reviewController = TextEditingController();
+  List<CommunityReview> _reviews = const [];
+  int _reviewRating = 5;
+  bool _isSavingReview = false;
+  bool _isLoadingReviews = false;
   bool _isLoading = true;
   String? _error;
 
@@ -40,6 +48,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDetail());
+  }
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDetail() async {
@@ -50,11 +64,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
     try {
       final trip = SavedTripsProvider.of(context).currentTrip;
-      final detail = await GeminiService.instance.getDestinationDetail(
+      final dbDetail = await DestinationRepository.instance.getDestinationDetail(
         widget.destinationName,
-        trip,
-        languageCode: LocaleProvider.of(context).value.languageCode,
       );
+      final detail = dbDetail ??
+          await GeminiService.instance.getDestinationDetail(
+            widget.destinationName,
+            trip,
+            languageCode: LocaleProvider.of(context).value.languageCode,
+          );
       if (mounted) {
         setState(() {
           _detail = detail;
@@ -62,6 +80,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           _isLoading = false;
         });
         unawaited(_prefetchItinerary());
+        unawaited(_loadReviews());
       }
     } catch (e) {
       if (mounted) {
@@ -73,6 +92,55 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
+  Future<void> _loadReviews() async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final destinationId = await DestinationRepository.instance
+          .getDestinationIdByName(_detail?.name ?? widget.destinationName);
+      if (destinationId == null) {
+        if (mounted) setState(() => _isLoadingReviews = false);
+        return;
+      }
+      final reviews = await CommunityReviewService.instance
+          .listForDestination(destinationId);
+      if (!mounted) return;
+      setState(() {
+        _destinationId = destinationId;
+        _reviews = reviews;
+        _isLoadingReviews = false;
+      });
+    } catch (error) {
+      debugPrint('Review load skipped: $error');
+      if (mounted) setState(() => _isLoadingReviews = false);
+    }
+  }
+
+  Future<void> _submitReview() async {
+    final destinationId = _destinationId;
+    if (destinationId == null || _isSavingReview) return;
+    setState(() => _isSavingReview = true);
+    try {
+      await CommunityReviewService.instance.upsertReview(
+        destinationId: destinationId,
+        rating: _reviewRating,
+        comment: _reviewController.text,
+      );
+      _reviewController.clear();
+      await _loadReviews();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review saved')),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingReview = false);
+    }
+  }
   Future<void> _prefetchItinerary() async {
     try {
       final trip = SavedTripsProvider.of(context).currentTrip;
@@ -327,6 +395,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                         totalBudget: d.totalBudget,
                         breakdown: d.budgetBreakdown,
                       ),
+                      const SizedBox(height: 24),
+                      _buildReviewsSection(theme),
                       const SizedBox(height: 32),
                       _ActionButtons(
                         theme: theme,
@@ -351,8 +421,147 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       ),
     );
   }
+
+  Widget _buildReviewsSection(ThemeData theme) {
+    final average = _reviews.isEmpty
+        ? null
+        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) / _reviews.length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star_rate, color: Color(0xFFFBBF24), size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Community reviews',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              if (average != null)
+                Text(
+                  '${average.toStringAsFixed(1)} (${_reviews.length})',
+                  style: const TextStyle(color: Color(0xFFFBBF24)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: List.generate(5, (index) {
+              final value = index + 1;
+              return IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _reviewRating = value),
+                icon: Icon(
+                  value <= _reviewRating ? Icons.star : Icons.star_border,
+                  color: const Color(0xFFFBBF24),
+                ),
+              );
+            }),
+          ),
+          TextField(
+            controller: _reviewController,
+            minLines: 2,
+            maxLines: 3,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Share a quick tip for other travelers',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: _destinationId == null || _isSavingReview ? null : _submitReview,
+              icon: Icon(_isSavingReview ? Icons.hourglass_empty : Icons.send, size: 16),
+              label: Text(_isSavingReview ? 'Saving' : 'Post review'),
+            ),
+          ),
+          if (_isLoadingReviews) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(minHeight: 2),
+          ] else if (_reviews.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ..._reviews.take(3).map((review) => _ReviewTile(review: review)),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
+class _ReviewTile extends StatelessWidget {
+  const _ReviewTile({required this.review});
+
+  final CommunityReview review;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ...List.generate(
+                5,
+                (index) => Icon(
+                  index < review.rating ? Icons.star : Icons.star_border,
+                  color: const Color(0xFFFBBF24),
+                  size: 14,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${review.createdAt.month}/${review.createdAt.day}/${review.createdAt.year}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          if (review.comment.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              review.comment,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 class _HeroSection extends StatelessWidget {
   const _HeroSection({
     required this.theme,
@@ -1035,4 +1244,3 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
     );
   }
 }
-
