@@ -305,3 +305,41 @@ Rủi ro cần biết trước:
 - Nếu bạn A đổi tên hàm provider mà screens của bạn B đã đổi tham chiếu, sẽ conflict: KHÔNG xảy ra nếu cả hai tôn trọng mục "cấm đụng".
 - Dữ liệu Supabase hiện có trên bảng `saved_trips` là dữ liệu test, được phép xóa sạch khi chạy migration mới nếu vướng (đã thống nhất với giáo viên).
 - Câu hỏi phát sinh về hợp đồng: hỏi giáo viên, không tự quyết.
+
+---
+
+## 5. Task dự phòng: cải tiến trải nghiệm ảnh (nhận khi xong việc chính của mình)
+
+> Bối cảnh bắt buộc đọc trước: `docs/lessons/2026-08-31-image-stability-walkthrough.md` (đặc biệt mục 3.5 và checklist mục 4). Nền tảng ảnh đã được sửa ổn định trong PR #10 + commit `2bee056`; task này là lớp polish UX bên trên, KHÔNG đụng lại kiến trúc nguồn ảnh.
+>
+> Ai nhận: bạn nào xong trước phần việc chính. Nếu là bạn B thì phần 5.1 (chạm screens) phải để bạn A review trước khi merge, theo đúng ranh giới sở hữu file của tuần.
+
+Hiện trạng sau khi nền tảng ảnh đã ổn định (đã xác minh 30/08 tối):
+- Loading indicator chỉ có ở Explore và gallery detail; 4 chỗ còn lại (Suggestions, Saved, hero của detail, Cultural Tips) trống trơn trong lúc tải.
+- Fallback khi không có ảnh hoạt động ở cả 7 chỗ nhưng mỗi nơi một icon/màu khác nhau, không phải một thumbnail mặc định có chủ đích.
+- Nhánh vi.wikipedia gần như luôn 404 vì AI trả tên không dấu ("Da Nang") còn tên bài vi.wiki có dấu ("Đà Nẵng"): tốn 1 request thừa mỗi ảnh và gây nhiễu console. Nhánh en cứu được các điểm đến lớn.
+- Landmark do AI tự đặt tên ("Bai Chay Beach", "Thung Nham Bird Park"...) thường không có bài Wikipedia lẫn kết quả Commons đạt lọc, gallery hiện icon trống.
+
+### 5.1. Widget `DestinationImage` dùng chung
+
+- Tạo `lib/widgets/shared/destination_image.dart`: bọc `CachedNetworkImage`, xử lý đủ 3 trạng thái: URL rỗng hiện fallback NGAY (không chờ error), đang tải hiện placeholder nhất quán (nền gradient + icon mờ hoặc shimmer), lỗi hiện fallback nhất quán (gradient + icon núi + tên điểm đến chữ mờ). Nhận `imageUrl`, `destinationName`, `fit`, `borderRadius`.
+- Thay cả 7 call site đang tự viết `CachedNetworkImage` (grep `CachedNetworkImage(` trong `lib/screens/`), xóa 7 bản placeholder/errorWidget chép tay.
+- Đây là bài học về widget dùng chung: 7 biến thể của cùng một logic nghĩa là thiếu một abstraction.
+
+### 5.2. Heuristic thứ tự ngôn ngữ trong `ImageService`
+
+- Trong chuỗi `getImageUrl`: tên KHÔNG chứa ký tự có dấu tiếng Việt thì hỏi `en` trước rồi `vi`; có dấu thì giữ `vi` trước. Cắt gần hết 404 nhiễu và giảm 1 request cho đa số ảnh.
+- Viết test MockClient cho cả hai nhánh heuristic (xem mẫu ở `test/services/image_service_test.dart`).
+
+### 5.3. Gallery landmark không còn ô trống
+
+- Khi ảnh landmark trong destination detail rỗng, fallback về ảnh chính của điểm đến (mờ/tối đi để phân biệt) thay vì icon trống. Nâng cao (tùy chọn): sửa prompt để Gemini trả kèm `wikiTitle` cho từng landmark rồi tra theo title đó.
+
+### Tiêu chí nghiệm thu
+
+- [ ] Mở Suggestions/Saved/Cultural Tips lúc mạng chậm: thấy placeholder loading, không còn ô trống trắng.
+- [ ] Mọi trạng thái không-có-ảnh trong app trông giống nhau (một design duy nhất).
+- [ ] Console khi mở Explore với điểm đến tên tiếng Anh: không còn chuỗi 404 `vi.wikipedia.org`.
+- [ ] Gallery landmark không có ô icon trống.
+- [ ] `dart run tool/verify_image_urls.dart` vẫn PASS, `flutter analyze` không lỗi mới, `flutter test` pass kèm test heuristic mới.
+- [ ] KHÔNG thêm bất kỳ URL ảnh viết tay nào vào code (quy tắc bất di bất dịch từ walkthrough).
