@@ -15,6 +15,7 @@
 5. Commit nhỏ, message rõ ràng. Cuối tuần mỗi bạn một PR vào `master`.
 6. Thứ tự merge: PR của bạn A merge trước, bạn B rebase lên rồi merge sau (xung đột nếu có sẽ chỉ nằm ở phần import và call site trong `screens/`, bạn B tự resolve).
 7. Checkpoint giữa tuần (ngày 3): hai bạn chạy thử nhánh của nhau 15 phút, xác nhận không dẫm chân.
+8. ĐÓNG BĂNG SCOPE trong tuần 1: không làm thêm bất kỳ tính năng nào thuộc sprint 2/3 của roadmap cũ (community reviews, trip_collaborators, destinations repository, chat threads, presence). Phần đã merge trong PR #9 (commit `b1642aa`) giữ nguyên hiện trạng, không mở rộng, không sửa trừ khi việc tuần 1 bắt buộc chạm vào.
 
 ---
 
@@ -128,6 +129,7 @@ Quy tắc bắt buộc:
 - `copyWith` phải giữ nguyên `id`.
 - `ItineraryPlan` thêm trường `String tripId` (rỗng cho dữ liệu cũ); itinerary của một trip tra theo `tripId`, không theo `destinationName`.
 - Mọi API của `SavedTripsProviderState` thao tác theo id: `itineraryFor(String tripId)`, xóa/sửa item theo `item.id`. Cho phép hai item cùng `name`.
+- **Về trường `cloudId` (PR #9, commit `b1642aa` vừa thêm):** `cloudId` bị thay thế bởi `id`. Vì client tự sinh UUID và upsert với `onConflict: 'id'`, không cần chờ server cấp id nữa. Bạn A xóa `cloudId`, chuyển mọi chỗ đang dùng nó (kể cả `_syncCollaboratorToCloud`) sang `item.id`. Không giữ hai danh tính song song.
 
 Hợp đồng database (bạn A viết migration mới, không sửa migration đã deploy):
 
@@ -176,6 +178,7 @@ Chuyến đi có danh tính thật (UUID), hai chuyến cùng điểm đến kh�
    - Cloud là source of truth. So khớp theo `id`.
    - Item local không có trên cloud: chỉ đẩy lên nếu là item tạo offline chưa từng sync (gợi ý: cờ `pendingSync` trong Hive hoặc so `updated_at`); item đã từng sync mà cloud không còn nghĩa là bị xóa nơi khác, phải xóa local, không đẩy lại.
    - Ghi lên cloud kèm `updated_at`; bản có `updated_at` mới hơn thắng.
+   - Chú ý: PR #9 đã thêm realtime subscription (`_subscribeToSavedTrips`) gọi lại `_syncFromSupabase` mỗi khi bảng đổi. Logic merge/xóa phải idempotent (chạy lại nhiều lần không tạo trùng, không xóa nhầm), nếu không vòng lặp ghi sẽ tự kích hoạt sync liên tục.
 5. Sửa navigation: `SavedScreen` mở một trip phải truyền cả `SavedItem` (hoặc id) và restore `item.tripData` trong `DestinationDetailScreen`, không dùng `currentTrip` toàn cục cho trip đã lưu.
 6. Migration dữ liệu Hive cũ: item cũ không id thì sinh id khi load lần đầu (đã nằm trong `fromMap`), ghi đè lại box một lần.
 7. Test bắt buộc (mở rộng `test/data/saved_trips_sync_test.dart`):
