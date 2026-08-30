@@ -80,7 +80,7 @@ class GeminiService {
         responseMimeType: 'application/json',
         temperature: 0.7,
         maxOutputTokens:
-            8192, // Itinerary plans with nested days/items need ~5000+ tokens
+            4096, // Sufficient for all features; reduces latency significantly
       ),
     );
     return _model!;
@@ -209,15 +209,40 @@ Quy tắc:
 
     final suggestions = parseSuggestionsSync(text);
 
-    // Pre-cache images in background so next time they load instantly
-    _precacheAndStoreImages(
-      cacheKey,
-      suggestions,
-      featureType: 'explore_trending',
-      languageCode: languageCode,
-    );
+    // Fetch images immediately in parallel with 1 fast request per destination
+    // (curated registry → Wikipedia thumbnail → themed fallback)
+    try {
+      final names = suggestions.map((s) => s.name).toList();
+      final imageUrls = await ImageService.instance.getImageUrlsFast(names);
 
-    return suggestions;
+      final enriched = suggestions.map((s) {
+        final img = imageUrls[s.name] ?? '';
+        if (img.isEmpty) return s;
+        return DestinationSuggestion(
+          name: s.name,
+          imageUrl: img,
+          matchPercent: s.matchPercent,
+          rating: s.rating,
+          reviewCount: s.reviewCount,
+          price: s.price,
+          aiInsight: s.aiInsight,
+          isTopMatch: s.isTopMatch,
+        );
+      }).toList();
+
+      // Store enriched (with images) back to cache for next time
+      _precacheAndStoreImages(
+        cacheKey,
+        enriched,
+        featureType: 'explore_trending',
+        languageCode: languageCode,
+      );
+
+      return enriched;
+    } catch (e) {
+      debugPrint('Image fetch error (non-fatal): $e');
+      return suggestions;
+    }
   }
 
   // ── Suggestions ──────────────────────────────────────────────────────────
@@ -718,16 +743,13 @@ Trả về JSON object với cấu trúc:
   "proTip": "Mẹo hữu ích cho chuyến đi"
 }
 
-Quy tắc:
 - Mỗi ngày có tối đa $limit hoạt động
 - Tổng cộng $numDays ngày
-- title cho mỗi ngày: "Day X: Tiêu đề ngắn gọn" (tiếng Anh)
-- subtitle: mô tả ngắn bằng tiếng Anh
-- items.time: định dạng "HH:MM AM/PM"
-- items.icon chỉ dùng: flight_land, hotel, restaurant, beach_access
-- items.description: viết bằng tiếng Anh, 1-2 câu
-- proTip: mẹo thực tế bằng tiếng Anh
-- Write all human-readable content (title, subtitle, description, proTip) in $languageName
+- title: "Day X: Tiêu đề ngắn" — subtitle: 1 câu mô tả
+- items.time: "HH:MM AM/PM" — items.icon: flight_land|hotel|restaurant|beach_access
+- items.description: 1 câu, ngắn gọn
+- proTip: 1 mẹo thực tế
+- Viết toàn bộ nội dung bằng $languageName
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
 ''';
   }

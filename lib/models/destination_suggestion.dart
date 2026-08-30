@@ -1,3 +1,5 @@
+import 'package:voyz/services/image_service.dart';
+
 /// Model for AI-suggested travel destinations displayed on the Suggestions screen.
 class DestinationSuggestion {
   final String name;
@@ -36,14 +38,17 @@ class DestinationSuggestion {
     );
   }
 
-
   factory DestinationSuggestion.fromSupabase(
     Map<String, dynamic> row, {
     bool isTopMatch = false,
   }) {
     return DestinationSuggestion(
       name: row['name']?.toString() ?? '',
-      imageUrl: row['image_url']?.toString() ?? '',
+      imageUrl: _resolvedImageUrl(
+        row['image_url']?.toString(),
+        row['name']?.toString() ?? '',
+        category: row['category']?.toString(),
+      ),
       matchPercent: (row['match_percent'] as num?)?.toInt() ?? 0,
       rating: (row['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (row['review_count'] as num?)?.toInt() ?? 0,
@@ -52,6 +57,7 @@ class DestinationSuggestion {
       isTopMatch: isTopMatch,
     );
   }
+
   /// Convert to Map for compatibility with existing UI widgets.
   Map<String, dynamic> toMap() => {
     'name': name,
@@ -66,7 +72,10 @@ class DestinationSuggestion {
   factory DestinationSuggestion.fromMap(Map<dynamic, dynamic> map) {
     return DestinationSuggestion(
       name: map['name']?.toString() ?? '',
-      imageUrl: map['imageUrl']?.toString() ?? '',
+      imageUrl: _resolvedImageUrl(
+        map['imageUrl']?.toString(),
+        map['name']?.toString() ?? '',
+      ),
       matchPercent: (map['matchPercent'] as num?)?.toInt() ?? 0,
       rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: (map['reviewCount'] as num?)?.toInt() ?? 0,
@@ -75,4 +84,14 @@ class DestinationSuggestion {
       isTopMatch: map['isTopMatch'] == true,
     );
   }
+}
+
+String _resolvedImageUrl(
+  String? rawUrl,
+  String destinationName, {
+  String? category,
+}) {
+  final url = rawUrl?.trim() ?? '';
+  if (url.isNotEmpty) return url;
+  return ImageService.fallbackImageUrlFor(destinationName, category: category);
 }

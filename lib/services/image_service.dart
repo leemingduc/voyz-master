@@ -16,19 +16,32 @@ class ImageService {
 
   final Map<String, String> _cache = {};
 
+  static String fallbackImageUrlFor(
+    String destinationName, {
+    String? category,
+  }) {
+    final normalized = _normalizeKey(
+      [
+        destinationName,
+        category,
+      ].whereType<String>().where((part) => part.trim().isNotEmpty).join(' '),
+    );
+    return _getRealisticTravelFallback(normalized);
+  }
+
   // ── Curated Registry ──────────────────────────────────────────────────────
   // Every URL is hand-verified to show the correct iconic view of that destination.
   static final Map<String, String> _curatedLandmarks = {
     // ─ 🇻🇳 Việt Nam ─────────────────────────────────────────────────────────
     // Phú Quốc — bãi biển Phú Quốc
     'phu quoc':
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Phu_Quoc_Beach.jpg/1200px-Phu_Quoc_Beach.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Phu_quoc_beach.JPG/960px-Phu_quoc_beach.JPG',
     // Côn Đảo — biển trong xanh Côn Đảo
     'con dao':
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Con_Dao_beach.jpg/1200px-Con_Dao_beach.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Con_Dao_Islands.jpg/960px-Con_Dao_Islands.jpg',
     // Đà Nẵng — Cầu Rồng
     'da nang':
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Dragon_Bridge_in_Da_Nang%2C_Vietnam.jpg/1280px-Dragon_Bridge_in_Da_Nang%2C_Vietnam.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Dragon_Bridge_Da_Nang_1.jpg/960px-Dragon_Bridge_Da_Nang_1.jpg',
     // Bà Nà Hills — Cầu Vàng
     'ba na hills':
         'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Golden_Bridge_-_Ba_Na_Hills.jpg/1280px-Golden_Bridge_-_Ba_Na_Hills.jpg',
@@ -249,7 +262,79 @@ class ImageService {
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
+  /// Fast single-image fetch: curated registry → Wikipedia thumbnail only.
+  /// No full article scan, no Commons search — returns in ~200ms or less.
+  /// Falls back to themed fallback if not found.
+  Future<String> getImageUrlFast(String destinationName) async {
+    final cacheKey = 'fast_$destinationName';
+    if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    final placeName = destinationName.split(',').first.trim();
+    final normalized = _normalizeKey(placeName);
+
+    // 1. Curated registry — instant, no network
+    final curated = _lookupCurated(normalized);
+    if (curated != null) {
+      _cache[cacheKey] = curated;
+      return curated;
+    }
+
+    // 2. Wikipedia pageimages thumbnail only (1 HTTP request)
+    String? url = await _fetchWikipediaThumbnailOnly(placeName, 'vi');
+    url ??= await _fetchWikipediaThumbnailOnly(placeName, 'en');
+
+    // 3. Themed fallback (instant)
+    url ??= _getRealisticTravelFallback(normalized);
+
+    _cache[cacheKey] = url;
+    return url;
+  }
+
+  /// Fetches 1 fast image URL for each destination in parallel.
+  Future<Map<String, String>> getImageUrlsFast(List<String> names) async {
+    final futures = names.map((name) => getImageUrlFast(name));
+    final urls = await Future.wait(futures);
+    return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
+  }
+
+  /// Wikipedia thumbnail-only fetch: 1 API call, no article image scan.
+  Future<String?> _fetchWikipediaThumbnailOnly(
+    String query,
+    String lang,
+  ) async {
+    try {
+      final uri = Uri.parse(
+        'https://$lang.wikipedia.org/w/api.php'
+        '?action=query'
+        '&titles=${Uri.encodeComponent(query)}'
+        '&prop=pageimages'
+        '&format=json'
+        '&formatversion=2'
+        '&pithumbsize=960'
+        '&pilimit=1'
+        '&origin=*',
+      );
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode != 200) return null;
+      final j = jsonDecode(res.body) as Map<String, dynamic>;
+      final pages = j['query']?['pages'] as List<dynamic>?;
+      if (pages == null || pages.isEmpty) return null;
+      final page = pages.first as Map<String, dynamic>;
+      final thumbnail = page['thumbnail'] as Map<String, dynamic>?;
+      if (thumbnail == null) return null;
+      final src = thumbnail['source'] as String?;
+      if (src == null || !_isGoodImage(src)) return null;
+      final w = (thumbnail['width'] as num?)?.toInt() ?? 0;
+      final h = (thumbnail['height'] as num?)?.toInt() ?? 1;
+      if (w < 300 || (w / h) < 0.9) return null;
+      return src;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Gets the single most iconic photo for a destination.
+  /// Uses full resolution chain: curated → Wikipedia full scan → Commons → LoremFlickr → fallback.
   Future<String> getImageUrl(String destinationName) async {
     if (_cache.containsKey(destinationName)) {
       return _cache[destinationName]!;
@@ -272,8 +357,8 @@ class ImageService {
     // 3. Wikimedia Commons full-text search
     url ??= await _fetchCommonsImage(placeName);
 
-    // 4. Unsplash keyword search (no API key needed)
-    url ??= await _fetchUnsplashSearch(placeName);
+    // 4. LoremFlickr keyword search (no API key needed, CORS friendly)
+    url ??= await _fetchLoremFlickrSearch(placeName);
 
     // 5. Themed fallback
     url ??= _getRealisticTravelFallback(normalized);
@@ -295,8 +380,9 @@ class ImageService {
     List<String> landmarkTitles,
   ) async {
     final futures = landmarkTitles.map((title) async {
-      final query =
-          title.isNotEmpty ? '$title, $destinationName' : destinationName;
+      final query = title.isNotEmpty
+          ? '$title, $destinationName'
+          : destinationName;
       final url = await getImageUrl(query);
       return DestinationLandmarkPhoto(title: title, imageUrl: url);
     });
@@ -314,7 +400,8 @@ class ImageService {
     int bestLen = 0;
     for (final entry in _curatedLandmarks.entries) {
       final k = entry.key;
-      if ((normalized.contains(k) || k.contains(normalized)) && k.length > bestLen) {
+      if ((normalized.contains(k) || k.contains(normalized)) &&
+          k.length > bestLen) {
         best = entry.value;
         bestLen = k.length;
       }
@@ -364,8 +451,9 @@ class ImageService {
         '&format=json'
         '&origin=*',
       );
-      final searchRes =
-          await http.get(searchUri).timeout(const Duration(seconds: 5));
+      final searchRes = await http
+          .get(searchUri)
+          .timeout(const Duration(seconds: 5));
       String articleTitle = query;
       if (searchRes.statusCode == 200) {
         final j = jsonDecode(searchRes.body) as List<dynamic>;
@@ -381,12 +469,11 @@ class ImageService {
         '&prop=images|pageimages'
         '&format=json'
         '&formatversion=2'
-        '&pithumbsize=1200'
+        '&pithumbsize=960'
         '&imlimit=20'
         '&origin=*',
       );
-      final imgRes =
-          await http.get(imgUri).timeout(const Duration(seconds: 5));
+      final imgRes = await http.get(imgUri).timeout(const Duration(seconds: 5));
       if (imgRes.statusCode != 200) return null;
 
       final j = jsonDecode(imgRes.body) as Map<String, dynamic>;
@@ -426,7 +513,7 @@ class ImageService {
         '&titles=${Uri.encodeComponent(fileTitle)}'
         '&prop=imageinfo'
         '&iiprop=url|dimensions'
-        '&iiurlwidth=1200'
+        '&iiurlwidth=960'
         '&format=json'
         '&formatversion=2'
         '&origin=*',
@@ -467,7 +554,7 @@ class ImageService {
         '&gsrlimit=8'
         '&prop=imageinfo'
         '&iiprop=url|dimensions'
-        '&iiurlwidth=1200'
+        '&iiurlwidth=960'
         '&format=json'
         '&formatversion=2'
         '&origin=*',
@@ -482,32 +569,28 @@ class ImageService {
       for (final page in pages) {
         final title = (page['title'] as String?) ?? '';
         if (!_isGoodImageTitle(title)) continue;
-        final imageInfoList =
-            (page['imageinfo'] as List<dynamic>?)?.cast<Map<String, dynamic>>();
+        final imageInfoList = (page['imageinfo'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>();
         if (imageInfoList == null || imageInfoList.isEmpty) continue;
         final ii = imageInfoList.first;
         final w = (ii['width'] as num?)?.toInt() ?? 0;
         final h = (ii['height'] as num?)?.toInt() ?? 1;
         if (w < 600 || (w / h) < 1.1) continue;
-        final url =
-            (ii['thumburl'] as String?) ?? (ii['url'] as String?);
+        final url = (ii['thumburl'] as String?) ?? (ii['url'] as String?);
         if (url != null && _isGoodImage(url)) return url;
       }
     } catch (_) {}
     return null;
   }
 
-  // ── Unsplash Keyword Search (no API key) ────────────────────────────────────
-  Future<String?> _fetchUnsplashSearch(String query) async {
+  // ── LoremFlickr Keyword Search (no API key, CORS friendly) ──────────────────
+  Future<String?> _fetchLoremFlickrSearch(String query) async {
     try {
-      // source.unsplash.com/featured accepts a query param for keyword-based random
       final encoded = Uri.encodeComponent(query);
-      final testUrl =
-          'https://source.unsplash.com/featured/1200x800?$encoded';
+      final testUrl = 'https://loremflickr.com/960/640/$encoded';
       final res = await http
           .get(Uri.parse(testUrl))
           .timeout(const Duration(seconds: 5));
-      // source.unsplash redirects to the actual image URL
       if (res.statusCode == 200 || res.statusCode == 302) {
         final finalUrl = res.request?.url.toString() ?? testUrl;
         if (_isGoodImage(finalUrl)) return finalUrl;
@@ -533,9 +616,23 @@ class ImageService {
   bool _isGoodImage(String urlOrTitle) {
     final lower = urlOrTitle.toLowerCase();
     const blocklist = [
-      'flag', 'map', 'ban_do', 'location', 'coat_of_arms', 'emblem',
-      'logo', 'diagram', '.svg', 'seal', 'icon', 'portrait', 'headshot',
-      'blank', 'stub', 'placeholder', 'commons-logo', 'wikimedia',
+      'flag',
+      'map',
+      'ban_do',
+      'location',
+      'coat_of_arms',
+      'emblem',
+      'logo',
+      'diagram',
+      '.svg',
+      'seal',
+      'icon',
+      'portrait',
+      'headshot',
+      'blank',
+      'stub',
+      'placeholder',
+      'commons-logo',
     ];
     return !blocklist.any((b) => lower.contains(b));
   }

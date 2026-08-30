@@ -75,20 +75,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           _isLoading = false;
         });
       }
-
-      if (results.any((item) => item.imageUrl.isEmpty)) {
-        try {
-          final withImages = await GeminiService.instance
-              .enrichSuggestionsWithImages(results);
-          if (mounted) {
-            setState(() {
-              _destinations = withImages;
-            });
-          }
-        } catch (e) {
-          debugPrint('Error loading explore images in background: $e');
-        }
-      }
     } catch (e) {
       if (mounted) {
         setState(() {

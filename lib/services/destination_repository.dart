@@ -77,7 +77,7 @@ class DestinationRepository {
         });
       }
       return effectiveItems;
-    } catch (_) {
+    } catch (e) {
       final cached = box.get(cacheKey);
       final rawItems = cached?['items'];
       if (rawItems is List) {
@@ -88,7 +88,7 @@ class DestinationRepository {
             .take(limit)
             .toList();
       }
-      rethrow;
+      return [];
     }
   }
 
@@ -97,29 +97,33 @@ class DestinationRepository {
     int limit = 10,
     bool forceRefresh = false,
   }) async {
-    final query = _client
-        .from('destinations')
-        .select()
-        .eq('is_active', true)
-        .order('match_percent', ascending: false)
-        .limit(limit);
+    try {
+      final query = _client
+          .from('destinations')
+          .select()
+          .eq('is_active', true)
+          .order('match_percent', ascending: false)
+          .limit(limit);
 
-    final rows = categoryKey == 'random'
-        ? await query
-        : await _client
-            .from('destinations')
-            .select()
-            .eq('is_active', true)
-            .eq('category', categoryKey)
-            .order('match_percent', ascending: false)
-            .limit(limit);
+      final rows = categoryKey == 'random'
+          ? await query
+          : await _client
+              .from('destinations')
+              .select()
+              .eq('is_active', true)
+              .eq('category', categoryKey)
+              .order('match_percent', ascending: false)
+              .limit(limit);
 
-    return List.generate(rows.length, (index) {
-      return DestinationSuggestion.fromSupabase(
-        Map<String, dynamic>.from(rows[index]),
-        isTopMatch: index == 0,
-      );
-    });
+      return List.generate(rows.length, (index) {
+        return DestinationSuggestion.fromSupabase(
+          Map<String, dynamic>.from(rows[index]),
+          isTopMatch: index == 0,
+        );
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<DestinationDetail?> getDestinationDetail(String name) async {
@@ -138,13 +142,17 @@ class DestinationRepository {
   }
 
   Future<String?> getDestinationIdByName(String name) async {
-    final row = await _client
-        .from('destinations')
-        .select('id')
-        .ilike('name', name)
-        .eq('is_active', true)
-        .maybeSingle();
-    return row?['id']?.toString();
+    try {
+      final row = await _client
+          .from('destinations')
+          .select('id')
+          .ilike('name', name)
+          .eq('is_active', true)
+          .maybeSingle();
+      return row?['id']?.toString();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<String> uploadDestinationMedia({
