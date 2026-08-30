@@ -1,6 +1,7 @@
 # Tuần 1: Giao việc song song cho 2 bạn (kèm hợp đồng chung đã chốt)
 
-> Ngày giao: 30/08/2026. Thời hạn: 1 tuần, giáo viên review cuối tuần.
+> Ngày giao: 30/08/2026 (cập nhật lần 2 tối 30/08, sau khi review PR #9). Thời hạn: 1 tuần, giáo viên review cuối tuần.
+> Baseline code: master sau merge PR #9 (commit `4661929`). Hai bạn tạo nhánh từ master MỚI NHẤT, không dùng checkout cũ.
 > Tài liệu nền: `project_phase2_core_architecture_alignment.md` (đọc mục 3 và 4 trước khi bắt đầu).
 > File này là NGUỒN DUY NHẤT của tuần 1. Cả hai bạn load nguyên file này vào AI agent của mình. Mỗi bạn chỉ làm phần của mình, phần còn lại đọc để hiểu ngữ cảnh.
 
@@ -16,6 +17,28 @@
 6. Thứ tự merge: PR của bạn A merge trước, bạn B rebase lên rồi merge sau (xung đột nếu có sẽ chỉ nằm ở phần import và call site trong `screens/`, bạn B tự resolve).
 7. Checkpoint giữa tuần (ngày 3): hai bạn chạy thử nhánh của nhau 15 phút, xác nhận không dẫm chân.
 8. ĐÓNG BĂNG SCOPE trong tuần 1: không làm thêm bất kỳ tính năng nào thuộc sprint 2/3 của roadmap cũ (community reviews, trip_collaborators, destinations repository, chat threads, presence). Phần đã merge trong PR #9 (commit `b1642aa`) giữ nguyên hiện trạng, không mở rộng, không sửa trừ khi việc tuần 1 bắt buộc chạm vào.
+
+## 0.1. Hiện trạng sau PR #9 (đọc để hiểu ngữ cảnh, KHÔNG phải việc để làm)
+
+PR #9 đã đưa vào master các phần sau. Tất cả được giữ nguyên và đóng băng trong tuần 1:
+
+| Phần mới | Nội dung | Ảnh hưởng đến tuần 1 |
+|---|---|---|
+| Bảng `profiles` + trigger sync từ Auth | Sở thích du lịch, tiền tệ mặc định; Smart Planner tự điền từ profile | Không ảnh hưởng, hai bạn không đụng |
+| `chat_threads` / `chat_messages` + cloud sync trong `chat_history_service.dart` | Một thread cho mỗi (user, destination) | Không ảnh hưởng tuần 1 |
+| `trip_collaborators` + mở rộng RLS `saved_trips` cho collaborator | `addSharedPerson` giờ tạo collaborator row thật; select/update `saved_trips` không còn chỉ là của owner | ẢNH HƯỞNG BẠN A, xem ghi chú trong mục 2 |
+| Realtime subscription `_subscribeToSavedTrips` trong provider | Mỗi thay đổi bảng kích hoạt lại `_syncFromSupabase` | ẢNH HƯỞNG BẠN A, sync phải idempotent |
+| `destinations` + `featured_destinations` + seed 4 điểm đến + `destination_repository.dart` | Explore và Destination Detail giờ đọc DB trước, Gemini chỉ là fallback | ẢNH HƯỞNG BẠN B, xem ghi chú trong mục 3 |
+| `community_reviews` + trigger tính rating + `community_review_service.dart` + UI review | Rating cộng đồng thật trên detail screen | Không đụng tuần 1 |
+| Storage bucket `destination-media` public | Upload ảnh điểm đến | Không đụng tuần 1 |
+
+Các file sau đóng băng với CẢ HAI bạn (không sửa, không refactor): `destination_repository.dart`, `community_review_service.dart`, `chat_history_service.dart`, `profile_service.dart`, `profile_screen.dart`, migration `20260829000100_sprint_2_3_travel_cloud.sql`.
+
+Các vấn đề đã biết của PR #9, GHI NHẬN NHƯNG HOÃN (giáo viên sẽ giao ở tuần sau, tuần này không ai sửa):
+- `chat_history_service.save()` xóa toàn bộ message của thread rồi ghi lại từ đầu sau MỖI tin nhắn: tốn ghi, có race khi hai thiết bị cùng chat.
+- Policy bucket `destination-media`: mọi user đăng nhập upload được vào mọi đường dẫn, chưa giới hạn theo vai trò.
+- Policy update `trip_collaborators`: collaborator có thể tự sửa row của mình (kể cả `role`), tức tự nâng quyền viewer thành editor qua REST.
+- `_subscribeToSavedTrips` stream không filter, mỗi thay đổi của bất kỳ trip nào cũng kéo full re-sync.
 
 ---
 
@@ -174,10 +197,12 @@ Chuyến đi có danh tính thật (UUID), hai chuyến cùng điểm đến kh�
    - Upsert/delete cloud theo `id` (`onConflict: 'id'`); key trong Hive box cũng đổi sang `item.id`.
    - `itineraryFor(tripId)`, `saveItinerary` nhận `tripId`.
    - Bỏ mọi check trùng theo `name` (`_savedItems.any((e) => e.name == name)`), thay bằng logic phù hợp: wishlist có thể vẫn chặn trùng theo name, trip workspace thì không.
+   - Gỡ trường `cloudId` (PR #9): `_syncCollaboratorToCloud` và mọi chỗ dùng `cloudId` chuyển sang `item.id`. Bảng `trip_collaborators.trip_id` đang FK tới `saved_trips.id` nên tương thích sẵn với hợp đồng.
 4. Sửa ngữ nghĩa sync trong `_syncFromSupabase`:
    - Cloud là source of truth. So khớp theo `id`.
    - Item local không có trên cloud: chỉ đẩy lên nếu là item tạo offline chưa từng sync (gợi ý: cờ `pendingSync` trong Hive hoặc so `updated_at`); item đã từng sync mà cloud không còn nghĩa là bị xóa nơi khác, phải xóa local, không đẩy lại.
    - Ghi lên cloud kèm `updated_at`; bản có `updated_at` mới hơn thắng.
+   - QUAN TRỌNG (thay đổi từ PR #9): query trong `_syncFromSupabase` không còn lọc `.eq('user_id', userId)`, nên kết quả select giờ gồm cả trip của NGƯỜI KHÁC share cho mình qua `trip_collaborators`. Quy tắc: chỉ trip mình sở hữu (`user_id == mình`) mới tham gia logic đẩy lên/xóa đối chiếu; trip cộng tác chỉ merge để đọc, tuyệt đối không đẩy lại với `user_id` của mình và không xóa trên cloud khi local thiếu.
    - Chú ý: PR #9 đã thêm realtime subscription (`_subscribeToSavedTrips`) gọi lại `_syncFromSupabase` mỗi khi bảng đổi. Logic merge/xóa phải idempotent (chạy lại nhiều lần không tạo trùng, không xóa nhầm), nếu không vòng lặp ghi sẽ tự kích hoạt sync liên tục.
 5. Sửa navigation: `SavedScreen` mở một trip phải truyền cả `SavedItem` (hoặc id) và restore `item.tripData` trong `DestinationDetailScreen`, không dùng `currentTrip` toàn cục cho trip đã lưu.
 6. Migration dữ liệu Hive cũ: item cũ không id thì sinh id khi load lần đầu (đã nằm trong `fromMap`), ghi đè lại box một lần.
@@ -199,8 +224,9 @@ Chuyến đi có danh tính thật (UUID), hai chuyến cùng điểm đến kh�
 
 - `lib/services/gemini_service.dart`, `lib/services/ai_cache_service.dart`, `lib/services/search_history_service.dart`
 - `lib/services/ai_travel_gateway.dart` (của bạn B)
+- Các file đóng băng của PR #9 nêu ở mục 0.1 (`destination_repository.dart`, `community_review_service.dart`, `chat_history_service.dart`, `profile_service.dart`, `profile_screen.dart`)
 - `.github/workflows/`
-- Migration `ai_generated_cache`
+- Migration `ai_generated_cache` và migration `20260829000100_sprint_2_3_travel_cloud.sql`
 
 ### Tiêu chí nghiệm thu (giáo viên chạy cuối tuần)
 
@@ -220,7 +246,7 @@ Mọi lời gọi AI đi qua một interface duy nhất; cache đúng (đủ key
 ### Các bước theo thứ tự
 
 1. Tạo `lib/services/ai_travel_gateway.dart` đúng nguyên văn hợp đồng 1.1. Cho `GeminiService implements AITravelGateway`. Compile xanh trước khi làm gì tiếp.
-2. Đổi call site ở 8 screens đang gọi `GeminiService.instance` (`chat_screen`, `cultural_tips_screen`, `suggestions_screen`, `destination_plan_screen`, `compare_screen`, `best_time_screen`, `destination_detail_screen`, `explore_screen`) sang `aiTravelGateway`. Chỉ đổi tham chiếu và import, không đổi logic (quy tắc 1.3).
+2. Đổi call site ở 8 screens đang gọi `GeminiService.instance` (`chat_screen`, `cultural_tips_screen`, `suggestions_screen`, `destination_plan_screen`, `compare_screen`, `best_time_screen`, `destination_detail_screen`, `explore_screen`) sang `aiTravelGateway`. Chỉ đổi tham chiếu và import, không đổi logic (quy tắc 1.3). Lưu ý từ PR #9: trong `explore_screen` và `destination_detail_screen`, Gemini giờ là FALLBACK sau khi đọc `DestinationRepository`; vẫn đổi các call site fallback đó sang `aiTravelGateway`, còn phần gọi `DestinationRepository`/`CommunityReviewService` giữ nguyên, không đụng.
 3. Sửa cache key trong `gemini_service.dart`: key của `suggestions` và `itinerary` phải chứa MỌI input có mặt trong prompt (ngày đi/về, participants, ageRange, additionalNotes, aiPrompt, limit) cộng thêm `prompt_version` (hằng số, tăng khi sửa prompt).
 4. Thêm TTL cho `AiCacheService`:
    - Lưu `created_at` + `ttl` theo feature (gợi ý: explore 24h, suggestions 7 ngày, detail 7 ngày, best_time/cultural 30 ngày).
@@ -250,7 +276,8 @@ Mọi lời gọi AI đi qua một interface duy nhất; cache đúng (đủ key
 
 - `lib/data/trip_data.dart`, `lib/data/saved_trips_provider.dart`, `lib/models/itinerary_plan.dart`
 - `lib/screens/saved_screen.dart`
-- Migration `trip_identity` (của bạn A)
+- Các file đóng băng của PR #9 nêu ở mục 0.1 (`destination_repository.dart`, `community_review_service.dart`, `chat_history_service.dart`, `profile_service.dart`, `profile_screen.dart`)
+- Migration `trip_identity` (của bạn A) và migration `20260829000100_sprint_2_3_travel_cloud.sql`
 - Logic bên trong screens (ngoài việc đổi tham chiếu)
 
 ### Tiêu chí nghiệm thu (giáo viên chạy cuối tuần)
