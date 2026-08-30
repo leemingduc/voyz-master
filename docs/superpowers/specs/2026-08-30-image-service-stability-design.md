@@ -16,6 +16,8 @@ Khuếch đại lỗi: cơ chế pre-cache lưu các URL hỏng này vào cache 
 
 Bài học kiểm chứng quan trọng rút ra khi điều tra: HEAD trả 302 trên `Special:FilePath` KHÔNG chứng minh file tồn tại (redirect đích vẫn có thể 404). Kiểm chứng đúng là follow redirect đến cùng và yêu cầu status 200 kèm content-type `image/*`.
 
+**Cập nhật 20:13 ngày 30/08 (commit `857729a`):** học sinh đã tự vá một phần: thay vài URL curated bằng URL mới (3 URL được spot-check đều sống), nhưng vẫn giữ nguyên kiến trúc map-trong-code, và thay Unsplash bằng LoremFlickr, dịch vụ này đã xác minh trả 403 kèm không có CORS header, tức chết ngay từ ngày đầu, lặp lại đúng lỗi Unsplash. Bản vá này xử lý triệu chứng, không xử lý nguyên nhân (không có bước verify tự động, vẫn còn fallback URL cứng). Thiết kế trong tài liệu này không đổi; plan thực thi đã được cập nhật theo tên hàm mới sau commit đó.
+
 ## 2. Quyết định thiết kế
 
 Kiến trúc ảnh 3 lớp, xóa mọi nguồn không kiểm chứng được:

@@ -12,6 +12,7 @@
 
 ## Global Constraints
 
+- Baseline: master từ commit `857729a` trở lên (đã gồm bản vá một phần "Fix explore destination image fallbacks" của học sinh; plan này thay thế hoàn toàn cách tiếp cận của bản vá đó).
 - Nhánh: `fix/image-stability`, tạo từ `master` mới nhất.
 - Người thực thi: bạn B, hoặc người thứ ba phối hợp với bạn B, vì plan này sửa `lib/services/ai_cache_service.dart` và file này thuộc sở hữu của bạn B theo `docs/week1_parallel_assignments.md`. TUYỆT ĐỐI không đụng file thuộc sở hữu bạn A (`trip_data.dart`, `saved_trips_provider.dart`, `itinerary_plan.dart`, `saved_screen.dart`).
 - Không sửa bất kỳ file nào trong `lib/screens/` (cả 7 call site render ảnh đã có `errorWidget`, không cần sửa UI).
@@ -191,11 +192,12 @@ keep the verifier green."
 
 **Files:**
 - Modify: `lib/services/image_service.dart`
+- Modify: `lib/models/destination_suggestion.dart` (chỉ hàm `_resolvedImageUrl` ở cuối file)
 - Test: `test/services/image_service_test.dart` (file mới)
 
 **Interfaces:**
 - Consumes: không phụ thuộc task khác.
-- Produces: `ImageService.instance.getImageUrl(String) -> Future<String>` (trả `''` khi không tìm được ảnh); `ImageService.instance.getImageUrls(List<String>) -> Future<Map<String, String>>`; `ImageService.instance.getLandmarkPhotos(...)` giữ nguyên chữ ký. Thêm `static http.Client client` để test swap MockClient. Các caller hiện tại (`gemini_service.dart`, `explore_screen.dart`...) không cần sửa vì chữ ký public không đổi.
+- Produces: `ImageService.instance.getImageUrl(String) -> Future<String>` (trả `''` khi không tìm được ảnh); `ImageService.instance.getImageUrls(List<String>) -> Future<Map<String, String>>` (gọi `getImageUrl`, không còn `getImageUrlFast`); `ImageService.instance.getLandmarkPhotos(...)` giữ nguyên chữ ký. Thêm `static http.Client client` để test swap MockClient. Các caller (`gemini_service.dart`, `explore_screen.dart`...) không cần sửa vì chữ ký public không đổi; riêng `destination_suggestion.dart` sửa 1 dòng như Step 3.
 
 - [ ] **Step 1: Viết failing tests trước**
 
@@ -298,12 +300,25 @@ Expected: FAIL (chưa có `ImageService.client`, chuỗi fallback cũ trả URL 
 
 - [ ] **Step 3: Sửa `lib/services/image_service.dart`**
 
-Xóa các thành phần sau (toàn bộ, không giữ làm "tham khảo"):
-- `_curatedLandmarks` (map khoảng 230 dòng ở đầu class) và `_lookupCurated`.
-- `_fetchUnsplashSearch`.
-- `_getRealisticTravelFallback`.
-- `_fetchWikipediaLandscapeImage` và `_fetchFileInfo` (thay bằng REST summary bên dưới).
+Xóa các thành phần sau (toàn bộ, không giữ làm "tham khảo"; tên hàm theo trạng thái code sau commit `857729a`):
+- `_curatedLandmarks` (map viết tay ở đầu class) và `_lookupCurated`.
+- `_fetchLoremFlickrSearch` (loremflickr.com trả 403 và không có CORS header, đã xác minh 30/08, chết y hệt Unsplash trước đó).
+- `_getRealisticTravelFallback` và hàm static `fallbackImageUrlFor`.
+- `_fetchWikipediaLandscapeImage`, `_fetchFileInfo` và `_fetchWikipediaThumbnailOnly` (cả ba thay bằng một hàm REST summary duy nhất bên dưới).
+- `getImageUrlFast`: hợp nhất vào `getImageUrl` mới; `getImageUrls` đổi sang gọi `getImageUrl`.
 - `_normalizeKey` và `_isLandscapeRatio` nếu không còn nơi nào gọi (kiểm tra bằng `grep -n` trước khi xóa).
+
+Trong `lib/models/destination_suggestion.dart`, sửa `_resolvedImageUrl` để trả chuỗi rỗng thay vì gọi fallback cứng (UI errorWidget lo phần placeholder), và bỏ import `image_service.dart` nếu không còn dùng:
+
+```dart
+String _resolvedImageUrl(
+  String? rawUrl,
+  String destinationName, {
+  String? category,
+}) {
+  return rawUrl?.trim() ?? '';
+}
+```
 
 Thêm client injectable ở đầu class:
 
@@ -384,7 +399,7 @@ Expected: 4 tests PASS.
 
 - [ ] **Step 5: Xác nhận không còn tham chiếu chết và analyze sạch**
 
-Run: `grep -rn "unsplash\|_curatedLandmarks\|_getRealisticTravelFallback" lib/` (kỳ vọng 0 kết quả) rồi `flutter analyze`
+Run: `grep -rn "loremflickr\|unsplash\|_curatedLandmarks\|_getRealisticTravelFallback\|fallbackImageUrlFor\|getImageUrlFast" lib/` (kỳ vọng 0 kết quả) rồi `flutter analyze`
 Expected: không lỗi mới so với baseline 13 issues đã ghi nhận ngày 23/08.
 
 - [ ] **Step 6: Commit**
