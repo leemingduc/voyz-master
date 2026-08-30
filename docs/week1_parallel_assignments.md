@@ -1,0 +1,277 @@
+# Tuần 1: Giao việc song song cho 2 bạn (kèm hợp đồng chung đã chốt)
+
+> Ngày giao: 30/08/2026. Thời hạn: 1 tuần, giáo viên review cuối tuần.
+> Tài liệu nền: `project_phase2_core_architecture_alignment.md` (đọc mục 3 và 4 trước khi bắt đầu).
+> File này là NGUỒN DUY NHẤT của tuần 1. Cả hai bạn load nguyên file này vào AI agent của mình. Mỗi bạn chỉ làm phần của mình, phần còn lại đọc để hiểu ngữ cảnh.
+
+## 0. Cách làm việc chung (bắt buộc)
+
+1. Mỗi bạn một nhánh từ `master` mới nhất:
+   - Bạn A: `week1/trip-identity`
+   - Bạn B: `week1/ai-gateway`
+2. Chỉ sửa file trong danh sách "Files sở hữu" của mình. Cần sửa file của bạn kia thì KHÔNG tự sửa, ghi TODO comment và nhắn nhau.
+3. Hợp đồng ở mục 1 là bất biến trong tuần. Muốn đổi bất kỳ chữ ký hàm hoặc tên cột nào trong hợp đồng phải hỏi giáo viên trước.
+4. Trước khi mở PR: `flutter analyze` không lỗi mới, `flutter test` pass toàn bộ.
+5. Commit nhỏ, message rõ ràng. Cuối tuần mỗi bạn một PR vào `master`.
+6. Thứ tự merge: PR của bạn A merge trước, bạn B rebase lên rồi merge sau (xung đột nếu có sẽ chỉ nằm ở phần import và call site trong `screens/`, bạn B tự resolve).
+7. Checkpoint giữa tuần (ngày 3): hai bạn chạy thử nhánh của nhau 15 phút, xác nhận không dẫm chân.
+
+---
+
+## 1. HỢP ĐỒNG CHUNG ĐÃ CHỐT (đóng băng, cả hai cùng tuân theo)
+
+Đây là hai điểm giao duy nhất giữa hai người. Code dưới đây là chữ ký chuẩn, copy nguyên văn.
+
+### 1.1. Interface `AITravelGateway` (bạn B tạo file, bạn A chỉ được gọi qua nó nếu cần)
+
+File mới: `lib/services/ai_travel_gateway.dart`
+
+```dart
+import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/models/best_time_travel.dart';
+import 'package:voyz/models/chat_message.dart';
+import 'package:voyz/models/cultural_tips.dart';
+import 'package:voyz/models/destination_comparison.dart';
+import 'package:voyz/models/destination_detail.dart';
+import 'package:voyz/models/destination_suggestion.dart';
+import 'package:voyz/models/itinerary_plan.dart';
+import 'package:voyz/services/gemini_service.dart';
+
+/// Cổng duy nhất cho mọi lời gọi AI của app.
+/// Screens KHÔNG import gemini_service.dart hay google_generative_ai nữa.
+abstract class AITravelGateway {
+  Future<List<DestinationSuggestion>> getExploreTrending({
+    int limit = 10,
+    bool forceRefresh = false,
+    String? category,
+    String languageCode = 'vi',
+  });
+
+  Future<List<DestinationSuggestion>> getSuggestions(
+    TripData trip, {
+    int limit = 10,
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  });
+
+  Future<List<DestinationSuggestion>> enrichSuggestionsWithImages(
+    List<DestinationSuggestion> suggestions,
+  );
+
+  Future<DestinationDetail> getDestinationDetail(
+    String destinationName,
+    TripData trip, {
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  });
+
+  Future<ItineraryPlan> getItineraryPlan(
+    String destinationName,
+    int numDays,
+    TripData trip, {
+    int limit = 4,
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+    String? additionalInstruction,
+  });
+
+  Future<String> chat(
+    String message, {
+    required List<ChatMessage> history,
+    String languageCode = 'vi',
+    String? destinationName,
+  });
+
+  Future<DestinationComparison> compareDestinations(
+    List<String> destinations, {
+    String languageCode = 'vi',
+  });
+
+  Future<BestTimeTravel> getBestTimeToTravel(
+    String destination, {
+    String languageCode = 'vi',
+  });
+
+  Future<CulturalTips> getCulturalTips(
+    String destinationName, {
+    bool forceRefresh = false,
+    String languageCode = 'vi',
+  });
+}
+
+/// Service locator đơn giản: production trỏ vào GeminiService,
+/// test có thể gán một FakeAITravelGateway.
+AITravelGateway aiTravelGateway = GeminiService.instance;
+```
+
+Ghi chú hợp đồng:
+- Chữ ký các hàm giữ NGUYÊN như `GeminiService` hiện tại (đã đối chiếu code ngày 30/08), vì vậy việc tách interface là thuần cơ học, không đổi hành vi.
+- `GeminiService` sửa một dòng: `class GeminiService implements AITravelGateway`.
+- Nếu file model nào chưa tồn tại đúng đường dẫn import trên (ví dụ `chat_message.dart` nằm chỗ khác), bạn B sửa đường dẫn import cho đúng thực tế, KHÔNG đổi chữ ký hàm.
+- `TripData` giữ nguyên hình dạng hiện tại trong tuần này. `TripContext` là việc của tuần 3, chưa làm.
+
+### 1.2. Trip identity: `SavedItem` có `id`, itinerary gắn `tripId` (bạn A tạo, bạn B không đụng)
+
+Sửa `lib/data/trip_data.dart`, class `SavedItem` thêm trường đầu tiên:
+
+```dart
+class SavedItem {
+  final String id;        // UUID v4, sinh khi tạo item, bất biến suốt vòng đời
+  final String name;      // giữ lại, chỉ còn là nhãn hiển thị, KHÔNG còn là khóa
+  // ... các trường còn lại giữ nguyên
+}
+```
+
+Quy tắc bắt buộc:
+- Thêm package `uuid: ^4.4.0` vào `pubspec.yaml`. Sinh id bằng `const Uuid().v4()` tại thời điểm tạo item.
+- `toMap()` ghi `'id'`; `fromMap()` đọc `'id'`, nếu thiếu (dữ liệu Hive cũ) thì sinh mới một lần và giữ nguyên từ đó.
+- `copyWith` phải giữ nguyên `id`.
+- `ItineraryPlan` thêm trường `String tripId` (rỗng cho dữ liệu cũ); itinerary của một trip tra theo `tripId`, không theo `destinationName`.
+- Mọi API của `SavedTripsProviderState` thao tác theo id: `itineraryFor(String tripId)`, xóa/sửa item theo `item.id`. Cho phép hai item cùng `name`.
+
+Hợp đồng database (bạn A viết migration mới, không sửa migration đã deploy):
+
+```sql
+-- Migration mới: 20260831000100_trip_identity.sql
+-- 1. saved_trips: id do client cấp, bỏ unique theo tên
+alter table public.saved_trips drop constraint if exists saved_trips_user_name_unique;
+-- (id uuid primary key đã có sẵn từ migration 20260823000200)
+
+-- 2. saved_itineraries: gắn theo trip, hỗ trợ nhiều version
+alter table public.saved_itineraries add column if not exists trip_id uuid;
+alter table public.saved_itineraries add column if not exists version integer not null default 1;
+alter table public.saved_itineraries add column if not exists is_current boolean not null default true;
+alter table public.saved_itineraries drop constraint if exists saved_itineraries_user_dest_unique;
+create unique index if not exists saved_itineraries_trip_version_idx
+  on public.saved_itineraries (trip_id, version) where trip_id is not null;
+```
+
+Quy tắc upsert phía client sau thay đổi này:
+- `saved_trips`: upsert với `onConflict: 'id'`, payload luôn kèm `'id': item.id`.
+- `saved_itineraries`: insert version mới = max(version) + 1 của trip đó, set `is_current = true` và bỏ cờ ở version cũ. Tuần này chỉ cần đọc bản `is_current`.
+
+### 1.3. Điểm giao duy nhất trong screens
+
+`destination_detail_screen.dart` và các screen khác là vùng giao:
+- Bạn A: được sửa LOGIC trong screens (restore trip data, truyền `SavedItem`/id qua navigation).
+- Bạn B: trong screens CHỈ được đổi kiểu tham chiếu (`GeminiService.instance` thành `aiTravelGateway`) và dòng import. Không sửa logic, không format lại file.
+
+---
+
+## 2. GIAO VIỆC BẠN A: Trip identity và ngữ nghĩa sync
+
+### Mục tiêu tuần
+
+Chuyến đi có danh tính thật (UUID), hai chuyến cùng điểm đến không đè nhau, dữ liệu mở lại đúng, xóa không hồi sinh khi sync.
+
+### Các bước theo thứ tự
+
+1. Thêm `uuid` package; thêm `id` vào `SavedItem` và `tripId` vào `ItineraryPlan` đúng hợp đồng 1.2 (kèm `toMap`/`fromMap`/`copyWith`).
+2. Viết migration `20260831000100_trip_identity.sql` đúng hợp đồng 1.2.
+3. Sửa `SavedTripsProvider`:
+   - Upsert/delete cloud theo `id` (`onConflict: 'id'`); key trong Hive box cũng đổi sang `item.id`.
+   - `itineraryFor(tripId)`, `saveItinerary` nhận `tripId`.
+   - Bỏ mọi check trùng theo `name` (`_savedItems.any((e) => e.name == name)`), thay bằng logic phù hợp: wishlist có thể vẫn chặn trùng theo name, trip workspace thì không.
+4. Sửa ngữ nghĩa sync trong `_syncFromSupabase`:
+   - Cloud là source of truth. So khớp theo `id`.
+   - Item local không có trên cloud: chỉ đẩy lên nếu là item tạo offline chưa từng sync (gợi ý: cờ `pendingSync` trong Hive hoặc so `updated_at`); item đã từng sync mà cloud không còn nghĩa là bị xóa nơi khác, phải xóa local, không đẩy lại.
+   - Ghi lên cloud kèm `updated_at`; bản có `updated_at` mới hơn thắng.
+5. Sửa navigation: `SavedScreen` mở một trip phải truyền cả `SavedItem` (hoặc id) và restore `item.tripData` trong `DestinationDetailScreen`, không dùng `currentTrip` toàn cục cho trip đã lưu.
+6. Migration dữ liệu Hive cũ: item cũ không id thì sinh id khi load lần đầu (đã nằm trong `fromMap`), ghi đè lại box một lần.
+7. Test bắt buộc (mở rộng `test/data/saved_trips_sync_test.dart`):
+   - Hai trip cùng `name` cùng tồn tại, itinerary riêng theo `tripId`.
+   - Item cloud bị xóa thì sau sync local cũng mất, không resurrect.
+   - `fromMap` với map thiếu `id` sinh id hợp lệ và giữ ổn định.
+
+### Files sở hữu
+
+- `pubspec.yaml` (chỉ thêm dependency `uuid`)
+- `lib/data/trip_data.dart`, `lib/data/saved_trips_provider.dart`
+- `lib/models/itinerary_plan.dart`
+- `lib/screens/saved_screen.dart`, `lib/screens/destination_plan_screen.dart` (phần logic), `lib/screens/destination_detail_screen.dart` (phần restore dữ liệu)
+- `supabase/migrations/20260831000100_trip_identity.sql` (file mới)
+- `test/data/`
+
+### Cấm đụng
+
+- `lib/services/gemini_service.dart`, `lib/services/ai_cache_service.dart`, `lib/services/search_history_service.dart`
+- `lib/services/ai_travel_gateway.dart` (của bạn B)
+- `.github/workflows/`
+- Migration `ai_generated_cache`
+
+### Tiêu chí nghiệm thu (giáo viên chạy cuối tuần)
+
+- [ ] Tạo 2 chuyến "Đà Nẵng" ngày khác nhau: cả 2 cùng hiện, mỗi chuyến giữ đúng form data và itinerary riêng.
+- [ ] Mở lại trip cũ: ngày, số người, ngân sách hiển thị đúng của trip đó.
+- [ ] Đăng nhập 2 trình duyệt: xóa trip ở bên này, reload bên kia trip biến mất và không sống lại.
+- [ ] `flutter test` pass, có tối thiểu 3 test mới kể trên.
+
+---
+
+## 3. GIAO VIỆC BẠN B: AITravelGateway và cache hardening
+
+### Mục tiêu tuần
+
+Mọi lời gọi AI đi qua một interface duy nhất; cache đúng (đủ key, có TTL, không rò rỉ giữa user, không cho người lạ ghi); key Gemini trên web build công khai được xử lý.
+
+### Các bước theo thứ tự
+
+1. Tạo `lib/services/ai_travel_gateway.dart` đúng nguyên văn hợp đồng 1.1. Cho `GeminiService implements AITravelGateway`. Compile xanh trước khi làm gì tiếp.
+2. Đổi call site ở 8 screens đang gọi `GeminiService.instance` (`chat_screen`, `cultural_tips_screen`, `suggestions_screen`, `destination_plan_screen`, `compare_screen`, `best_time_screen`, `destination_detail_screen`, `explore_screen`) sang `aiTravelGateway`. Chỉ đổi tham chiếu và import, không đổi logic (quy tắc 1.3).
+3. Sửa cache key trong `gemini_service.dart`: key của `suggestions` và `itinerary` phải chứa MỌI input có mặt trong prompt (ngày đi/về, participants, ageRange, additionalNotes, aiPrompt, limit) cộng thêm `prompt_version` (hằng số, tăng khi sửa prompt).
+4. Thêm TTL cho `AiCacheService`:
+   - Lưu `created_at` + `ttl` theo feature (gợi ý: explore 24h, suggestions 7 ngày, detail 7 ngày, best_time/cultural 30 ngày).
+   - Entry hết hạn coi như miss ở cả 3 tầng.
+   - Kết quả CÁ NHÂN HÓA (prompt chứa notes/aiPrompt của user) chỉ cache ở Memory + Hive theo user, KHÔNG ghi lên bảng `ai_generated_cache` dùng chung.
+   - Bỏ cơ chế `nonce` tạo key rác khi force refresh của Explore: force refresh thì bỏ qua cache đọc nhưng ghi đè vào key chuẩn.
+5. Viết migration mới `20260831000200_harden_ai_cache.sql`:
+   - Thu hồi quyền của `anon`: chỉ `authenticated` được select; bỏ policy insert/update `to anon`.
+   - Insert/update chỉ cho `authenticated` (chấp nhận được cho lớp học; ghi chú trong file: về lâu dài phần ghi nên chuyển về server side).
+   - Thêm cột `expires_at timestamptz`; đọc phía client lọc `expires_at > now()`.
+6. Hive box scope theo user: `gemini_multi_tier_cache` và `search_history` mở theo tên box có user id (theo mẫu `_boxPrefix + userId` mà `SavedTripsProvider` đang dùng), user đăng xuất/đổi tài khoản không thấy cache của nhau.
+7. Xử lý key trên GitHub Pages: tạo secret `GEMINI_API_KEY_DEMO` (key riêng, quota thấp nhất có thể) và trỏ workflow dùng secret này; thêm comment cảnh báo trong `deploy-web.yml` rằng key trong web build là công khai. (Việc tạo key demo trên Google AI Studio là của giáo viên, bạn B chỉ đổi workflow và báo lại.)
+8. Test bắt buộc (mở rộng `test/services/ai_cache_service_test.dart` + file mới):
+   - Hai input khác `additionalNotes` sinh hai cache key khác nhau.
+   - Entry quá `expires_at`/TTL trả về miss.
+   - Một `FakeAITravelGateway` dùng được trong widget test (chứng minh seam hoạt động).
+
+### Files sở hữu
+
+- `lib/services/ai_travel_gateway.dart` (file mới), `lib/services/gemini_service.dart`, `lib/services/ai_cache_service.dart`, `lib/services/search_history_service.dart`
+- 8 screens kể trên (CHỈ dòng import và tham chiếu `aiTravelGateway`)
+- `supabase/migrations/20260831000200_harden_ai_cache.sql` (file mới)
+- `.github/workflows/deploy-web.yml`
+- `test/services/`
+
+### Cấm đụng
+
+- `lib/data/trip_data.dart`, `lib/data/saved_trips_provider.dart`, `lib/models/itinerary_plan.dart`
+- `lib/screens/saved_screen.dart`
+- Migration `trip_identity` (của bạn A)
+- Logic bên trong screens (ngoài việc đổi tham chiếu)
+
+### Tiêu chí nghiệm thu (giáo viên chạy cuối tuần)
+
+- [ ] `grep -r "GeminiService.instance" lib/screens/` trả về 0 kết quả; xóa import `google_generative_ai` khỏi `lib/screens/` vẫn compile.
+- [ ] Hai tài khoản với notes khác nhau không nhận chung một kết quả suggestions từ cache.
+- [ ] Bảng `ai_generated_cache` không còn policy nào cho `anon` ghi.
+- [ ] Force refresh Explore không tạo dòng cache mới mỗi lần bấm.
+- [ ] `flutter test` pass, có tối thiểu 3 test mới kể trên.
+
+---
+
+## 4. Kịch bản tuần và rủi ro
+
+| Ngày | Bạn A | Bạn B |
+|---|---|---|
+| 1 | Đọc file này + doc kiến trúc; model `id`/`tripId` + migration | Đọc file này + doc kiến trúc; tạo interface, `implements`, compile xanh |
+| 2-3 | Provider theo id, upsert/delete theo id | Đổi call sites; sửa cache key + prompt_version |
+| 3 | Checkpoint chung 15 phút: chạy thử nhánh của nhau | Checkpoint chung |
+| 4-5 | Ngữ nghĩa sync (xóa, updated_at), navigation restore | TTL, migration harden cache, box theo user, workflow key demo |
+| 6 | Test + tự chạy tiêu chí nghiệm thu, mở PR | Test + tự chạy tiêu chí nghiệm thu, mở PR |
+| 7 | Giáo viên review, merge A trước, B rebase rồi merge | |
+
+Rủi ro cần biết trước:
+- Nếu bạn A đổi tên hàm provider mà screens của bạn B đã đổi tham chiếu, sẽ conflict: KHÔNG xảy ra nếu cả hai tôn trọng mục "cấm đụng".
+- Dữ liệu Supabase hiện có trên bảng `saved_trips` là dữ liệu test, được phép xóa sạch khi chạy migration mới nếu vướng (đã thống nhất với giáo viên).
+- Câu hỏi phát sinh về hợp đồng: hỏi giáo viên, không tự quyết.
