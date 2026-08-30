@@ -108,6 +108,7 @@ class WorkspaceChecklistItem {
 
 /// Represents a saved destination: either a full trip workspace or wishlist card.
 class SavedItem {
+  final String? cloudId;
   final String name;
   final String imageUrl;
   final String price;
@@ -123,6 +124,7 @@ class SavedItem {
   final List<String> sharedWith;
 
   SavedItem({
+    this.cloudId,
     required this.name,
     required this.imageUrl,
     required this.price,
@@ -144,6 +146,7 @@ class SavedItem {
   factory SavedItem.fromMap(Map<dynamic, dynamic> map) {
     final tripMap = map['tripData'];
     return SavedItem(
+      cloudId: map['cloudId']?.toString(),
       name: map['name']?.toString() ?? '',
       imageUrl: map['imageUrl']?.toString() ?? '',
       price: map['price']?.toString() ?? '',
@@ -165,6 +168,7 @@ class SavedItem {
   }
 
   SavedItem copyWith({
+    String? cloudId,
     String? name,
     String? imageUrl,
     String? price,
@@ -180,6 +184,7 @@ class SavedItem {
     List<String>? sharedWith,
   }) {
     return SavedItem(
+      cloudId: cloudId ?? this.cloudId,
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       price: price ?? this.price,
@@ -197,6 +202,7 @@ class SavedItem {
   }
 
   Map<String, dynamic> toMap() => {
+    'cloudId': cloudId,
     'name': name,
     'imageUrl': imageUrl,
     'price': price,

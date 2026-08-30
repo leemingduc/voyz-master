@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
@@ -33,12 +34,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSavingAvatar = false;
   bool _isChangingPassword = false;
   bool _isSavingContactInfo = false;
+  bool _isSavingPreferences = false;
+  String _preferredCurrency = 'VND';
+  Set<String> _travelStyles = <String>{};
 
   @override
   void initState() {
     super.initState();
     _profile = ProfileService.instance.currentProfile();
     _phoneController.text = _profile.phoneNumber;
+    _preferredCurrency = _profile.preferredCurrency;
+    _travelStyles = _profile.travelStyles.toSet();
+    _loadCloudProfile();
   }
 
   @override
@@ -49,6 +56,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+
+  Future<void> _loadCloudProfile() async {
+    final profile = await ProfileService.instance.loadCurrentProfile();
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _phoneController.text = profile.phoneNumber;
+      _preferredCurrency = profile.preferredCurrency;
+      _travelStyles = profile.travelStyles.toSet();
+    });
+    await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+  }
+
+  Future<void> _savePreferences() async {
+    setState(() => _isSavingPreferences = true);
+    try {
+      final profile = await ProfileService.instance.updateTravelPreferences(
+        travelStyles: _travelStyles.toList(),
+        preferredCurrency: _preferredCurrency,
+      );
+      await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+      if (!mounted) return;
+      setState(() => _profile = profile);
+      _showMessage('Travel preferences saved');
+    } catch (error) {
+      if (mounted) _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingPreferences = false);
+    }
+  }
   Future<void> _pickImage() async {
     try {
       final image = await pickAvatarImage();
@@ -91,6 +128,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           displayName: _profile.displayName,
           avatarUrl: avatarUrl,
           phoneNumber: _profile.phoneNumber,
+          travelStyles: _profile.travelStyles,
+          preferredCurrency: _profile.preferredCurrency,
         );
         _pickedImage = null;
       });
@@ -160,6 +199,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           displayName: _profile.displayName,
           avatarUrl: _profile.avatarUrl,
           phoneNumber: savedPhoneNumber,
+          travelStyles: _profile.travelStyles,
+          preferredCurrency: _profile.preferredCurrency,
         );
         _phoneController.text = savedPhoneNumber;
       });
@@ -257,6 +298,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildAccountCard(theme),
                           const SizedBox(height: 16),
                           _buildLanguageCard(theme),
+                          const SizedBox(height: 16),
+                          _buildPreferencesCard(theme),
                           const SizedBox(height: 16),
                           _buildPasswordCard(theme),
                         ],
@@ -482,14 +525,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── Language Card (Task 3) ───────────────────────────────────────────────
+  // â”€â”€ Language Card (Task 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildLanguageCard(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final controller = LocaleProvider.of(context);
     final currentLocale = controller.value;
 
-    // Map locale → localized display label
+    // Map locale â†’ localized display label
     String localizedLabel(String key) => switch (key) {
       'english' => l10n.english,
       'vietnamese' => l10n.vietnamese,
@@ -545,6 +588,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+
+  Widget _buildPreferencesCard(ThemeData theme) {
+    const styles = [
+      'Beach',
+      'Adventure',
+      'Culture',
+      'Food',
+      'Nature',
+      'Luxury',
+      'Budget',
+      'Slow travel',
+    ];
+
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.tune, color: Colors.white70, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Travel preferences',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            value: _preferredCurrency,
+            dropdownColor: const Color(0xFF1E1B2E),
+            decoration: InputDecoration(
+              labelText: 'Preferred currency',
+              prefixIcon: const Icon(Icons.payments_outlined),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.06),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+            ),
+            style: const TextStyle(color: Colors.white),
+            items: supportedCurrencies
+                .map(
+                  (currency) => DropdownMenuItem(
+                    value: currency.code,
+                    child: Text('${currency.code} - ${currency.name}'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _preferredCurrency = value);
+            },
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Travel styles',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: styles.map((style) {
+              final selected = _travelStyles.contains(style);
+              return FilterChip(
+                selected: selected,
+                label: Text(style),
+                onSelected: (value) {
+                  setState(() {
+                    if (value) {
+                      _travelStyles.add(style);
+                    } else {
+                      _travelStyles.remove(style);
+                    }
+                  });
+                },
+                selectedColor: AppTheme.primaryPink.withValues(alpha: 0.28),
+                checkmarkColor: Colors.white,
+                labelStyle: const TextStyle(color: Colors.white),
+                backgroundColor: Colors.white.withValues(alpha: 0.06),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 220,
+              child: GradientButton(
+                label: _isSavingPreferences ? 'Saving' : 'Save preferences',
+                icon: Icons.save,
+                height: 46,
+                onPressed: _isSavingPreferences ? null : _savePreferences,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildPasswordCard(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     return GlassCard(
