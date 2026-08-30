@@ -1,5 +1,3 @@
-import 'package:voyz/services/image_service.dart';
-
 /// Model for AI-suggested travel destinations displayed on the Suggestions screen.
 class DestinationSuggestion {
   final String name;
@@ -86,12 +84,12 @@ class DestinationSuggestion {
   }
 }
 
+/// Ảnh rỗng là trạng thái hợp lệ: UI có errorWidget placeholder ở mọi
+/// call site, không dùng fallback URL cứng trong code.
 String _resolvedImageUrl(
   String? rawUrl,
   String destinationName, {
   String? category,
 }) {
-  final url = rawUrl?.trim() ?? '';
-  if (url.isNotEmpty) return url;
-  return ImageService.fallbackImageUrlFor(destinationName, category: category);
+  return rawUrl?.trim() ?? '';
 }

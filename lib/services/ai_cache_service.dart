@@ -31,7 +31,8 @@ class CachedAiResponse {
     }
     return CachedAiResponse(
       payload: map['payload']?.toString() ?? '',
-      imageUrls: images,
+      // Cache cũ có thể đã nhiễm URL bịa/dịch vụ chết: lọc cả khi đọc.
+      imageUrls: AiCacheService.sanitizeImageUrls(images),
     );
   }
 }
@@ -46,21 +47,37 @@ class AiCacheService {
   AiCacheService._();
   static final AiCacheService instance = AiCacheService._();
 
-  static const String _boxName = 'gemini_multi_tier_cache';
-  static const String _legacyBoxName = 'gemini_cache';
+  // Đổi tên box (v2) để bỏ sạch cache đã nhiễm image URL bịa/chết từ các
+  // phiên trước. Cache là cache, được phép mất.
+  static const String _boxName = 'gemini_multi_tier_cache_v2';
+
+  static const List<String> _allowedImageHosts = [
+    'upload.wikimedia.org',
+    'commons.wikimedia.org',
+  ];
 
   final Map<String, CachedAiResponse> _memoryCache = {};
   bool _initialized = false;
+
+  /// Chỉ giữ image URL từ nguồn tin cậy. Chặn tái nhiễm cache bằng URL
+  /// từ dịch vụ đã chết hoặc URL AI bịa.
+  @visibleForTesting
+  static Map<String, String> sanitizeImageUrls(Map<String, String> urls) {
+    final safe = <String, String>{};
+    urls.forEach((name, url) {
+      final host = Uri.tryParse(url)?.host ?? '';
+      if (_allowedImageHosts.contains(host) || host.endsWith('.supabase.co')) {
+        safe[name] = url;
+      }
+    });
+    return safe;
+  }
 
   /// Initializes the local Hive cache box.
   Future<void> init() async {
     if (_initialized) return;
     try {
       await Hive.openBox<String>(_boxName);
-      // Also open legacy box if exists for backward compatibility
-      if (Hive.isBoxOpen(_legacyBoxName) || await Hive.boxExists(_legacyBoxName)) {
-        await Hive.openBox<String>(_legacyBoxName);
-      }
     } catch (e) {
       debugPrint('AiCacheService Hive init error: $e');
     }
@@ -71,15 +88,6 @@ class AiCacheService {
     try {
       if (Hive.isBoxOpen(_boxName)) {
         return Hive.box<String>(_boxName);
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Box<String>? get _legacyBox {
-    try {
-      if (Hive.isBoxOpen(_legacyBoxName)) {
-        return Hive.box<String>(_legacyBoxName);
       }
     } catch (_) {}
     return null;
@@ -130,14 +138,6 @@ class AiCacheService {
       }
     }
 
-    // Check legacy box
-    final legacyData = _legacyBox?.get(key);
-    if (legacyData != null && legacyData.isNotEmpty) {
-      final res = CachedAiResponse(payload: legacyData);
-      _memoryCache[key] = res;
-      return res;
-    }
-
     // 3. Tier 3: Supabase Cloud DB (~50-100ms)
     try {
       final supabase = SupabaseService.instance.client;
@@ -163,7 +163,8 @@ class AiCacheService {
 
         final res = CachedAiResponse(
           payload: payloadStr,
-          imageUrls: imageUrls,
+          // Cloud cache dùng chung có thể chứa URL đã nhiễm từ trước.
+          imageUrls: sanitizeImageUrls(imageUrls),
         );
 
         // Populate Memory & Hive
@@ -198,9 +199,10 @@ class AiCacheService {
     String languageCode = 'vi',
     Map<String, String>? imageUrls,
   }) async {
+    final safeImageUrls = sanitizeImageUrls(imageUrls ?? const {});
     final responseObj = CachedAiResponse(
       payload: payload,
-      imageUrls: imageUrls ?? const {},
+      imageUrls: safeImageUrls,
     );
 
     // 1. Tier 1: RAM
@@ -220,7 +222,7 @@ class AiCacheService {
       featureType: featureType,
       destination: destination,
       languageCode: languageCode,
-      imageUrls: imageUrls,
+      imageUrls: safeImageUrls,
     );
   }
 
@@ -289,6 +291,5 @@ class AiCacheService {
   Future<void> clearLocal() async {
     _memoryCache.clear();
     await _box?.clear();
-    await _legacyBox?.clear();
   }
 }
