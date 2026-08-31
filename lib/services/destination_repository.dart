@@ -77,7 +77,24 @@ class DestinationRepository {
         });
       }
       return effectiveItems;
-    } catch (e) {
+    } on PostgrestException catch (error) {
+      // The curated-destinations migration may not be deployed yet. Treat a
+      // missing relation as an empty curated feed so Explore can use its
+      // Gemini fallback instead of showing a database error to the user.
+      if (error.code == 'PGRST205') return [];
+
+      final cached = box.get(cacheKey);
+      final rawItems = cached?['items'];
+      if (rawItems is List) {
+        return rawItems
+            .whereType<Map>()
+            .map(DestinationSuggestion.fromMap)
+            .where((item) => item.name.isNotEmpty)
+            .take(limit)
+            .toList();
+      }
+      rethrow;
+    } catch (_) {
       final cached = box.get(cacheKey);
       final rawItems = cached?['items'];
       if (rawItems is List) {
@@ -108,12 +125,12 @@ class DestinationRepository {
       final rows = categoryKey == 'random'
           ? await query
           : await _client
-              .from('destinations')
-              .select()
-              .eq('is_active', true)
-              .eq('category', categoryKey)
-              .order('match_percent', ascending: false)
-              .limit(limit);
+                .from('destinations')
+                .select()
+                .eq('is_active', true)
+                .eq('category', categoryKey)
+                .order('match_percent', ascending: false)
+                .limit(limit);
 
       return List.generate(rows.length, (index) {
         return DestinationSuggestion.fromSupabase(
@@ -163,7 +180,9 @@ class DestinationRepository {
   }) async {
     final safeName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
     final path = '$destinationSlug/$safeName';
-    await _client.storage.from('destination-media').uploadBinary(
+    await _client.storage
+        .from('destination-media')
+        .uploadBinary(
           path,
           Uint8List.fromList(bytes),
           fileOptions: FileOptions(
@@ -180,16 +199,22 @@ DestinationDetail destinationDetailFromRow(Map<String, dynamic> row) {
   final detailData = row['detail_data'] is Map
       ? Map<String, dynamic>.from(row['detail_data'] as Map)
       : <String, dynamic>{};
-  final galleryData = row['gallery'] is List ? row['gallery'] as List : const [];
+  final galleryData = row['gallery'] is List
+      ? row['gallery'] as List
+      : const [];
 
   return DestinationDetail.fromJson(
     {
       'name': row['name']?.toString() ?? '',
-      'location': row['location']?.toString() ?? row['country']?.toString() ?? '',
+      'location':
+          row['location']?.toString() ?? row['country']?.toString() ?? '',
       'tags': row['tags'] is List ? row['tags'] : const [],
       'weather': detailData['weather']?.toString() ?? '',
       'dateRange': detailData['dateRange']?.toString() ?? '',
-      'totalBudget': detailData['totalBudget']?.toString() ?? row['price']?.toString() ?? '',
+      'totalBudget':
+          detailData['totalBudget']?.toString() ??
+          row['price']?.toString() ??
+          '',
       'budgetBreakdown': detailData['budgetBreakdown'] is List
           ? detailData['budgetBreakdown']
           : const [],
@@ -197,7 +222,11 @@ DestinationDetail destinationDetailFromRow(Map<String, dynamic> row) {
     row['image_url']?.toString() ?? '',
     gallery: galleryData
         .whereType<Map>()
-        .map((item) => DestinationLandmarkPhoto.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => DestinationLandmarkPhoto.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
         .where((photo) => photo.imageUrl.isNotEmpty)
         .toList(),
   );

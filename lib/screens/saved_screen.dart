@@ -4,7 +4,6 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
-import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
@@ -49,23 +48,6 @@ class _SavedScreenState extends State<SavedScreen> {
     final wishlistCount = provider.wishlistItems.length;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AIToolsScreen()));
-        },
-        backgroundColor: AppTheme.primaryPink,
-        icon: const Icon(Icons.auto_awesome, color: Colors.white),
-        label: Text(
-          AppLocalizations.of(context)!.aiToolsTitle,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

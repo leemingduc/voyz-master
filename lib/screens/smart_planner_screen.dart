@@ -9,7 +9,6 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
-import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -228,23 +227,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AIToolsScreen()));
-        },
-        backgroundColor: AppTheme.primaryPink,
-        icon: const Icon(Icons.auto_awesome, color: Colors.white),
-        label: Text(
-          l10n.aiToolsTitle,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: BoxDecoration(
           gradient: RadialGradient(
