@@ -4,7 +4,6 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
-import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/destination_repository.dart';
@@ -118,23 +117,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AIToolsScreen()));
-        },
-        backgroundColor: AppTheme.primaryPink,
-        icon: const Icon(Icons.auto_awesome, color: Colors.white),
-        label: Text(
-          AppLocalizations.of(context)!.aiToolsTitle,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

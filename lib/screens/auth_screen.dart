@@ -5,6 +5,7 @@ import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/utils/error_localizer.dart';
+import 'package:voyz/widgets/shared/ai_tools_button.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -22,7 +23,14 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    AIToolsButtonVisibility.isHidden.value = true;
+  }
+
+  @override
   void dispose() {
+    AIToolsButtonVisibility.isHidden.value = false;
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

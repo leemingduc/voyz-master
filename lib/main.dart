@@ -13,6 +13,7 @@ import 'package:voyz/services/currency_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/ai_tools_button.dart';
 import 'package:voyz/widgets/shared/background_music_button.dart';
 
 Future<void> main() async {
@@ -79,6 +80,7 @@ class VoyzApp extends StatefulWidget {
 class _VoyzAppState extends State<VoyzApp> {
   late final LocaleController _localeController;
   late final CurrencyController _currencyController;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -107,6 +109,7 @@ class _VoyzAppState extends State<VoyzApp> {
               // whenever the locale changes.
               final locale = LocaleProvider.of(context).value;
               return MaterialApp(
+                navigatorKey: _navigatorKey,
                 onGenerateTitle: (ctx) =>
                     AppLocalizations.of(ctx)?.appTitle ??
                     'AIVIVU - AI Travel Advisor',
@@ -133,6 +136,17 @@ class _VoyzAppState extends State<VoyzApp> {
                         left: 12,
                         bottom: MediaQuery.of(context).padding.bottom + 92,
                         child: const BackgroundMusicButton(),
+                      ),
+                      Positioned(
+                        right: 16,
+                        // Keeps this shortcut above the bottom navigation.
+                        bottom: MediaQuery.of(context).padding.bottom + 92,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: AIToolsButtonVisibility.isHidden,
+                          builder: (context, isHidden, _) => isHidden
+                              ? const SizedBox.shrink()
+                              : AIToolsButton(navigatorKey: _navigatorKey),
+                        ),
                       ),
                     ],
                   );

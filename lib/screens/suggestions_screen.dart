@@ -104,26 +104,29 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     return Scaffold(
       floatingActionButton: _suggestions.length < 2
           ? null
-          : FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CompareScreen(
-                      initialDestinations: _suggestions
-                          .take(3)
-                          .map((suggestion) => suggestion.name)
-                          .toList(),
+          : Transform.translate(
+              offset: const Offset(0, -72),
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CompareScreen(
+                        initialDestinations: _suggestions
+                            .take(3)
+                            .map((suggestion) => suggestion.name)
+                            .toList(),
+                      ),
                     ),
+                  );
+                },
+                backgroundColor: AppTheme.primaryPink,
+                icon: const Icon(Icons.compare_arrows, color: Colors.white),
+                label: Text(
+                  AppLocalizations.of(context)!.contextCompareSuggestions,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              },
-              backgroundColor: AppTheme.primaryPink,
-              icon: const Icon(Icons.compare_arrows, color: Colors.white),
-              label: Text(
-                AppLocalizations.of(context)!.contextCompareSuggestions,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
