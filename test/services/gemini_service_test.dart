@@ -117,4 +117,51 @@ void main() {
       expect(prompt, contains('suy ra từ mô tả chuyến đi'));
     });
   });
+
+  group('buildDetailPrompt - prompt-first behavior', () {
+    test('includes the trip description and drops the fake date fallback', () {
+      final trip = TripData(aiPrompt: 'Đi 5 ngày với bố mẹ, thích ẩm thực');
+      final prompt = GeminiService.instance
+          .buildDetailPrompt('Đà Nẵng', trip, 'vi');
+      expect(
+        prompt,
+        contains('Mô tả chuyến đi của người dùng: Đi 5 ngày với bố mẹ'),
+      );
+      expect(prompt, contains('Thời gian dự kiến: Linh hoạt'));
+      expect(prompt, isNot(contains('Mar 15 - Mar 18')));
+    });
+
+    test('picked dates still appear verbatim', () {
+      final trip = TripData(
+        departDate: DateTime(2026, 10, 1),
+        returnDate: DateTime(2026, 10, 5),
+      );
+      final prompt = GeminiService.instance
+          .buildDetailPrompt('Đà Nẵng', trip, 'vi');
+      expect(prompt, isNot(contains('Linh hoạt')));
+    });
+  });
+
+  group('buildItineraryPrompt - prompt-first behavior', () {
+    test('no dates: lets the AI honor a day count from the description', () {
+      final trip = TripData(aiPrompt: 'Chuyến đi 5 ngày khám phá ẩm thực');
+      final prompt = GeminiService.instance
+          .buildItineraryPrompt('Huế', 3, trip, 4, 'vi', null);
+      expect(prompt, contains('Mô tả chuyến đi của người dùng:'));
+      expect(prompt, contains('nêu số ngày cụ thể'));
+      expect(prompt, contains('Thời gian: Linh hoạt'));
+      expect(prompt, isNot(contains('MAR 15 - MAR 18')));
+    });
+
+    test('picked dates: exact numDays is kept, no override instruction', () {
+      final trip = TripData(
+        departDate: DateTime(2026, 10, 1),
+        returnDate: DateTime(2026, 10, 4),
+        aiPrompt: 'đi chơi',
+      );
+      final prompt = GeminiService.instance
+          .buildItineraryPrompt('Huế', 3, trip, 4, 'vi', null);
+      expect(prompt, isNot(contains('nêu số ngày cụ thể')));
+    });
+  });
 }

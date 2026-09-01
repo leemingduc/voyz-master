@@ -540,7 +540,7 @@ Quy tắc quan trọng:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildDetailPrompt(destinationName, trip, languageCode);
+    final prompt = buildDetailPrompt(destinationName, trip, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
@@ -585,14 +585,26 @@ Quy tắc quan trọng:
     return DestinationDetail.fromJson(json, imageUrl, gallery: gallery);
   }
 
-  String _buildDetailPrompt(
+  /// Builds the destination detail prompt. Public for testing only.
+  @visibleForTesting
+  String buildDetailPrompt(
     String destinationName,
     TripData trip,
     String languageCode,
   ) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'Mar 15 - Mar 18';
+        : 'Linh hoạt';
+
+    final tripDescription = hasTripDescription
+        ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
+        : '';
+
+    final dateRule = hasTripDescription && trip.departDate == null
+        ? '\n- Nếu mô tả chuyến đi nêu thời gian cụ thể, dùng thời gian đó cho dateRange thay vì "Linh hoạt".'
+        : '';
 
     final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
     final langInst = languageInstruction(languageCode);
@@ -601,7 +613,7 @@ Quy tắc quan trọng:
 Bạn là chuyên gia tư vấn du lịch AI. Hãy cung cấp thông tin chi tiết, ước tính chi phí thực tế và các địa danh biểu tượng cụ thể cho điểm đến "$destinationName".
 
 Mức ngân sách & phân khúc: $budgetDescription
-Thời gian dự kiến: $dateInfo
+Thời gian dự kiến: $dateInfo$tripDescription
 
 Trả về JSON object với cấu trúc:
 {
@@ -632,8 +644,7 @@ Quy tắc:
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
 - tags: 4 thẻ ngắn gọn, đặc trưng nhất cho điểm đến, có kèm emoji.
 - weather: Dự báo thời tiết thực tế theo mùa của điểm đến.
-- Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.
-- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.
+- Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.$dateRule
 - $langInst
 ''';
   }
@@ -672,7 +683,7 @@ Quy tắc:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildItineraryPrompt(
+    final prompt = buildItineraryPrompt(
       destinationName,
       numDays,
       trip,
@@ -708,7 +719,9 @@ Quy tắc:
     }
   }
 
-  String _buildItineraryPrompt(
+  /// Builds the itinerary prompt. Public for testing only.
+  @visibleForTesting
+  String buildItineraryPrompt(
     String destinationName,
     int numDays,
     TripData trip,
@@ -716,9 +729,19 @@ Quy tắc:
     String languageCode,
     String? additionalInstruction,
   ) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'MAR 15 - MAR 18';
+        : 'Linh hoạt';
+
+    final tripDescription = hasTripDescription
+        ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
+        : '';
+
+    final dayCountInstruction = hasTripDescription && trip.departDate == null
+        ? '\nNếu mô tả chuyến đi nêu số ngày cụ thể, hãy lên kế hoạch đúng số ngày đó (tối đa 7 ngày) thay vì $numDays ngày.'
+        : '';
 
     final languageName = languageCode == 'vi'
         ? 'Vietnamese'
@@ -729,7 +752,7 @@ Quy tắc:
     return '''
 Bạn là chuyên gia du lịch AI. Hãy lên kế hoạch du lịch chi tiết $numDays ngày tại "$destinationName".
 
-Thời gian: $dateInfo
+Thời gian: $dateInfo$tripDescription$dayCountInstruction
 
 ${additionalInstruction == null || additionalInstruction.trim().isEmpty ? '' : 'Ưu tiên điều chỉnh: ${additionalInstruction.trim()}'}
 
