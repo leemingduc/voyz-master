@@ -283,7 +283,7 @@ Quy tắc:
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildSuggestionsPrompt(trip, limit, languageCode);
+    final prompt = buildSuggestionsPrompt(trip, limit, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) return [];
@@ -440,31 +440,43 @@ Quy tắc:
         'hoặc tương đương \$450-\$850 $currency cho chuyến quốc tế.';
   }
 
-  String _buildSuggestionsPrompt(
+  /// Builds the suggestions prompt. Public for testing only.
+  @visibleForTesting
+  String buildSuggestionsPrompt(
     TripData trip,
     int limit,
     String languageCode,
   ) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final interests = trip.selectedInterests.isNotEmpty
         ? trip.selectedInterests.join(', ')
         : 'du lịch tổng hợp';
 
     final destination = trip.destination.isNotEmpty
         ? trip.destination
+        : hasTripDescription
+        ? 'chưa xác định, hãy tự suy ra điểm đến phù hợp từ mô tả chuyến đi bên dưới'
         : 'Việt Nam';
 
     final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
 
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? 'từ ${_formatDate(trip.departDate!)} đến ${_formatDate(trip.returnDate!)}'
+        : hasTripDescription
+        ? 'linh hoạt (nếu mô tả chuyến đi nêu thời gian, hãy dùng thời gian đó)'
         : 'linh hoạt';
+
+    final unknownHint = hasTripDescription
+        ? 'không rõ (suy ra từ mô tả chuyến đi nếu có)'
+        : 'không rõ';
 
     final additionalNotes = trip.additionalNotes.isNotEmpty
         ? '\nYêu cầu thêm: ${trip.additionalNotes}'
         : '';
 
-    final aiPromptExtra = trip.aiPrompt.isNotEmpty
-        ? '\nMô tả chuyến đi: ${trip.aiPrompt}'
+    final aiPromptExtra = hasTripDescription
+        ? '\nMô tả chuyến đi: ${trip.aiPrompt.trim()}'
         : '';
 
     final langInst = languageInstruction(languageCode);
@@ -477,8 +489,8 @@ Thông tin người dùng:
 - Mức ngân sách: $budgetDescription
 - Sở thích: $interests
 - Thời gian: $dateInfo
-- Số người: ${trip.participants.isNotEmpty ? trip.participants : 'không rõ'}
-- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : 'không rõ'}$additionalNotes$aiPromptExtra
+- Số người: ${trip.participants.isNotEmpty ? trip.participants : unknownHint}
+- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : unknownHint}$additionalNotes$aiPromptExtra
 
 Trả về JSON array với đúng $limit phần tử, mỗi phần tử có cấu trúc:
 {

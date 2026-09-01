@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
@@ -78,6 +79,42 @@ void main() {
         '[{"name":"Hà Nội"},{"name":"Đà Nẵng"}]',
       );
       expect(result, isA<List<dynamic>>());
+    });
+  });
+
+  group('buildSuggestionsPrompt - prompt-first behavior', () {
+    test('prompt-only trip asks AI to infer the destination, not Vietnam', () {
+      final trip = TripData(aiPrompt: 'Đi biển 5 ngày cùng gia đình 4 người');
+      final prompt =
+          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      expect(prompt, contains('suy ra điểm đến'));
+      expect(prompt, isNot(contains('Điểm đến mong muốn: Việt Nam')));
+      expect(
+        prompt,
+        contains('Mô tả chuyến đi: Đi biển 5 ngày cùng gia đình 4 người'),
+      );
+    });
+
+    test('explicit destination field still wins over inference', () {
+      final trip = TripData(destination: 'Đà Lạt', aiPrompt: 'nghỉ dưỡng');
+      final prompt =
+          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      expect(prompt, contains('Điểm đến mong muốn: Đà Lạt'));
+      expect(prompt, isNot(contains('suy ra điểm đến')));
+    });
+
+    test('fully empty trip keeps the Vietnam fallback', () {
+      final prompt =
+          GeminiService.instance.buildSuggestionsPrompt(TripData(), 5, 'vi');
+      expect(prompt, contains('Điểm đến mong muốn: Việt Nam'));
+    });
+
+    test('missing dates and party size point the AI at the description', () {
+      final trip = TripData(aiPrompt: 'Đi 5 ngày, 4 người lớn');
+      final prompt =
+          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      expect(prompt, contains('nếu mô tả chuyến đi nêu thời gian'));
+      expect(prompt, contains('suy ra từ mô tả chuyến đi'));
     });
   });
 }
