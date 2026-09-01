@@ -149,15 +149,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   }
 
   bool _validateInput() {
-    if (_destinationController.text.trim().isEmpty ||
-        _departDate == null ||
-        _returnDate == null ||
-        _selectedBudgetTier.trim().isEmpty ||
-        _participantsController.text.trim().isEmpty ||
-        _ageRangeController.text.trim().isEmpty) {
+    if (_promptController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.fillAllRequired),
+          content: Text(AppLocalizations.of(context)!.describeTripRequired),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),

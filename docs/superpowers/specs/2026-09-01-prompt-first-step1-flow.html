@@ -1,0 +1,235 @@
+<title>Voyz Prompt-to-Plan Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f6f9;
+    --surface: #ffffff;
+    --ink: #23212e;
+    --muted: #6c6879;
+    --line: #dcd8e4;
+    --accent: #c2185b;
+    --accent-soft: #fce7f0;
+    --code-bg: #f0edf5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15161f;
+      --surface: #1d1f2c;
+      --ink: #e8e6f0;
+      --muted: #9a96ab;
+      --line: #34364a;
+      --accent: #ff4f8b;
+      --accent-soft: #3a2233;
+      --code-bg: #262838;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15161f;
+    --surface: #1d1f2c;
+    --ink: #e8e6f0;
+    --muted: #9a96ab;
+    --line: #34364a;
+    --accent: #ff4f8b;
+    --accent-soft: #3a2233;
+    --code-bg: #262838;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1, h2 { font-family: "Sora", "Segoe UI", system-ui, sans-serif; text-wrap: balance; letter-spacing: -0.01em; }
+  h1 { font-size: 1.9rem; margin: 0 0 4px; }
+  h2 { font-size: 1.25rem; margin: 44px 0 10px; }
+  .kicker { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  p { max-width: 68ch; margin: 10px 0; }
+  p.lede { font-size: 1.05rem; color: var(--muted); max-width: 70ch; }
+  code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.82em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  figure { margin: 20px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 10px; overflow-x: auto; }
+  figure svg { display: block; min-width: 720px; max-width: 100%; height: auto; margin: 0 auto; }
+  figcaption { font-size: 0.85rem; color: var(--muted); padding: 10px 4px 4px; max-width: none; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: none; background: var(--code-bg); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  td.keep { font-weight: 600; }
+  .pill { display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding: 1px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  ul { max-width: 72ch; padding-left: 22px; }
+  li { margin: 6px 0; }
+  .answer { border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 18px 0; }
+  .answer p { margin: 6px 0; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<main>
+  <div class="kicker">Voyz · Smart Planner redesign</div>
+  <h1>Voyz Prompt-to-Plan Flow</h1>
+  <p class="lede">How trip information travels from the input screen to the final travel plan, why the structured fields exist at all, and exactly what step 1 and step 2 change.</p>
+
+  <h2>1 · The whole journey today</h2>
+  <figure>
+    <svg viewBox="0 0 1000 520" role="img" aria-label="Data flow from the Smart Planner screen through TripData into the three Gemini prompt builders and out to the itinerary plan">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <!-- screens row -->
+        <rect x="20" y="30" width="180" height="64" rx="8"/>
+        <rect x="290" y="30" width="170" height="64" rx="8"/>
+        <rect x="550" y="30" width="170" height="64" rx="8"/>
+        <rect x="810" y="30" width="170" height="64" rx="8"/>
+        <!-- journey arrows -->
+        <line x1="200" y1="62" x2="288" y2="62" marker-end="url(#arr)"/>
+        <line x1="460" y1="62" x2="548" y2="62" marker-end="url(#arr)"/>
+        <line x1="720" y1="62" x2="808" y2="62" marker-end="url(#arr)"/>
+        <!-- planner -> history -->
+        <line x1="70" y1="94" x2="70" y2="198" marker-end="url(#arr)"/>
+        <rect x="20" y="200" width="200" height="54" rx="8" stroke-dasharray="4 3"/>
+        <!-- planner -> TripData -->
+        <path d="M170 94 V245 H358" marker-end="url(#arr)"/>
+        <!-- TripData hub -->
+        <rect x="360" y="180" width="280" height="130" rx="8"/>
+        <!-- TripData -> screens -->
+        <line x1="420" y1="178" x2="378" y2="96" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+        <line x1="520" y1="178" x2="628" y2="96" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+        <line x1="610" y1="178" x2="882" y2="96" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+        <!-- TripData -> GeminiService -->
+        <line x1="500" y1="310" x2="500" y2="378" marker-end="url(#arr)"/>
+        <!-- bottom row -->
+        <rect x="80" y="380" width="200" height="64" rx="8"/>
+        <rect x="360" y="380" width="280" height="64" rx="8"/>
+        <rect x="760" y="380" width="200" height="64" rx="8"/>
+        <line x1="358" y1="412" x2="282" y2="412" marker-end="url(#arr)"/>
+        <line x1="640" y1="412" x2="758" y2="412" marker-end="url(#arr)"/>
+      </g>
+      <g font-size="12" fill="currentColor" font-family="'Source Sans 3', system-ui, sans-serif">
+        <text x="110" y="54" text-anchor="middle" font-weight="600">Smart Planner</text>
+        <text x="110" y="72" text-anchor="middle" font-size="11" opacity="0.7">form + AI prompt box</text>
+        <text x="375" y="54" text-anchor="middle" font-weight="600">Suggestions</text>
+        <text x="375" y="72" text-anchor="middle" font-size="11" opacity="0.7">destination cards</text>
+        <text x="635" y="54" text-anchor="middle" font-weight="600">Destination detail</text>
+        <text x="635" y="72" text-anchor="middle" font-size="11" opacity="0.7">costs + landmarks</text>
+        <text x="895" y="54" text-anchor="middle" font-weight="600">Itinerary plan</text>
+        <text x="895" y="72" text-anchor="middle" font-size="11" opacity="0.7">day-by-day schedule</text>
+        <!-- journey arrow labels -->
+        <text x="244" y="52" text-anchor="middle" font-size="10.5" opacity="0.75">submit</text>
+        <text x="504" y="52" text-anchor="middle" font-size="10.5" opacity="0.75">tap card</text>
+        <text x="764" y="52" text-anchor="middle" font-size="10.5" opacity="0.75">view plan</text>
+        <!-- history -->
+        <text x="120" y="222" text-anchor="middle" font-weight="600" font-size="11.5">Search history (Supabase)</text>
+        <text x="120" y="240" text-anchor="middle" font-size="10.5" opacity="0.7">one column per field</text>
+        <text x="64" y="150" text-anchor="end" font-size="10.5" opacity="0.75">records</text>
+        <text x="230" y="238" font-size="10.5" opacity="0.75">saves TripData</text>
+        <!-- TripData -->
+        <text x="500" y="202" text-anchor="middle" font-weight="600">TripData (shared state)</text>
+        <text x="380" y="226" font-size="11" font-family="'JetBrains Mono', monospace">destination   departDate</text>
+        <text x="380" y="244" font-size="11" font-family="'JetBrains Mono', monospace">returnDate    budget</text>
+        <text x="380" y="262" font-size="11" font-family="'JetBrains Mono', monospace">participants  ageRange</text>
+        <text x="380" y="280" font-size="11" font-family="'JetBrains Mono', monospace">interests     notes</text>
+        <text x="380" y="298" font-size="11" font-family="'JetBrains Mono', monospace" fill="var(--accent)" font-weight="500">aiPrompt  ← the free text</text>
+        <text x="700" y="146" font-size="10.5" opacity="0.75">every screen re-reads currentTrip</text>
+        <!-- GeminiService -->
+        <text x="500" y="404" text-anchor="middle" font-weight="600">GeminiService · 3 prompt builders</text>
+        <text x="500" y="422" text-anchor="middle" font-size="11" opacity="0.7">getSuggestions · getDetail · getItinerary</text>
+        <text x="500" y="437" text-anchor="middle" font-size="10.5" fill="var(--accent)">numDays = returnDate − departDate, else 3</text>
+        <!-- cache / api -->
+        <text x="180" y="404" text-anchor="middle" font-weight="600" font-size="11.5">AI cache (multi-tier)</text>
+        <text x="180" y="422" text-anchor="middle" font-size="10.5" opacity="0.7">key: destination, budget,</text>
+        <text x="180" y="436" text-anchor="middle" font-size="10.5" opacity="0.7">interests… (not the prompt!)</text>
+        <text x="860" y="408" text-anchor="middle" font-weight="600" font-size="11.5">Gemini API</text>
+        <text x="860" y="426" text-anchor="middle" font-size="10.5" opacity="0.7">returns JSON</text>
+        <text x="320" y="404" text-anchor="middle" font-size="10.5" opacity="0.75">dedup</text>
+        <text x="698" y="404" text-anchor="middle" font-size="10.5" opacity="0.75">prompt text</text>
+        <text x="512" y="348" font-size="10.5" opacity="0.75">fields become sentences in the prompt</text>
+      </g>
+    </svg>
+    <figcaption><strong>Figure 1.</strong> Four screens share one <code>TripData</code> object. The form fields are turned into prose lines inside three different Gemini prompts; the structured values are also used <em>outside</em> the AI, for the cache key, the day count, and the search-history table. The dashed cache note marks the collision bug step 1 fixes.</figcaption>
+  </figure>
+
+  <h2>2 · So why do the separate fields exist?</h2>
+  <div class="answer">
+    <p><strong>Short answer:</strong> the AI only ever receives one big text prompt, so for the AI itself the separate fields are not needed. They exist because <em>plain Dart code</em>, not the AI, consumes them in four places, and Dart needs machine-readable values, not free text.</p>
+  </div>
+  <table>
+    <thead><tr><th>Field</th><th>Who actually needs it (outside the AI prompt)</th><th>After step 2?</th></tr></thead>
+    <tbody>
+      <tr><td><code>departDate</code> / <code>returnDate</code></td><td><code>numDays</code> is computed in Dart before calling the AI (plan and detail screens); saved-trip workspace shows the dates.</td><td class="keep">Structure stays, filled by AI</td></tr>
+      <tr><td><code>destination</code>, <code>budget</code>, <code>interests</code></td><td>Cache keys, so identical searches reuse a cached AI answer instead of paying for a new call.</td><td class="keep">Structure stays, filled by AI</td></tr>
+      <tr><td><code>currency</code></td><td>Price formatting and the currency provider across the app.</td><td class="keep">Stays (from profile)</td></tr>
+      <tr><td>all fields</td><td>Search history rows in Supabase, one column each.</td><td class="keep">Columns stay, values inferred</td></tr>
+      <tr><td><code>participants</code>, <code>ageRange</code></td><td>Nothing. They only become one line of prompt text.</td><td><span class="pill">weakest case</span> first components to delete</td></tr>
+    </tbody>
+  </table>
+  <p>So the thing to remove is the <strong>manual typing</strong>, never the <strong>data structure</strong>. <code>TripData</code> keeps existing either way; the question is only who fills it in.</p>
+
+  <h2>3 · Step 1 vs step 2: who fills TripData</h2>
+  <figure>
+    <svg viewBox="0 0 1000 320" role="img" aria-label="Comparison: in step 1 the user may fill optional form fields and must fill the prompt; in step 2 the prompt alone is parsed by AI extraction into the same TripData structure">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arr2A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="20" y="20" width="460" height="280" rx="10" stroke-dasharray="5 4" opacity="0.45"/>
+        <rect x="520" y="20" width="460" height="280" rx="10" stroke-dasharray="5 4" opacity="0.45"/>
+        <!-- left: step 1 -->
+        <rect x="45" y="70" width="180" height="96" rx="8"/>
+        <rect x="45" y="190" width="180" height="60" rx="8" stroke="var(--accent)" stroke-width="1.8"/>
+        <rect x="300" y="110" width="150" height="100" rx="8"/>
+        <line x1="225" y1="118" x2="298" y2="145" marker-end="url(#arr2)"/>
+        <line x1="225" y1="220" x2="298" y2="185" marker-end="url(#arr2A)" stroke="var(--accent)"/>
+        <!-- right: step 2 -->
+        <rect x="545" y="130" width="150" height="60" rx="8" stroke="var(--accent)" stroke-width="1.8"/>
+        <rect x="720" y="130" width="120" height="60" rx="8"/>
+        <rect x="865" y="115" width="110" height="90" rx="8"/>
+        <line x1="695" y1="160" x2="718" y2="160" marker-end="url(#arr2A)" stroke="var(--accent)"/>
+        <line x1="840" y1="160" x2="863" y2="160" marker-end="url(#arr2)"/>
+      </g>
+      <g font-size="12" fill="currentColor" font-family="'Source Sans 3', system-ui, sans-serif">
+        <text x="45" y="48" font-weight="700" font-family="Sora, sans-serif" font-size="13">STEP 1 (this change) · human fills the structure</text>
+        <text x="545" y="48" font-weight="700" font-family="Sora, sans-serif" font-size="13">STEP 2 (vision) · AI fills the structure</text>
+        <text x="135" y="92" text-anchor="middle" font-weight="600" font-size="11.5">Form components</text>
+        <text x="135" y="110" text-anchor="middle" font-size="10.5" opacity="0.7">dates · budget · people…</text>
+        <text x="135" y="128" text-anchor="middle" font-size="10.5" fill="var(--accent)">now all OPTIONAL</text>
+        <text x="135" y="146" text-anchor="middle" font-size="10.5" opacity="0.7">UI unchanged, label reworded</text>
+        <text x="135" y="214" text-anchor="middle" font-weight="600" font-size="11.5" fill="var(--accent)">Prompt box</text>
+        <text x="135" y="232" text-anchor="middle" font-size="10.5" fill="var(--accent)">the only REQUIRED input</text>
+        <text x="375" y="140" text-anchor="middle" font-weight="600" font-size="11.5">TripData</text>
+        <text x="375" y="158" text-anchor="middle" font-size="10.5" opacity="0.7">empty fields stay empty;</text>
+        <text x="375" y="173" text-anchor="middle" font-size="10.5" opacity="0.7">prompt rides into every AI call,</text>
+        <text x="375" y="188" text-anchor="middle" font-size="10.5" opacity="0.7">AI infers the gaps per call</text>
+        <text x="620" y="156" text-anchor="middle" font-weight="600" font-size="11.5" fill="var(--accent)">Prompt box</text>
+        <text x="620" y="174" text-anchor="middle" font-size="10.5" fill="var(--accent)">only component left</text>
+        <text x="780" y="156" text-anchor="middle" font-weight="600" font-size="11.5">AI extraction</text>
+        <text x="780" y="174" text-anchor="middle" font-size="10.5" opacity="0.7">one Gemini call</text>
+        <text x="920" y="150" text-anchor="middle" font-weight="600" font-size="11.5">TripData</text>
+        <text x="920" y="168" text-anchor="middle" font-size="10.5" opacity="0.7">same structure,</text>
+        <text x="920" y="183" text-anchor="middle" font-size="10.5" opacity="0.7">filled by AI</text>
+        <text x="250" y="280" text-anchor="middle" font-size="11" opacity="0.75">Behavior change only; every component still on screen</text>
+        <text x="750" y="280" text-anchor="middle" font-size="11" opacity="0.75">Components removed; cache keys, numDays, history all keep working</text>
+      </g>
+    </svg>
+    <figcaption><strong>Figure 2.</strong> The difference between the two steps is a single edge: who writes into <code>TripData</code>. Step 1 makes the form optional and lets each downstream AI call infer the gaps from the prompt text. Step 2 replaces the form with one extraction call that produces the same structure.</figcaption>
+  </figure>
+
+  <h2>4 · What step 1 changes, precisely</h2>
+  <ul>
+    <li><strong>Validation</strong> (<code>smart_planner_screen.dart</code>): only the prompt is required; destination, dates, budget, participants, age range all optional. New snackbar text: "Please describe your trip".</li>
+    <li><strong>Labels only, no layout change</strong>: the "REQUIRED INFO" header becomes "TRIP DETAILS (OPTIONAL)" in en / vi / ko. Every component stays on screen.</li>
+    <li><strong>Suggestions prompt</strong>: when the destination field is empty, stop hardcoding "Việt Nam"; instruct Gemini to infer destination, dates, and party size from the trip description.</li>
+    <li><strong>Itinerary and detail prompts</strong>: include the trip description; when no dates were picked, let Gemini honor a day count stated in the prompt ("5-day trip"), defaulting to 3.</li>
+    <li><strong>Cache fix</strong>: add <code>aiPrompt</code> (and dates/notes) to the suggestion and itinerary cache keys, so two different prompt-only searches no longer collide on the same cached answer.</li>
+  </ul>
+  <p>Step 2 (separate PR): delete the redundant components and add the extraction call shown on the right of Figure 2.</p>
+</main>

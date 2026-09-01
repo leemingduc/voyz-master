@@ -169,8 +169,8 @@
   "update": "Update",
   "@update": {"description": "Generic update action"},
 
-  "requiredInfo": "REQUIRED INFO",
-  "@requiredInfo": {"description": "Section heading for required planner fields"},
+  "requiredInfo": "TRIP DETAILS (OPTIONAL)",
+  "@requiredInfo": {"description": "Section heading for planner detail fields, all optional since the AI prompt became the only required input"},
 
   "optionalInfo": "OPTIONAL INFO",
   "@optionalInfo": {"description": "Section heading for optional planner fields"},
@@ -246,6 +246,9 @@
 
   "fillAllRequired": "Please fill in all required info",
   "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
+
+  "describeTripRequired": "Please describe your trip first",
+  "@describeTripRequired": {"description": "Validation snackbar when the AI prompt box is empty"},
 
   "trendingDestinations": "Trending Destinations",
   "@trendingDestinations": {"description": "Explore screen section heading"},

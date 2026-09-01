@@ -178,7 +178,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get update => '업데이트';
 
   @override
-  String get requiredInfo => '필수 정보';
+  String get requiredInfo => '여행 정보 (선택)';
 
   @override
   String get optionalInfo => '선택 정보';
@@ -254,6 +254,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get fillAllRequired => '필수 정보를 모두 입력해 주세요';
+
+  @override
+  String get describeTripRequired => '먼저 여행을 설명해 주세요';
 
   @override
   String get trendingDestinations => '인기 여행지';

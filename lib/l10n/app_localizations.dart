@@ -436,10 +436,10 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get update;
 
-  /// Section heading for required planner fields
+  /// Section heading for planner detail fields, all optional since the AI prompt became the only required input
   ///
   /// In en, this message translates to:
-  /// **'REQUIRED INFO'**
+  /// **'TRIP DETAILS (OPTIONAL)'**
   String get requiredInfo;
 
   /// Section heading for optional planner fields
@@ -591,6 +591,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please fill in all required info'**
   String get fillAllRequired;
+
+  /// Validation snackbar when the AI prompt box is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe your trip first'**
+  String get describeTripRequired;
 
   /// Explore screen section heading
   ///

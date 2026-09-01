@@ -183,7 +183,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get update => 'Cập nhật';
 
   @override
-  String get requiredInfo => 'THÔNG TIN BẮT BUỘC';
+  String get requiredInfo => 'THÔNG TIN CHUYẾN ĐI (TÙY CHỌN)';
 
   @override
   String get optionalInfo => 'THÔNG TIN TÙY CHỌN';
@@ -259,6 +259,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get fillAllRequired => 'Vui lòng điền đầy đủ thông tin bắt buộc';
+
+  @override
+  String get describeTripRequired => 'Hãy mô tả chuyến đi của bạn trước';
 
   @override
   String get trendingDestinations => 'Điểm đến thịnh hành';
