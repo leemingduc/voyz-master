@@ -272,6 +272,10 @@ Quy tắc:
       'interests': trip.selectedInterests,
       'limit': limit,
       'lang': languageCode,
+      'aiPrompt': trip.aiPrompt.trim(),
+      'notes': trip.additionalNotes.trim(),
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
     });
 
     // Check Multi-Tier cache (Memory -> Hive -> Supabase)
@@ -529,6 +533,7 @@ Quy tắc quan trọng:
     final cacheKey = _aiCache.buildKey('detail', {
       'name': destinationName,
       'lang': languageCode,
+      'aiPrompt': trip.aiPrompt.trim(),
     });
 
     // Check cache
@@ -671,6 +676,7 @@ Quy tắc:
       'numDays': numDays,
       'lang': languageCode,
       'instruction': additionalInstruction,
+      'aiPrompt': trip.aiPrompt.trim(),
     });
 
     // Check cache

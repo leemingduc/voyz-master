@@ -23,6 +23,18 @@ void main() {
       expect(key1, equals(key2));
     });
 
+    test('keys differ when only the free-text prompt differs', () {
+      final a = aiCache.buildKey('suggestions', {
+        'budget': 'moderate',
+        'aiPrompt': 'đi biển với gia đình',
+      });
+      final b = aiCache.buildKey('suggestions', {
+        'budget': 'moderate',
+        'aiPrompt': 'đi núi một mình',
+      });
+      expect(a, isNot(equals(b)));
+    });
+
     test('CachedAiResponse serializes and deserializes correctly', () {
       final response = CachedAiResponse(
         payload: '[{"name": "Phu Quoc"}]',
