@@ -644,7 +644,8 @@ Quy tắc:
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
 - tags: 4 thẻ ngắn gọn, đặc trưng nhất cho điểm đến, có kèm emoji.
 - weather: Dự báo thời tiết thực tế theo mùa của điểm đến.
-- Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.$dateRule
+- Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.$dateRule
 - $langInst
 ''';
   }
