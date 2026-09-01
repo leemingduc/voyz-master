@@ -184,7 +184,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get update => 'Update';
 
   @override
-  String get requiredInfo => 'REQUIRED INFO';
+  String get requiredInfo => 'TRIP DETAILS (OPTIONAL)';
 
   @override
   String get optionalInfo => 'OPTIONAL INFO';
@@ -260,6 +260,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fillAllRequired => 'Please fill in all required info';
+
+  @override
+  String get describeTripRequired => 'Please describe your trip first';
 
   @override
   String get trendingDestinations => 'Trending Destinations';
