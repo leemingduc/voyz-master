@@ -5,11 +5,15 @@ class ItineraryPlan {
   final List<ItineraryDay> days;
   final String proTip;
 
+  /// Id of the trip that owns this itinerary. Empty when plan not yet attached to trip.
+  final String tripId;
+
   const ItineraryPlan({
     required this.destinationName,
     required this.dateRange,
     required this.days,
     required this.proTip,
+    this.tripId = '',
   });
 
   factory ItineraryPlan.fromJson(Map<String, dynamic> json) {
@@ -22,14 +26,24 @@ class ItineraryPlan {
               .toList() ??
           [],
       proTip: json['proTip'] as String? ?? '',
+      tripId: json['tripId']?.toString() ?? '',
     );
   }
+
+  ItineraryPlan copyWith({String? tripId}) => ItineraryPlan(
+        destinationName: destinationName,
+        dateRange: dateRange,
+        days: days,
+        proTip: proTip,
+        tripId: tripId ?? this.tripId,
+      );
 
   Map<String, dynamic> toMap() => {
     'destinationName': destinationName,
     'dateRange': dateRange,
     'days': days.map((day) => day.toMap()).toList(),
     'proTip': proTip,
+    'tripId': tripId,
   };
 }
 

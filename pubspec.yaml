@@ -46,6 +46,7 @@ dependencies:
   hive_flutter: ^1.1.0
   crypto: ^3.0.7
   supabase_flutter: ^2.9.1
+  uuid: ^4.4.0
   audioplayers: ^6.1.0
 
 dev_dependencies:

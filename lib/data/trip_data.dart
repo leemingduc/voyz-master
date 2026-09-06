@@ -1,5 +1,7 @@
 // Data model for trip planner form and saved items.
 
+import 'package:uuid/uuid.dart';
+
 class TripData {
   String destination;
   DateTime? departDate;
@@ -79,6 +81,12 @@ class TripData {
     'selectedInterests': selectedInterests,
   };
 
+  /// Số ngày của chuyến đi, tính cả ngày đi và ngày về. Không có ngày thì dùng fallback.
+  int dayCount({int fallback = 3}) {
+    if (departDate == null || returnDate == null) return fallback;
+    return (returnDate!.difference(departDate!).inDays + 1).clamp(1, 7).toInt();
+  }
+
   static DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());
@@ -108,7 +116,7 @@ class WorkspaceChecklistItem {
 
 /// Represents a saved destination: either a full trip workspace or wishlist card.
 class SavedItem {
-  final String? cloudId;
+  final String id;
   final String name;
   final String imageUrl;
   final String price;
@@ -124,7 +132,7 @@ class SavedItem {
   final List<String> sharedWith;
 
   SavedItem({
-    this.cloudId,
+    String? id,
     required this.name,
     required this.imageUrl,
     required this.price,
@@ -138,7 +146,8 @@ class SavedItem {
     this.workspaceNotes = '',
     List<String>? bookingRefs,
     List<String>? sharedWith,
-  }) : savedAt = savedAt ?? DateTime.now(),
+  }) : id = id ?? const Uuid().v4(),
+       savedAt = savedAt ?? DateTime.now(),
        checklist = checklist ?? _defaultChecklist(),
        bookingRefs = bookingRefs ?? const [],
        sharedWith = sharedWith ?? const [];
@@ -146,7 +155,7 @@ class SavedItem {
   factory SavedItem.fromMap(Map<dynamic, dynamic> map) {
     final tripMap = map['tripData'];
     return SavedItem(
-      cloudId: map['cloudId']?.toString(),
+      id: map['id']?.toString(),
       name: map['name']?.toString() ?? '',
       imageUrl: map['imageUrl']?.toString() ?? '',
       price: map['price']?.toString() ?? '',
@@ -168,7 +177,6 @@ class SavedItem {
   }
 
   SavedItem copyWith({
-    String? cloudId,
     String? name,
     String? imageUrl,
     String? price,
@@ -184,7 +192,7 @@ class SavedItem {
     List<String>? sharedWith,
   }) {
     return SavedItem(
-      cloudId: cloudId ?? this.cloudId,
+      id: id,
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       price: price ?? this.price,
@@ -202,7 +210,7 @@ class SavedItem {
   }
 
   Map<String, dynamic> toMap() => {
-    'cloudId': cloudId,
+    'id': id,
     'name': name,
     'imageUrl': imageUrl,
     'price': price,
