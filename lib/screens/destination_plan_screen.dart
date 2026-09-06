@@ -58,7 +58,8 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         return;
       }
 
-      final trip = provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
+      final trip =
+          provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
       final generated = await GeminiService.instance.getItineraryPlan(
         widget.destinationName,
         trip.dayCount(),
@@ -90,7 +91,8 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     setState(() => _isRefining = true);
     try {
       final provider = SavedTripsProvider.of(context);
-      final trip = provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
+      final trip =
+          provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
       var numDays = _plan!.days.length;
       if (numDays < 1) numDays = 3;
 

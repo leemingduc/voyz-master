@@ -80,10 +80,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
     try {
       final trip = _trip;
-      final dbDetail = await DestinationRepository.instance.getDestinationDetail(
-        widget.destinationName,
-      );
-      final detail = dbDetail ??
+      final dbDetail = await DestinationRepository.instance
+          .getDestinationDetail(widget.destinationName);
+      final detail =
+          dbDetail ??
           await GeminiService.instance.getDestinationDetail(
             widget.destinationName,
             trip,
@@ -117,8 +117,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         if (mounted) setState(() => _isLoadingReviews = false);
         return;
       }
-      final reviews = await CommunityReviewService.instance
-          .listForDestination(destinationId);
+      final reviews = await CommunityReviewService.instance.listForDestination(
+        destinationId,
+      );
       if (!mounted) return;
       setState(() {
         _destinationId = destinationId;
@@ -144,19 +145,20 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       _reviewController.clear();
       await _loadReviews();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Review saved')));
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     } finally {
       if (mounted) setState(() => _isSavingReview = false);
     }
   }
+
   Future<void> _prefetchItinerary() async {
     try {
       final trip = _trip;
@@ -246,7 +248,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           ),
           backgroundColor: const Color(0xFF475569),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -268,14 +272,19 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           ),
           backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: const Color(0xFFB91C1C),
+        ),
       );
     } finally {
       _isSaving = false;
@@ -302,7 +311,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: const Color(0xFFB91C1C),
+        ),
       );
     } finally {
       _isSaving = false;
@@ -488,7 +500,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   Widget _buildReviewsSection(ThemeData theme) {
     final average = _reviews.isEmpty
         ? null
-        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) / _reviews.length;
+        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+              _reviews.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -546,7 +559,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               fillColor: Colors.white.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
             ),
           ),
@@ -554,8 +569,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
-              onPressed: _destinationId == null || _isSavingReview ? null : _submitReview,
-              icon: Icon(_isSavingReview ? Icons.hourglass_empty : Icons.send, size: 16),
+              onPressed: _destinationId == null || _isSavingReview
+                  ? null
+                  : _submitReview,
+              icon: Icon(
+                _isSavingReview ? Icons.hourglass_empty : Icons.send,
+                size: 16,
+              ),
               label: Text(_isSavingReview ? 'Saving' : 'Post review'),
             ),
           ),
@@ -625,6 +645,7 @@ class _ReviewTile extends StatelessWidget {
     );
   }
 }
+
 class _HeroSection extends StatelessWidget {
   const _HeroSection({
     required this.theme,
@@ -1215,7 +1236,9 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: const Color(0xFFE91E63).withValues(alpha: 0.35),
+                              color: const Color(
+                                0xFFE91E63,
+                              ).withValues(alpha: 0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
@@ -1238,7 +1261,10 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
                           ),
                           errorWidget: (_, _, _) => Container(
                             color: const Color(0xFF1E1B2E),
-                            child: const Icon(Icons.landscape, color: Colors.white24),
+                            child: const Icon(
+                              Icons.landscape,
+                              color: Colors.white24,
+                            ),
                           ),
                         ),
                         Positioned.fill(

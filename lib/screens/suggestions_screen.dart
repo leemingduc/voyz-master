@@ -630,14 +630,19 @@ class _CardActionsState extends State<_CardActions> {
               ? AppTheme.primaryPink.withValues(alpha: 0.9)
               : const Color(0xFF475569),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: const Color(0xFFB91C1C),
+        ),
       );
     } finally {
       _isAdding = false;

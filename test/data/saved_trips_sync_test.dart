@@ -69,15 +69,15 @@ void main() {
 
     test('hai SavedItem cung name khac id la hai item', () {
       SavedItem make() => SavedItem(
-            name: 'Da Nang',
-            imageUrl: '',
-            price: '',
-            matchPercent: 0,
-            rating: 0,
-            reviewCount: 0,
-            aiInsight: '',
-            tripData: TripData(destination: 'Da Nang'),
-          );
+        name: 'Da Nang',
+        imageUrl: '',
+        price: '',
+        matchPercent: 0,
+        rating: 0,
+        reviewCount: 0,
+        aiInsight: '',
+        tripData: TripData(destination: 'Da Nang'),
+      );
       final a = make();
       final b = make();
       expect(a.id, isNot(equals(b.id)));
@@ -99,21 +99,29 @@ void main() {
 
     test('TripData.dayCount tinh ca ngay di va ngay ve, kep 1..7', () {
       expect(
-        TripData(departDate: DateTime(2026, 6, 1), returnDate: DateTime(2026, 6, 3)).dayCount(),
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 3),
+        ).dayCount(),
         equals(3),
       );
       expect(TripData().dayCount(), equals(3));
       expect(TripData().dayCount(fallback: 5), equals(5));
       expect(
-        TripData(departDate: DateTime(2026, 6, 1), returnDate: DateTime(2026, 6, 20)).dayCount(),
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 20),
+        ).dayCount(),
         equals(7),
       );
       expect(
-        TripData(departDate: DateTime(2026, 6, 1), returnDate: DateTime(2026, 6, 1)).dayCount(),
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 1),
+        ).dayCount(),
         equals(1),
       );
     });
-
 
     test('SavedItem wishlist card without tripData roundtrip', () {
       final item = SavedItem(

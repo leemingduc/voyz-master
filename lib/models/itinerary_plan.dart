@@ -31,12 +31,12 @@ class ItineraryPlan {
   }
 
   ItineraryPlan copyWith({String? tripId}) => ItineraryPlan(
-        destinationName: destinationName,
-        dateRange: dateRange,
-        days: days,
-        proTip: proTip,
-        tripId: tripId ?? this.tripId,
-      );
+    destinationName: destinationName,
+    dateRange: dateRange,
+    days: days,
+    proTip: proTip,
+    tripId: tripId ?? this.tripId,
+  );
 
   Map<String, dynamic> toMap() => {
     'destinationName': destinationName,

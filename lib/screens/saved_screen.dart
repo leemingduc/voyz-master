@@ -447,9 +447,12 @@ class _SavedItemCard extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => runSave(context, () async {
                       final messenger = ScaffoldMessenger.of(context);
-                      final removedText =
-                          AppLocalizations.of(context)!.savedItemRemoved;
-                      await SavedTripsProvider.of(context).removeSavedItem(item);
+                      final removedText = AppLocalizations.of(
+                        context,
+                      )!.savedItemRemoved;
+                      await SavedTripsProvider.of(
+                        context,
+                      ).removeSavedItem(item);
                       if (context.mounted) onRemoved?.call();
                       messenger.showSnackBar(
                         SnackBar(
@@ -623,8 +626,10 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               contentPadding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               value: entry.isDone,
-              onChanged: (_) =>
-                  runSave(context, () => provider.toggleChecklistItem(item, index)),
+              onChanged: (_) => runSave(
+                context,
+                () => provider.toggleChecklistItem(item, index),
+              ),
               title: Text(
                 entry.text,
                 style: TextStyle(
@@ -674,8 +679,10 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
                   context,
                   title: 'Add booking',
                   hint: 'Flight, hotel, tour code...',
-                  onSubmit: (value) =>
-                      runSave(context, () => provider.addBookingRef(item, value)),
+                  onSubmit: (value) => runSave(
+                    context,
+                    () => provider.addBookingRef(item, value),
+                  ),
                 ),
               ),
               _ActionChipButton(
@@ -685,8 +692,10 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
                   context,
                   title: 'Share with',
                   hint: 'Name or email',
-                  onSubmit: (value) =>
-                      runSave(context, () => provider.addSharedPerson(item, value)),
+                  onSubmit: (value) => runSave(
+                    context,
+                    () => provider.addSharedPerson(item, value),
+                  ),
                 ),
               ),
             ],
@@ -838,7 +847,10 @@ class _ActionChipButton extends StatelessWidget {
 }
 
 /// Chạy một thao tác ghi lên cloud; lỗi thì hiện snackbar, không đổi UI.
-Future<void> runSave(BuildContext context, Future<void> Function() action) async {
+Future<void> runSave(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
   try {
     await action();
   } catch (e) {
