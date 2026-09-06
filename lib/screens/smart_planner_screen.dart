@@ -9,6 +9,8 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -37,6 +39,14 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   DateTime? _returnDate;
   late List<bool> _selectedInterests;
 
+  /// Đã phân tích mô tả hiện tại chưa. Sửa mô tả thì về false.
+  bool _analyzed = false;
+  bool _isAnalyzing = false;
+
+  /// Người dùng đã tự chọn trong phiên này thì AI không ghi đè.
+  bool _tierTouched = false;
+  bool _interestsTouched = false;
+
   String _getLocalizedInterest(String interestKey, AppLocalizations l10n) {
     switch (interestKey) {
       case 'beach':
@@ -57,6 +67,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   void initState() {
     super.initState();
+    _promptController.addListener(() {
+      if (_analyzed && mounted) setState(() => _analyzed = false);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
       UserProfile? profile;
@@ -160,6 +173,76 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       return false;
     }
     return true;
+  }
+
+  /// Đổ kết quả AI vào form. Chỉ điền chỗ người dùng chưa đụng.
+  /// Trả về số trường đã điền.
+  int _applyExtracted(TripData ai) {
+    var filled = 0;
+    if (_destinationController.text.trim().isEmpty && ai.destination.isNotEmpty) {
+      _destinationController.text = ai.destination;
+      filled++;
+    }
+    if (_departDate == null && _returnDate == null && ai.departDate != null) {
+      _departDate = ai.departDate;
+      _returnDate = ai.returnDate;
+      filled++;
+    }
+    if (_participantsController.text.trim().isEmpty && ai.participants.isNotEmpty) {
+      _participantsController.text = ai.participants;
+      filled++;
+    }
+    if (_ageRangeController.text.trim().isEmpty && ai.ageRange.isNotEmpty) {
+      _ageRangeController.text = ai.ageRange;
+      filled++;
+    }
+    if (!_tierTouched && ai.budget.isNotEmpty) {
+      _selectedBudgetTier = ai.budget;
+      filled++;
+    }
+    if (!_interestsTouched && ai.selectedInterests.isNotEmpty) {
+      for (int i = 0; i < MockData.interests.length; i++) {
+        _selectedInterests[i] = ai.selectedInterests.contains(MockData.interests[i]);
+      }
+      filled++;
+    }
+    return filled;
+  }
+
+  Future<void> _onAnalyze() async {
+    if (!_validateInput() || _isAnalyzing) return;
+    final l10n = AppLocalizations.of(context)!;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    setState(() => _isAnalyzing = true);
+    try {
+      final ai = await GeminiService.instance.extractTripData(
+        _promptController.text.trim(),
+        languageCode: languageCode,
+      );
+      if (!mounted) return;
+      int filled = 0;
+      setState(() {
+        filled = _applyExtracted(ai);
+        _analyzed = true;
+        _isAnalyzing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(filled > 0 ? l10n.aiFilledFields(filled) : l10n.aiFilledNothing),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isAnalyzing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _onNavTap(int index) {
@@ -510,10 +593,14 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                           Expanded(
                             flex: 2,
                             child: GradientButton(
-                              label: l10n.getAiSuggestions,
-                              icon: Icons.arrow_forward,
+                              label: _isAnalyzing
+                                  ? l10n.analyzingTrip
+                                  : (_analyzed ? l10n.getAiSuggestions : l10n.analyzeTrip),
+                              icon: _analyzed ? Icons.arrow_forward : Icons.auto_awesome,
                               height: 52,
-                              onPressed: _onGetSuggestions,
+                              onPressed: _isAnalyzing
+                                  ? null
+                                  : (_analyzed ? _onGetSuggestions : _onAnalyze),
                             ),
                           ),
                         ],
@@ -711,6 +798,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                     borderRadius: BorderRadius.circular(10),
                     onTap: () {
                       setState(() {
+                        _tierTouched = true;
                         _selectedBudgetTier = tier.key;
                       });
                     },
@@ -832,9 +920,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                 label: localizedLabel,
                 isSelected: _selectedInterests[i],
                 onTap: () {
-                  setState(
-                    () => _selectedInterests[i] = !_selectedInterests[i],
-                  );
+                  setState(() {
+                    _interestsTouched = true;
+                    _selectedInterests[i] = !_selectedInterests[i];
+                  });
                 },
               );
             }),
