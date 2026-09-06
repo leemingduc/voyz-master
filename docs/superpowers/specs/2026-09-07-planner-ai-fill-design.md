@@ -21,7 +21,7 @@ Người dùng nhìn thấy AI đã hiểu gì từ mô tả chuyến đi, sửa
 Future<TripData> extractTripData(String prompt, {String languageCode = 'vi'});
 
 @visibleForTesting
-TripData parseExtractedTripData(String text);   // thuần parse, test được
+TripData parseExtractedTripData(String text, {String originalPrompt = ''}); // thuần parse, test được
 ```
 
 - Dùng `_gemini` (JSON mode) như các feature khác. Không cache.
@@ -46,6 +46,8 @@ TripData parseExtractedTripData(String text);   // thuần parse, test được
   - `interests` chỉ giữ phần tử nằm trong `MockData.interests`, bỏ phần còn lại, không tạo mới.
   - `departDate` có, `returnDate` không có, `numDays` có thì `returnDate = departDate + (numDays - 1)` ngày. Chỉ có `numDays` mà không có `departDate` thì bỏ qua (ngày để null).
   - `participants` là số thì đổi sang chuỗi (`"4"`), không phải số thì rỗng.
+  - Chuỗi `"null"` (chữ) ở `destination`/`ageRange` coi là rỗng. Ngày chuẩn hoá về date-only (bỏ giờ và múi giờ) trước khi trả.
+  - Prompt có dòng quy tắc `budgetTier` và `interests` luôn viết tiếng Anh theo danh sách, đặt trước dòng chỉ thị ngôn ngữ, để chỉ thị "trả lời bằng tiếng Việt" không làm model dịch enum.
   - `aiPrompt` gán bằng prompt gốc; `currency`, `additionalNotes` để mặc định.
 - Lỗi mạng hoặc JSON hỏng: ném exception như các hàm khác; màn hình hiện snackbar, form không đổi.
 
