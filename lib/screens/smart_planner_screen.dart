@@ -75,11 +75,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   void initState() {
     super.initState();
     _promptController.addListener(() {
-      if (_analyzed &&
-          mounted &&
-          _promptController.text.trim() != _analyzedPrompt) {
-        setState(() => _analyzed = false);
-      }
+      if (!mounted) return;
+      final matches = _analyzedPrompt.isNotEmpty &&
+          _promptController.text.trim() == _analyzedPrompt;
+      if (matches != _analyzed) setState(() => _analyzed = matches);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
@@ -135,7 +134,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: (isDepart ? _departDate : _returnDate) ?? now,
+      initialDate: () {
+        final current = isDepart ? _departDate : _returnDate;
+        return (current != null && !current.isBefore(now)) ? current : now;
+      }(),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365 * 2)),
       builder: (context, child) {
