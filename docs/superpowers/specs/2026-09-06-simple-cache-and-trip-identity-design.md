@@ -47,7 +47,9 @@ Quy tắc:
 - `get` đọc đồng bộ. Entry thiếu `expiresAt` hoặc `expiresAt < now` coi là hết hạn: xoá khỏi box, trả `null`.
 - `put` ghi `expiresAt = now + ttl`. Không có tham số `featureType`, `destination`, `languageCode`, `imageUrls`.
 - Cache không chứa URL ảnh. Ảnh luôn tra qua `ImageService` sau khi có payload, dù payload đến từ cache hay từ Gemini.
-- Xoá `CachedAiResponse`, `sanitizeImageUrls`, `_saveToSupabase`, `_incrementHitCount`, import `supabase_service.dart`.
+- Xoá `CachedAiResponse`, `sanitizeImageUrls`, `_saveToSupabase`, `_incrementHitCount`. Giữ import `supabase_service.dart` chỉ để lấy `userId` cho key; không còn đọc/ghi bảng nào.
+- Explore: theme ngẫu nhiên cố ý KHÔNG nằm trong key, để force refresh ghi đè cùng một key thay vì thêm entry.
+- Phạm vi "một tầng duy nhất" là `AiCacheService`. `DestinationRepository` vẫn giữ box `curated_destinations_cache` (TTL 6h) riêng cho dữ liệu curated, không đụng trong phần này.
 
 ### 1.3. Thay đổi trong `gemini_service.dart`
 
