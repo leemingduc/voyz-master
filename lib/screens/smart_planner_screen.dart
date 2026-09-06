@@ -43,9 +43,16 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   bool _analyzed = false;
   bool _isAnalyzing = false;
 
+  /// Mô tả đã dùng cho lần phân tích thành công gần nhất.
+  String _analyzedPrompt = '';
+
   /// Người dùng đã tự chọn trong phiên này thì AI không ghi đè.
   bool _tierTouched = false;
   bool _interestsTouched = false;
+
+  /// Giá trị AI đã ghi vào từng trường, để lần phân tích sau nhận ra
+  /// người dùng chưa sửa và có thể ghi đè lại.
+  final Map<String, String> _aiFilled = {};
 
   String _getLocalizedInterest(String interestKey, AppLocalizations l10n) {
     switch (interestKey) {
@@ -68,7 +75,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   void initState() {
     super.initState();
     _promptController.addListener(() {
-      if (_analyzed && mounted) setState(() => _analyzed = false);
+      if (_analyzed &&
+          mounted &&
+          _promptController.text.trim() != _analyzedPrompt) {
+        setState(() => _analyzed = false);
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
@@ -175,37 +186,67 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     return true;
   }
 
-  /// Đổ kết quả AI vào form. Chỉ điền chỗ người dùng chưa đụng.
+  /// Trường (đã trim) có thể ghi đè: đang trống, hoặc đúng giá trị AI
+  /// đã ghi lần trước (nghĩa là người dùng chưa tự sửa).
+  bool _canFill(String key, String current) {
+    return current.isEmpty || current == _aiFilled[key];
+  }
+
+  /// Đổ kết quả AI vào form. Chỉ điền chỗ người dùng chưa đụng, hoặc chỗ
+  /// vẫn còn nguyên giá trị AI đã ghi ở lần phân tích trước.
   /// Trả về số trường đã điền.
   int _applyExtracted(TripData ai) {
     var filled = 0;
-    if (_destinationController.text.trim().isEmpty && ai.destination.isNotEmpty) {
+
+    final destination = _destinationController.text.trim();
+    if (_canFill('destination', destination) && ai.destination.isNotEmpty) {
       _destinationController.text = ai.destination;
+      _aiFilled['destination'] = ai.destination;
       filled++;
     }
-    if (_departDate == null && _returnDate == null && ai.departDate != null) {
+
+    final datesKey = '${_departDate?.toIso8601String() ?? ''}'
+        '|${_returnDate?.toIso8601String() ?? ''}';
+    final datesFillable = (_departDate == null && _returnDate == null) ||
+        datesKey == _aiFilled['dates'];
+    if (datesFillable && ai.departDate != null) {
       _departDate = ai.departDate;
       _returnDate = ai.returnDate;
+      _aiFilled['dates'] = '${ai.departDate?.toIso8601String() ?? ''}'
+          '|${ai.returnDate?.toIso8601String() ?? ''}';
       filled++;
     }
-    if (_participantsController.text.trim().isEmpty && ai.participants.isNotEmpty) {
+
+    final participants = _participantsController.text.trim();
+    if (_canFill('participants', participants) &&
+        ai.participants.isNotEmpty) {
       _participantsController.text = ai.participants;
+      _aiFilled['participants'] = ai.participants;
       filled++;
     }
-    if (_ageRangeController.text.trim().isEmpty && ai.ageRange.isNotEmpty) {
+
+    final ageRange = _ageRangeController.text.trim();
+    if (_canFill('ageRange', ageRange) && ai.ageRange.isNotEmpty) {
       _ageRangeController.text = ai.ageRange;
+      _aiFilled['ageRange'] = ai.ageRange;
       filled++;
     }
+
     if (!_tierTouched && ai.budget.isNotEmpty) {
       _selectedBudgetTier = ai.budget;
+      _aiFilled['tier'] = ai.budget;
       filled++;
     }
+
     if (!_interestsTouched && ai.selectedInterests.isNotEmpty) {
       for (int i = 0; i < MockData.interests.length; i++) {
-        _selectedInterests[i] = ai.selectedInterests.contains(MockData.interests[i]);
+        _selectedInterests[i] =
+            ai.selectedInterests.contains(MockData.interests[i]);
       }
+      _aiFilled['interests'] = ai.selectedInterests.join(',');
       filled++;
     }
+
     return filled;
   }
 
@@ -213,22 +254,31 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     if (!_validateInput() || _isAnalyzing) return;
     final l10n = AppLocalizations.of(context)!;
     final languageCode = LocaleProvider.of(context).value.languageCode;
+    final prompt = _promptController.text.trim();
     setState(() => _isAnalyzing = true);
     try {
       final ai = await GeminiService.instance.extractTripData(
-        _promptController.text.trim(),
+        prompt,
         languageCode: languageCode,
       );
       if (!mounted) return;
+      // Nếu người dùng đã gõ tiếp trong lúc chờ, kết quả này đã cũ:
+      // vẫn điền form nhưng không đánh dấu đã phân tích mô tả hiện tại.
+      final stillCurrent = _promptController.text.trim() == prompt;
       int filled = 0;
       setState(() {
         filled = _applyExtracted(ai);
-        _analyzed = true;
+        if (stillCurrent) {
+          _analyzed = true;
+          _analyzedPrompt = prompt;
+        }
         _isAnalyzing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(filled > 0 ? l10n.aiFilledFields(filled) : l10n.aiFilledNothing),
+          content: Text(
+            filled > 0 ? l10n.aiFilledFields(filled) : l10n.aiFilledNothing,
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
