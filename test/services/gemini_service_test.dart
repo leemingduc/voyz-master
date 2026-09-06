@@ -325,6 +325,20 @@ Please let me know if you need anything else!
       final trip = service.parseExtractedTripData('{"participants":"gia dinh"}');
       expect(trip.participants, '');
     });
+
+    test('chuoi "null" duoc coi la rong', () {
+      final trip = service.parseExtractedTripData('{"destination":"null","ageRange":"NULL"}');
+      expect(trip.destination, '');
+      expect(trip.ageRange, '');
+    });
+
+    test('ngay co gio va Z duoc chuan hoa ve date-only local', () {
+      final trip = service.parseExtractedTripData(
+        '{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}',
+      );
+      expect(trip.departDate, DateTime(2026, 10, 1));
+      expect(trip.returnDate, DateTime(2026, 10, 3));
+    });
   });
 
   group('buildExtractPrompt', () {
@@ -338,6 +352,7 @@ Please let me know if you need anything else!
       expect(p, contains('2026-09-07'));
       expect(p, contains('beach, adventure, culture, food, wellness'));
       expect(p, contains('economy | moderate | premium | luxury'));
+      expect(p, contains('không dịch'));
     });
   });
 }

@@ -105,6 +105,12 @@ class GeminiService {
 
   static const _validTiers = ['economy', 'moderate', 'premium', 'luxury'];
 
+  /// Chuỗi từ JSON: trim, coi "null" (chữ) và rỗng là không có.
+  String _cleanString(dynamic value) {
+    final s = value?.toString().trim() ?? '';
+    return (s.isEmpty || s.toLowerCase() == 'null') ? '' : s;
+  }
+
   /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
   /// người dùng sửa mô tả là phân tích lại.
   Future<TripData> extractTripData(
@@ -142,6 +148,7 @@ Quy tắc:
 - Không đoán bừa: không có thông tin thì để null hoặc mảng rỗng.
 - "tiết kiệm", "rẻ" là economy; "sang", "5 sao" là luxury; "cao cấp" là premium.
 - CHỈ trả về JSON, KHÔNG thêm markdown hay text khác.
+- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng danh sách trên, không dịch.
 - ${languageInstruction(languageCode)}
 ''';
   }
@@ -160,7 +167,12 @@ Quy tắc:
     if (depart != null && ret == null && numDays != null && numDays > 0) {
       ret = depart.add(Duration(days: numDays - 1));
     }
+    // Chỉ có ngày về mà không có ngày đi thì bỏ, form không dùng được.
     if (depart == null) ret = null;
+
+    DateTime? dateOnly(DateTime? d) => d == null ? null : DateTime(d.year, d.month, d.day);
+    depart = dateOnly(depart);
+    ret = dateOnly(ret);
 
     final tier = map['budgetTier']?.toString().trim().toLowerCase() ?? '';
     final participants = map['participants'];
@@ -173,12 +185,12 @@ Quy tắc:
         .toList();
 
     return TripData(
-      destination: map['destination']?.toString().trim() ?? '',
+      destination: _cleanString(map['destination']),
       departDate: depart,
       returnDate: ret,
       budget: _validTiers.contains(tier) ? tier : '',
       participants: participantsStr,
-      ageRange: map['ageRange']?.toString().trim() ?? '',
+      ageRange: _cleanString(map['ageRange']),
       aiPrompt: originalPrompt,
       selectedInterests: interests,
     );
