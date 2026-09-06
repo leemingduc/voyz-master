@@ -101,11 +101,7 @@ class GeminiService {
 
   // ── Explore (independent, no TripData needed) ─────────────────────────
 
-  /// Get trending travel destinations for free exploration.
-  /// Does NOT require any user input — perfect for the Explore tab.
-  ///
-  /// [limit] number of destinations to return.
-  /// [forceRefresh] if true, bypasses the cache.
+  // Chủ đề ngẫu nhiên dùng khi không truyền category.
   static final List<String> _randomExploreThemes = [
     'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
     'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
@@ -118,10 +114,12 @@ class GeminiService {
   ];
 
   /// Get trending or randomly discovered travel destinations for free exploration.
-  /// Does NOT require any user input — perfect for the Explore tab.
+  /// Does NOT require any user input, perfect for the Explore tab.
   ///
   /// [limit] number of destinations to return.
-  /// [forceRefresh] if true, generates a completely new random batch of destinations.
+  /// [forceRefresh] if true, skips the cache read, draws a new random theme,
+  /// and overwrites the same cache key. The theme is intentionally left out
+  /// of the cache key so a refresh never adds extra entries.
   /// [category] optional specific travel category / theme.
   /// [languageCode] locale code for language-aware prompts (vi, en, ko).
   Future<List<DestinationSuggestion>> getExploreTrending({
@@ -586,8 +584,9 @@ Quy tắc:
     final cacheKey = _aiCache.buildKey('itinerary', {
       'name': destinationName,
       'numDays': numDays,
+      'limit': limit,
       'lang': languageCode,
-      'instruction': additionalInstruction,
+      'instruction': additionalInstruction ?? '',
       'aiPrompt': trip.aiPrompt.trim(),
       'depart': trip.departDate?.toIso8601String() ?? '',
       'return': trip.returnDate?.toIso8601String() ?? '',

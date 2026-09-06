@@ -76,7 +76,7 @@ class AiCacheService {
   Future<void> put(String key, String payload) async {
     final entry = jsonEncode({
       'payload': payload,
-      'expiresAt': DateTime.now().add(ttl).toIso8601String(),
+      'expiresAt': DateTime.now().toUtc().add(ttl).toIso8601String(),
     });
     await _box?.put(key, entry);
   }
