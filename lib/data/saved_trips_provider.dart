@@ -229,6 +229,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     required double rating,
     required int reviewCount,
     required String aiInsight,
+    TripData? tripData,
   }) async {
     final item = SavedItem(
       name: name,
@@ -238,7 +239,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       rating: rating,
       reviewCount: reviewCount,
       aiInsight: aiInsight,
-      tripData: _currentTrip.copyWith(),
+      tripData: (tripData ?? _currentTrip).copyWith(),
     );
     await _upsertItem(item);
     return item;

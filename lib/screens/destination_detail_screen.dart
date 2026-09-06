@@ -222,12 +222,34 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       rating: 4.5,
       reviewCount: 120,
       aiInsight: AppLocalizations.of(context)!.defaultAiInsight,
+      tripData: _trip,
     );
   }
 
   Future<void> _onSaveInfo(BuildContext context) async {
     if (_detail == null) return;
     final l10n = AppLocalizations.of(context)!;
+    final d = _detail!;
+    if (_savedItem != null) {
+      // Da luu roi (mo tu danh sach da luu, hoac da bam luu trong phien nay):
+      // khong tao ban sao moi, chi bao lai la da luu.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.alreadySavedMessage(d.name))),
+            ],
+          ),
+          backgroundColor: const Color(0xFF475569),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     try {
       final item = await _saveCurrentDetail();
       if (!context.mounted) return;

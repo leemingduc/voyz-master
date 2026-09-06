@@ -446,14 +446,14 @@ class _SavedItemCard extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
                     onTap: () => runSave(context, () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final removedText =
+                          AppLocalizations.of(context)!.savedItemRemoved;
                       await SavedTripsProvider.of(context).removeSavedItem(item);
-                      onRemoved?.call();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      if (context.mounted) onRemoved?.call();
+                      messenger.showSnackBar(
                         SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.savedItemRemoved,
-                          ),
+                          content: Text(removedText),
                           backgroundColor: const Color(0xFF475569),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -529,7 +529,7 @@ class _TrustRow extends StatelessWidget {
   }
 }
 
-class _WorkspacePanel extends StatelessWidget {
+class _WorkspacePanel extends StatefulWidget {
   const _WorkspacePanel({required this.item, required this.showAddDialog});
 
   final SavedItem item;
@@ -542,14 +542,39 @@ class _WorkspacePanel extends StatelessWidget {
   showAddDialog;
 
   @override
+  State<_WorkspacePanel> createState() => _WorkspacePanelState();
+}
+
+class _WorkspacePanelState extends State<_WorkspacePanel> {
+  late String _notesDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesDraft = widget.item.workspaceNotes;
+  }
+
+  @override
+  void didUpdateWidget(_WorkspacePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.workspaceNotes != oldWidget.item.workspaceNotes) {
+      _notesDraft = widget.item.workspaceNotes;
+    }
+  }
+
+  void _saveNotes() {
+    if (_notesDraft == widget.item.workspaceNotes) return;
+    final provider = SavedTripsProvider.of(context);
+    runSave(
+      context,
+      () => provider.updateWorkspaceNotes(widget.item, _notesDraft),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = SavedTripsProvider.of(context);
-    var notesDraft = item.workspaceNotes;
-    void saveNotes() {
-      if (notesDraft == item.workspaceNotes) return;
-      runSave(context, () => provider.updateWorkspaceNotes(item, notesDraft));
-    }
-
+    final item = widget.item;
     final doneCount = item.checklist.where((entry) => entry.isDone).length;
 
     return Container(
@@ -633,9 +658,9 @@ class _WorkspacePanel extends StatelessWidget {
                 ),
               ),
             ),
-            onChanged: (value) => notesDraft = value,
-            onFieldSubmitted: (_) => saveNotes(),
-            onTapOutside: (_) => saveNotes(),
+            onChanged: (value) => _notesDraft = value,
+            onFieldSubmitted: (_) => _saveNotes(),
+            onTapOutside: (_) => _saveNotes(),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -645,7 +670,7 @@ class _WorkspacePanel extends StatelessWidget {
               _ActionChipButton(
                 icon: Icons.confirmation_number,
                 label: 'Add booking',
-                onTap: () => showAddDialog(
+                onTap: () => widget.showAddDialog(
                   context,
                   title: 'Add booking',
                   hint: 'Flight, hotel, tour code...',
@@ -656,7 +681,7 @@ class _WorkspacePanel extends StatelessWidget {
               _ActionChipButton(
                 icon: Icons.group_add,
                 label: 'Share with',
-                onTap: () => showAddDialog(
+                onTap: () => widget.showAddDialog(
                   context,
                   title: 'Share with',
                   hint: 'Name or email',
