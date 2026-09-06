@@ -63,6 +63,10 @@ Quy tắc: **AI chỉ điền chỗ người dùng chưa đụng.**
 
 Tier và sở thích có giá trị mặc định (moderate; prefill từ profile) nên dùng cờ "đã chạm trong phiên" thay cho "ô rỗng". Prefill từ profile không tính là chạm.
 
+Hai quy tắc bổ sung sau review:
+- "Ô rỗng" hiểu là rỗng HOẶC đang giữ đúng giá trị AI đã điền lần trước (theo dõi bằng map `_aiFilled`). Nhờ vậy sửa mô tả rồi phân tích lại sẽ ghi đè được kết quả cũ, còn giá trị người dùng đã tự sửa thì giữ nguyên. AI trả rỗng cho trường đã điền trước đó thì giữ giá trị hiện tại, không xoá.
+- Trạng thái "đã phân tích" gắn với nội dung text đã phân tích (`_analyzedPrompt`), không gắn với sự kiện của controller: đổi cursor không làm mất trạng thái, còn gõ thêm trong lúc chờ AI thì sau khi có kết quả nút vẫn là "Phân tích bằng AI".
+
 State thêm: `bool _analyzed`, `bool _isAnalyzing`, `bool _tierTouched`, `bool _interestsTouched`. Listener trên `_promptController`: text đổi thì `_analyzed = false`. Số trường được điền đếm để hiện trong snackbar; bằng 0 thì hiện "AI chưa suy ra được thông tin nào từ mô tả." và vẫn chuyển sang trạng thái đã phân tích (người dùng tự điền rồi bấm tiếp).
 
 Trong lúc chờ AI: nút vô hiệu, nhãn "Đang phân tích...". Không thêm widget mới ngoài đổi nhãn và trạng thái nút.

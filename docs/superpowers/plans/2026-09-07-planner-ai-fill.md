@@ -439,6 +439,10 @@ git commit -m "feat: planner analyzes the prompt with AI and fills untouched for
 
 ---
 
+**Điều chỉnh sau review Task 3 (áp dụng khi thực thi):** listener so `_promptController.text.trim()` với `_analyzedPrompt` (text đã phân tích) thay vì reset ở mọi sự kiện; `_applyExtracted` coi một ô là điền được khi rỗng hoặc đang giữ đúng giá trị AI ghi lần trước (map `_aiFilled`), để phân tích lại sau khi sửa mô tả có tác dụng; sau await nếu text đã đổi so với lúc gửi thì vẫn điền nhưng không set `_analyzed = true`.
+
+---
+
 ### Task 4: Nghiệm thu tay
 
 **Files:** không sửa code.
