@@ -438,11 +438,13 @@ git commit -m "refactor: GeminiService uses single-tier cache, images resolved v
 
 **Files:**
 - Delete: `lib/services/cache_service.dart`
-- Delete: `test/gemini_service_test.dart` (bản trùng ở sai thư mục; bản đúng là `test/services/gemini_service_test.dart`)
+- Delete: `test/gemini_service_test.dart` sau khi GỘP các test chưa có (nhóm `parseSuggestionsSync` và 2 case `safeJsonDecode` về markdown fence không có language và JSON kèm prose) vào `test/services/gemini_service_test.dart`. Không xoá coverage.
 - Modify: `lib/main.dart` (dòng 11 import và dòng 36 init)
 - Create: `supabase/migrations/20260907000200_drop_ai_generated_cache.sql`
 
-- [ ] **Step 1: Xoá file và dòng init**
+- [ ] **Step 1: Gộp test rồi xoá file và dòng init**
+
+Trước khi `git rm`, chuyển 7 test chưa có từ `test/gemini_service_test.dart` sang `test/services/gemini_service_test.dart`: nhóm `parseSuggestionsSync` (5 test) và 2 case `safeJsonDecode` (markdown fence không có language, JSON kèm prose). Chạy `flutter test test/services/gemini_service_test.dart` pass rồi mới xoá.
 
 ```bash
 git rm lib/services/cache_service.dart test/gemini_service_test.dart

@@ -79,7 +79,7 @@ Viết lại file vì API đổi. Dùng `Hive.init(tempDir)` như `test/data/loc
 - `buildKey` cùng input cho cùng key; khác `participants` cho key khác; đảo thứ tự map cho cùng key.
 - Xoá các test về `CachedAiResponse` và `sanitizeImageUrls`.
 
-Test prompt builder hiện có trong `test/services/gemini_service_test.dart` giữ nguyên. `test/gemini_service_test.dart` (bản trùng ở sai thư mục) xoá.
+Test prompt builder hiện có trong `test/services/gemini_service_test.dart` giữ nguyên. `test/gemini_service_test.dart` ở sai thư mục: gộp các test chưa có (nhóm `parseSuggestionsSync`, 2 case `safeJsonDecode`) vào file trên rồi xoá. Không mất coverage.
 
 ### 1.6. Nghiệm thu
 
