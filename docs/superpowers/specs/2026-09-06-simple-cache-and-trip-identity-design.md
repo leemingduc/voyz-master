@@ -171,7 +171,7 @@ void updateTrip(TripData trip);                                  // chỉ Hive
 Future<SavedItem> saveFullTrip({...các trường như hiện tại, TripData? tripData}); // tạo item mới; tripData null thì dùng currentTrip
 Future<bool> saveToWishlist({...});                              // false nếu wishlist đã có cùng name
 Future<void> updateWorkspace(SavedItem updated);                 // upsert theo id
-Future<void> removeItem(SavedItem item);                         // delete theo id, itinerary cascade
+Future<void> removeSavedItem(SavedItem item);                    // delete theo id, itinerary cascade
 Future<void> saveItinerary(ItineraryPlan plan);                  // plan.tripId phải khác rỗng
 ```
 
