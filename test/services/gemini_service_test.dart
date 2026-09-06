@@ -80,6 +80,110 @@ void main() {
       );
       expect(result, isA<List<dynamic>>());
     });
+
+    test('parses JSON wrapped in ``` markdown block without language specifier', () {
+      final jsonStr = '''
+```
+{
+  "name": "Saigon",
+  "rating": 4.7
+}
+```
+''';
+      final result = GeminiService.instance.safeJsonDecode(jsonStr);
+      expect(result, isA<Map<String, dynamic>>());
+      expect(result['name'], 'Saigon');
+      expect(result['rating'], 4.7);
+    });
+
+    test('parses JSON array wrapped in markdown', () {
+      final jsonStr = '''
+Here is the requested information in JSON format:
+```json
+[
+  {"name": "Hue", "rating": 4.2},
+  {"name": "Nha Trang", "rating": 4.4}
+]
+```
+Please let me know if you need anything else!
+''';
+      final result = GeminiService.instance.safeJsonDecode(jsonStr);
+      expect(result, isA<List<dynamic>>());
+      expect(result.length, 2);
+      expect(result[0]['name'], 'Hue');
+      expect(result[1]['name'], 'Nha Trang');
+    });
+  });
+
+  group('parseSuggestionsSync', () {
+    test('parses standard JSON array of destinations', () {
+      final jsonStr = '''
+[
+  {"name": "Phu Quoc", "matchPercent": 95, "rating": 4.7, "reviewCount": 120, "price": "3M VNĐ", "aiInsight": "Great beach", "isTopMatch": true}
+]
+''';
+      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+      expect(result, isNotEmpty);
+      expect(result.first.name, 'Phu Quoc');
+      expect(result.first.rating, 4.7);
+    });
+
+    test('auto-extracts list from wrapped JSON object', () {
+      final jsonStr = '''
+{
+  "trending_destinations": [
+    {"name": "Ha Giang", "matchPercent": 92, "rating": 4.8, "reviewCount": 90, "price": "2.5M VNĐ", "aiInsight": "Beautiful loop", "isTopMatch": false}
+  ]
+}
+''';
+      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+      expect(result, isNotEmpty);
+      expect(result.first.name, 'Ha Giang');
+      expect(result.first.rating, 4.8);
+      expect(result.first.isTopMatch, true);
+    });
+
+    test('handles mismatched types and casts safely without throwing TypeError', () {
+      final jsonStr = '''
+[
+  {
+    "name": 12345,
+    "matchPercent": "90",
+    "rating": "4.2",
+    "reviewCount": "100",
+    "price": "Free",
+    "aiInsight": null,
+    "isTopMatch": false
+  }
+]
+''';
+      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+      expect(result, isNotEmpty);
+      expect(result.first.name, '12345');
+      expect(result.first.matchPercent, 90);
+      expect(result.first.rating, 4.2);
+      expect(result.first.reviewCount, 100);
+      expect(result.first.price, 'Free');
+      expect(result.first.aiInsight, '');
+    });
+
+    test('heals JSON array closed with } instead of ] (Gemini model bug)', () {
+      final jsonStr = '[{"name": "Phu Quoc", "matchPercent": 98, "rating": 4.8, "reviewCount": 100, "price": "5M VNĐ", "aiInsight": "Great", "isTopMatch": true}]'.replaceFirst(']', '}');
+      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+      expect(result, isNotEmpty);
+      expect(result.first.name, 'Phu Quoc');
+    });
+
+    test('heals multi-item JSON array closed with } instead of ]', () {
+      const jsonStr = '''[
+  {"name": "Phu Quoc", "matchPercent": 98, "rating": 4.8, "reviewCount": 100, "price": "5M VNĐ", "aiInsight": "Great beach", "isTopMatch": true},
+  {"name": "Da Nang", "matchPercent": 85, "rating": 4.5, "reviewCount": 80, "price": "3M VNĐ", "aiInsight": "Great city", "isTopMatch": false}
+}''';
+      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+      expect(result.length, 2);
+      expect(result.first.name, 'Phu Quoc');
+      expect(result.last.name, 'Da Nang');
+    });
   });
 
   group('buildSuggestionsPrompt - prompt-first behavior', () {
