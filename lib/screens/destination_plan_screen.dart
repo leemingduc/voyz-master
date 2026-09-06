@@ -15,10 +15,12 @@ import 'package:voyz/widgets/shared/glass_card.dart';
 class DestinationPlanScreen extends StatefulWidget {
   const DestinationPlanScreen({
     super.key,
+    required this.tripId,
     required this.destinationName,
     required this.dateRange,
   });
 
+  final String tripId;
   final String destinationName;
   final String dateRange;
 
@@ -47,7 +49,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
 
     try {
       final provider = SavedTripsProvider.of(context);
-      final savedPlan = provider.itineraryFor(widget.destinationName);
+      final savedPlan = provider.itineraryFor(widget.tripId);
       if (savedPlan != null) {
         setState(() {
           _plan = savedPlan;
@@ -56,28 +58,21 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         return;
       }
 
-      final trip = provider.currentTrip;
-      // Calculate number of days from date range or default to 3
-      int numDays = 3;
-      if (trip.departDate != null && trip.returnDate != null) {
-        numDays = trip.returnDate!.difference(trip.departDate!).inDays;
-        if (numDays < 1) numDays = 1;
-        if (numDays > 7) numDays = 7; // Cap at 7 days
-      }
-
-      final plan = await GeminiService.instance.getItineraryPlan(
+      final trip = provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
+      final generated = await GeminiService.instance.getItineraryPlan(
         widget.destinationName,
-        numDays,
+        trip.dayCount(),
         trip,
         limit: 3,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
+      final plan = generated.copyWith(tripId: widget.tripId);
       if (mounted) {
         setState(() {
           _plan = plan;
           _isLoading = false;
         });
-        provider.saveItinerary(plan);
+        await provider.saveItinerary(plan);
       }
     } catch (e) {
       if (mounted) {
@@ -95,11 +90,11 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     setState(() => _isRefining = true);
     try {
       final provider = SavedTripsProvider.of(context);
-      final trip = provider.currentTrip;
+      final trip = provider.itemById(widget.tripId)?.tripData ?? provider.currentTrip;
       var numDays = _plan!.days.length;
       if (numDays < 1) numDays = 3;
 
-      final plan = await GeminiService.instance.getItineraryPlan(
+      final plan = (await GeminiService.instance.getItineraryPlan(
         widget.destinationName,
         numDays,
         trip,
@@ -107,14 +102,14 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         forceRefresh: true,
         languageCode: LocaleProvider.of(context).value.languageCode,
         additionalInstruction: instruction,
-      );
+      )).copyWith(tripId: widget.tripId);
       if (!mounted) return;
       setState(() {
         _plan = plan;
         _selectedDay = 0;
         _isRefining = false;
       });
-      provider.saveItinerary(plan);
+      await provider.saveItinerary(plan);
     } catch (error) {
       if (!mounted) return;
       setState(() => _isRefining = false);

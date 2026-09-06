@@ -160,8 +160,10 @@ class _ItemListView extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    DestinationDetailScreen(destinationName: items[index].name),
+                builder: (_) => DestinationDetailScreen(
+                  destinationName: items[index].name,
+                  savedItem: items[index],
+                ),
               ),
             );
           },
@@ -443,9 +445,10 @@ class _SavedItemCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {
-                      SavedTripsProvider.of(context).removeSavedItem(item);
+                    onTap: () => runSave(context, () async {
+                      await SavedTripsProvider.of(context).removeSavedItem(item);
                       onRemoved?.call();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -459,7 +462,7 @@ class _SavedItemCard extends StatelessWidget {
                           duration: const Duration(seconds: 2),
                         ),
                       );
-                    },
+                    }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -541,6 +544,12 @@ class _WorkspacePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = SavedTripsProvider.of(context);
+    var notesDraft = item.workspaceNotes;
+    void saveNotes() {
+      if (notesDraft == item.workspaceNotes) return;
+      runSave(context, () => provider.updateWorkspaceNotes(item, notesDraft));
+    }
+
     final doneCount = item.checklist.where((entry) => entry.isDone).length;
 
     return Container(
@@ -589,7 +598,8 @@ class _WorkspacePanel extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               value: entry.isDone,
-              onChanged: (_) => provider.toggleChecklistItem(item, index),
+              onChanged: (_) =>
+                  runSave(context, () => provider.toggleChecklistItem(item, index)),
               title: Text(
                 entry.text,
                 style: TextStyle(
@@ -623,7 +633,9 @@ class _WorkspacePanel extends StatelessWidget {
                 ),
               ),
             ),
-            onChanged: (value) => provider.updateWorkspaceNotes(item, value),
+            onChanged: (value) => notesDraft = value,
+            onFieldSubmitted: (_) => saveNotes(),
+            onTapOutside: (_) => saveNotes(),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -637,7 +649,8 @@ class _WorkspacePanel extends StatelessWidget {
                   context,
                   title: 'Add booking',
                   hint: 'Flight, hotel, tour code...',
-                  onSubmit: (value) => provider.addBookingRef(item, value),
+                  onSubmit: (value) =>
+                      runSave(context, () => provider.addBookingRef(item, value)),
                 ),
               ),
               _ActionChipButton(
@@ -647,7 +660,8 @@ class _WorkspacePanel extends StatelessWidget {
                   context,
                   title: 'Share with',
                   hint: 'Name or email',
-                  onSubmit: (value) => provider.addSharedPerson(item, value),
+                  onSubmit: (value) =>
+                      runSave(context, () => provider.addSharedPerson(item, value)),
                 ),
               ),
             ],
@@ -793,6 +807,22 @@ class _ActionChipButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Chạy một thao tác ghi lên cloud; lỗi thì hiện snackbar, không đổi UI.
+Future<void> runSave(BuildContext context, Future<void> Function() action) async {
+  try {
+    await action();
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+        backgroundColor: const Color(0xFFB91C1C),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

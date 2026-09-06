@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
+import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
 import 'package:voyz/screens/best_time_screen.dart';
@@ -23,9 +24,17 @@ import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
 /// Destination Detail screen - hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
-  const DestinationDetailScreen({super.key, required this.destinationName});
+  const DestinationDetailScreen({
+    super.key,
+    required this.destinationName,
+    this.savedItem,
+  });
 
   final String destinationName;
+
+  /// Khác null khi mở từ danh sách đã lưu: dùng tripData của trip đó,
+  /// không dùng currentTrip toàn cục.
+  final SavedItem? savedItem;
 
   @override
   State<DestinationDetailScreen> createState() =>
@@ -44,9 +53,15 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   bool _isLoading = true;
   String? _error;
 
+  SavedItem? _savedItem;
+
+  TripData get _trip =>
+      _savedItem?.tripData ?? SavedTripsProvider.of(context).currentTrip;
+
   @override
   void initState() {
     super.initState();
+    _savedItem = widget.savedItem;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDetail());
   }
 
@@ -63,7 +78,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     });
 
     try {
-      final trip = SavedTripsProvider.of(context).currentTrip;
+      final trip = _trip;
       final dbDetail = await DestinationRepository.instance.getDestinationDetail(
         widget.destinationName,
       );
@@ -143,17 +158,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
   Future<void> _prefetchItinerary() async {
     try {
-      final trip = SavedTripsProvider.of(context).currentTrip;
-      int numDays = 3;
-      if (trip.departDate != null && trip.returnDate != null) {
-        numDays = trip.returnDate!.difference(trip.departDate!).inDays;
-        if (numDays < 1) numDays = 1;
-        if (numDays > 7) numDays = 7;
-      }
-
+      final trip = _trip;
       await GeminiService.instance.getItineraryPlan(
         widget.destinationName,
-        numDays,
+        trip.dayCount(),
         trip,
         limit: 3,
         languageCode: LocaleProvider.of(context).value.languageCode,
@@ -204,10 +212,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  void _onSaveInfo(BuildContext context) {
-    if (_detail == null) return;
+  Future<SavedItem> _saveCurrentDetail() {
     final d = _detail!;
-    final added = SavedTripsProvider.of(context).saveFullTrip(
+    return SavedTripsProvider.of(context).saveFullTrip(
       name: d.name,
       imageUrl: d.imageUrl,
       price: d.totalBudget,
@@ -216,34 +223,59 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       reviewCount: 120,
       aiInsight: AppLocalizations.of(context)!.defaultAiInsight,
     );
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              added ? Icons.bookmark_added : Icons.info_outline,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                added
-                    ? AppLocalizations.of(context)!.tripInfoSaved
-                    : AppLocalizations.of(context)!.alreadySavedMessage(d.name),
-              ),
-            ),
-          ],
+  Future<void> _onSaveInfo(BuildContext context) async {
+    if (_detail == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final item = await _saveCurrentDetail();
+      if (!context.mounted) return;
+      setState(() => _savedItem = item);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.bookmark_added, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.tripInfoSaved)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
         ),
-        backgroundColor: added
-            ? const Color(0xFF10B981)
-            : const Color(0xFF475569),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+      );
+    }
+  }
+
+  /// Có itinerary tức là có trip: chưa lưu thì lưu trước rồi mới mở plan.
+  Future<void> _onGenerateItinerary() async {
+    if (_detail == null) return;
+    try {
+      _savedItem ??= await _saveCurrentDetail();
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DestinationPlanScreen(
+            tripId: _savedItem!.id,
+            destinationName: widget.destinationName,
+            dateRange: _detail!.dateRange,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+      );
+    }
   }
 
   @override
@@ -401,6 +433,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                       _ActionButtons(
                         theme: theme,
                         onSaveInfo: () => _onSaveInfo(context),
+                        onGenerateItinerary: _onGenerateItinerary,
                         destinationName: d.name,
                         dateRange: d.dateRange,
                       ),
@@ -914,11 +947,13 @@ class _ActionButtons extends StatelessWidget {
   const _ActionButtons({
     required this.theme,
     required this.onSaveInfo,
+    required this.onGenerateItinerary,
     required this.destinationName,
     required this.dateRange,
   });
   final ThemeData theme;
   final VoidCallback onSaveInfo;
+  final VoidCallback onGenerateItinerary;
   final String destinationName;
   final String dateRange;
 
@@ -930,14 +965,7 @@ class _ActionButtons extends StatelessWidget {
           label: AppLocalizations.of(context)!.generateAiItinerary,
           icon: Icons.auto_awesome,
           height: 56,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => DestinationPlanScreen(
-                destinationName: destinationName,
-                dateRange: dateRange,
-              ),
-            ),
-          ),
+          onPressed: onGenerateItinerary,
         ),
         const SizedBox(height: 12),
         Row(

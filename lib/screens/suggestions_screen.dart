@@ -583,17 +583,28 @@ class _CardActions extends StatelessWidget {
   final ThemeData theme;
   final Map<String, dynamic> data;
 
-  void _onAddToWishlist(BuildContext context) {
-    final added = SavedTripsProvider.of(context).saveToWishlist(
-      name: data['name'] as String,
-      imageUrl: data['imageUrl'] as String,
-      price: data['price'] as String,
-      matchPercent: data['matchPercent'] as int,
-      rating: (data['rating'] as num).toDouble(),
-      reviewCount: data['reviewCount'] as int,
-      aiInsight: data['aiInsight'] as String,
-    );
-
+  Future<void> _onAddToWishlist(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final name = data['name'] as String;
+    bool added;
+    try {
+      added = await SavedTripsProvider.of(context).saveToWishlist(
+        name: name,
+        imageUrl: data['imageUrl'] as String,
+        price: data['price'] as String,
+        matchPercent: data['matchPercent'] as int,
+        rating: (data['rating'] as num).toDouble(),
+        reviewCount: data['reviewCount'] as int,
+        aiInsight: data['aiInsight'] as String,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
+      );
+      return;
+    }
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -607,8 +618,8 @@ class _CardActions extends StatelessWidget {
             Expanded(
               child: Text(
                 added
-                    ? '${data['name']} ${AppLocalizations.of(context)!.addedToWishlist}'
-                    : '${data['name']} ${AppLocalizations.of(context)!.alreadySaved}',
+                    ? '$name ${l10n.addedToWishlist}'
+                    : '$name ${l10n.alreadySaved}',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
