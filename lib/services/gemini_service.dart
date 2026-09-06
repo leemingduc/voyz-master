@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:intl/intl.dart';
+import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/best_time_travel.dart';
 import 'package:voyz/models/chat_message.dart';
@@ -97,6 +99,89 @@ class GeminiService {
       debugPrint('Image fetch error (non-fatal): $e');
       return suggestions;
     }
+  }
+
+  // ── Trích xuất TripData từ mô tả (planner hai bước) ──────────────────
+
+  static const _validTiers = ['economy', 'moderate', 'premium', 'luxury'];
+
+  /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
+  /// người dùng sửa mô tả là phân tích lại.
+  Future<TripData> extractTripData(
+    String prompt, {
+    String languageCode = 'vi',
+  }) async {
+    final text = (await _gemini.generateContent([
+      Content.text(buildExtractPrompt(prompt, languageCode, DateTime.now())),
+    ])).text;
+    if (text == null || text.isEmpty) throw Exception('noAiResponse');
+    return parseExtractedTripData(text, originalPrompt: prompt);
+  }
+
+  @visibleForTesting
+  String buildExtractPrompt(String prompt, String languageCode, DateTime today) {
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    return '''
+Bạn là trợ lý du lịch. Hôm nay là $todayStr. Đọc mô tả chuyến đi của người dùng và bóc tách thông tin.
+
+Mô tả: "$prompt"
+
+Trả về JSON đúng các key sau, không thêm key khác:
+{
+  "destination": "tên điểm đến, hoặc null nếu không nêu",
+  "departDate": "yyyy-MM-dd hoặc null (chỉ khi mô tả nêu ngày hoặc mốc thời gian đủ rõ để tính từ hôm nay)",
+  "returnDate": "yyyy-MM-dd hoặc null",
+  "numDays": "số nguyên hoặc null",
+  "budgetTier": "một trong: economy | moderate | premium | luxury, hoặc null",
+  "participants": "số người, số nguyên hoặc null",
+  "ageRange": "khoảng tuổi dạng chuỗi, hoặc null",
+  "interests": ["chỉ dùng các giá trị: beach, adventure, culture, food, wellness"]
+}
+
+Quy tắc:
+- Không đoán bừa: không có thông tin thì để null hoặc mảng rỗng.
+- "tiết kiệm", "rẻ" là economy; "sang", "5 sao" là luxury; "cao cấp" là premium.
+- CHỈ trả về JSON, KHÔNG thêm markdown hay text khác.
+- ${languageInstruction(languageCode)}
+''';
+  }
+
+  /// Parser thuần cho JSON trích xuất. Key thiếu hoặc sai thì để rỗng.
+  @visibleForTesting
+  TripData parseExtractedTripData(String text, {String originalPrompt = ''}) {
+    final decoded = safeJsonDecode(text);
+    final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+
+    DateTime? depart = DateTime.tryParse(map['departDate']?.toString() ?? '');
+    DateTime? ret = DateTime.tryParse(map['returnDate']?.toString() ?? '');
+    final numDays = map['numDays'] is num
+        ? (map['numDays'] as num).toInt()
+        : int.tryParse(map['numDays']?.toString() ?? '');
+    if (depart != null && ret == null && numDays != null && numDays > 0) {
+      ret = depart.add(Duration(days: numDays - 1));
+    }
+    if (depart == null) ret = null;
+
+    final tier = map['budgetTier']?.toString().trim().toLowerCase() ?? '';
+    final participants = map['participants'];
+    final participantsStr = participants is num
+        ? participants.toInt().toString()
+        : (int.tryParse(participants?.toString() ?? '')?.toString() ?? '');
+    final interests = TripData.stringList(map['interests'])
+        .map((e) => e.trim().toLowerCase())
+        .where(MockData.interests.contains)
+        .toList();
+
+    return TripData(
+      destination: map['destination']?.toString().trim() ?? '',
+      departDate: depart,
+      returnDate: ret,
+      budget: _validTiers.contains(tier) ? tier : '',
+      participants: participantsStr,
+      ageRange: map['ageRange']?.toString().trim() ?? '',
+      aiPrompt: originalPrompt,
+      selectedInterests: interests,
+    );
   }
 
   // ── Explore (independent, no TripData needed) ─────────────────────────

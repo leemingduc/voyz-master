@@ -268,4 +268,76 @@ Please let me know if you need anything else!
       expect(prompt, isNot(contains('nêu số ngày cụ thể')));
     });
   });
+
+  group('parseExtractedTripData', () {
+    final service = GeminiService.instance;
+
+    test('JSON day du: moi truong vao dung cho, participants so thanh chuoi', () {
+      final trip = service.parseExtractedTripData('''
+{"destination":"Da Lat","departDate":"2026-10-01","returnDate":"2026-10-03",
+ "numDays":3,"budgetTier":"economy","participants":4,"ageRange":"30-40",
+ "interests":["food","culture"]}
+''', originalPrompt: 'Di Da Lat');
+      expect(trip.destination, 'Da Lat');
+      expect(trip.departDate, DateTime(2026, 10, 1));
+      expect(trip.returnDate, DateTime(2026, 10, 3));
+      expect(trip.budget, 'economy');
+      expect(trip.participants, '4');
+      expect(trip.ageRange, '30-40');
+      expect(trip.selectedInterests, ['food', 'culture']);
+      expect(trip.aiPrompt, 'Di Da Lat');
+    });
+
+    test('JSON chi co destination: cac truong khac rong', () {
+      final trip = service.parseExtractedTripData('{"destination":"Hue"}');
+      expect(trip.destination, 'Hue');
+      expect(trip.departDate, isNull);
+      expect(trip.returnDate, isNull);
+      expect(trip.budget, '');
+      expect(trip.participants, '');
+      expect(trip.ageRange, '');
+      expect(trip.selectedInterests, isEmpty);
+    });
+
+    test('tier la va interest la bi bo, interest hop le giu lai', () {
+      final trip = service.parseExtractedTripData(
+        '{"budgetTier":"cheap","interests":["beach","shopping"]}',
+      );
+      expect(trip.budget, '');
+      expect(trip.selectedInterests, ['beach']);
+    });
+
+    test('departDate + numDays khong co returnDate: tinh returnDate', () {
+      final trip = service.parseExtractedTripData(
+        '{"departDate":"2026-10-01","numDays":3}',
+      );
+      expect(trip.departDate, DateTime(2026, 10, 1));
+      expect(trip.returnDate, DateTime(2026, 10, 3));
+    });
+
+    test('chi numDays khong co departDate: ca hai ngay null', () {
+      final trip = service.parseExtractedTripData('{"numDays":5}');
+      expect(trip.departDate, isNull);
+      expect(trip.returnDate, isNull);
+    });
+
+    test('participants khong phai so thi rong', () {
+      final trip = service.parseExtractedTripData('{"participants":"gia dinh"}');
+      expect(trip.participants, '');
+    });
+  });
+
+  group('buildExtractPrompt', () {
+    test('chua mo ta, ngay hom nay va danh sach interest hop le', () {
+      final p = GeminiService.instance.buildExtractPrompt(
+        'Di bien voi ban',
+        'vi',
+        DateTime(2026, 9, 7),
+      );
+      expect(p, contains('Di bien voi ban'));
+      expect(p, contains('2026-09-07'));
+      expect(p, contains('beach, adventure, culture, food, wellness'));
+      expect(p, contains('economy | moderate | premium | luxury'));
+    });
+  });
 }
