@@ -253,6 +253,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get getAiSuggestions => 'AI 추천 받기';
 
   @override
+  String get analyzeTrip => 'AI로 분석';
+
+  @override
+  String get analyzingTrip => '분석 중...';
+
+  @override
+  String aiFilledFields(int count) {
+    return 'AI가 $count개 항목을 채웠습니다. 확인 후 AI 추천 받기를 누르세요.';
+  }
+
+  @override
+  String get aiFilledNothing => 'AI가 설명에서 정보를 추출하지 못했습니다. 양식을 채운 뒤 계속하세요.';
+
+  @override
   String get fillAllRequired => '필수 정보를 모두 입력해 주세요';
 
   @override

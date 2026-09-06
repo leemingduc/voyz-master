@@ -259,6 +259,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get getAiSuggestions => 'Get AI Suggestions';
 
   @override
+  String get analyzeTrip => 'Analyze with AI';
+
+  @override
+  String get analyzingTrip => 'Analyzing...';
+
+  @override
+  String aiFilledFields(int count) {
+    return 'AI filled $count fields. Review, then tap Get AI Suggestions.';
+  }
+
+  @override
+  String get aiFilledNothing =>
+      'AI could not extract details from your description. Fill the form, then continue.';
+
+  @override
   String get fillAllRequired => 'Please fill in all required info';
 
   @override

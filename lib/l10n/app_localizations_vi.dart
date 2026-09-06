@@ -258,6 +258,21 @@ class AppLocalizationsVi extends AppLocalizations {
   String get getAiSuggestions => 'Nhận gợi ý AI';
 
   @override
+  String get analyzeTrip => 'Phân tích bằng AI';
+
+  @override
+  String get analyzingTrip => 'Đang phân tích...';
+
+  @override
+  String aiFilledFields(int count) {
+    return 'AI đã điền $count thông tin. Kiểm tra rồi bấm Nhận gợi ý AI.';
+  }
+
+  @override
+  String get aiFilledNothing =>
+      'AI chưa suy ra được thông tin nào từ mô tả. Hãy điền form rồi tiếp tục.';
+
+  @override
   String get fillAllRequired => 'Vui lòng điền đầy đủ thông tin bắt buộc';
 
   @override

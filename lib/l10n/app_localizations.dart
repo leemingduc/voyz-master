@@ -586,6 +586,30 @@ abstract class AppLocalizations {
   /// **'Get AI Suggestions'**
   String get getAiSuggestions;
 
+  /// Planner primary button before the AI has extracted trip details from the prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze with AI'**
+  String get analyzeTrip;
+
+  /// Planner primary button label while the extraction request is in flight
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing...'**
+  String get analyzingTrip;
+
+  /// Snackbar after AI extraction filled some form fields
+  ///
+  /// In en, this message translates to:
+  /// **'AI filled {count} fields. Review, then tap Get AI Suggestions.'**
+  String aiFilledFields(int count);
+
+  /// Snackbar after AI extraction filled nothing
+  ///
+  /// In en, this message translates to:
+  /// **'AI could not extract details from your description. Fill the form, then continue.'**
+  String get aiFilledNothing;
+
   /// Validation snackbar when required fields are empty
   ///
   /// In en, this message translates to:

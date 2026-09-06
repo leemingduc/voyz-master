@@ -244,6 +244,18 @@
   "getAiSuggestions": "Get AI Suggestions",
   "@getAiSuggestions": {"description": "Main CTA button on smart planner"},
 
+  "analyzeTrip": "Analyze with AI",
+  "@analyzeTrip": {"description": "Planner primary button before the AI has extracted trip details from the prompt"},
+  "analyzingTrip": "Analyzing...",
+  "@analyzingTrip": {"description": "Planner primary button label while the extraction request is in flight"},
+  "aiFilledFields": "AI filled {count} fields. Review, then tap Get AI Suggestions.",
+  "@aiFilledFields": {
+    "description": "Snackbar after AI extraction filled some form fields",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "aiFilledNothing": "AI could not extract details from your description. Fill the form, then continue.",
+  "@aiFilledNothing": {"description": "Snackbar after AI extraction filled nothing"},
+
   "fillAllRequired": "Please fill in all required info",
   "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
 
