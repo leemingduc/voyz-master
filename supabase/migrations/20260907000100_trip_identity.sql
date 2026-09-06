@@ -3,6 +3,8 @@
 
 -- Du lieu test cu khong co trip_id, reset sach (da thong nhat voi giao vien).
 delete from public.saved_itineraries;
+-- Xoa saved_trips cung keo theo xoa het trip_collaborators tuong ung, vi
+-- trip_collaborators.trip_id references saved_trips(id) on delete cascade.
 delete from public.saved_trips;
 
 -- saved_trips: id do client sinh, cho phep hai chuyen cung ten.

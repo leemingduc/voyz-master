@@ -103,13 +103,13 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         languageCode: LocaleProvider.of(context).value.languageCode,
         additionalInstruction: instruction,
       )).copyWith(tripId: widget.tripId);
+      await provider.saveItinerary(plan);
       if (!mounted) return;
       setState(() {
         _plan = plan;
         _selectedDay = 0;
         _isRefining = false;
       });
-      await provider.saveItinerary(plan);
     } catch (error) {
       if (!mounted) return;
       setState(() => _isRefining = false);

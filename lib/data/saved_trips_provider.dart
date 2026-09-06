@@ -311,7 +311,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
           .delete()
           .eq('id', item.id);
     }
-    if (!mounted) return;
+    if (!mounted || userId != _userId) return;
     setState(() {
       _items.removeWhere((e) => e.id == item.id);
       _itineraries.remove(item.id);
@@ -334,7 +334,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       }, onConflict: 'trip_id');
     }
-    if (!mounted) return;
+    if (!mounted || userId != _userId) return;
     setState(() => _itineraries[plan.tripId] = plan);
     await _box?.put('$_itineraryPrefix${plan.tripId}', plan.toMap());
   }
@@ -346,7 +346,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
           .from('saved_trips')
           .upsert(_rowFromItem(item, userId), onConflict: 'id');
     }
-    if (!mounted) return;
+    if (!mounted || userId != _userId) return;
     setState(() {
       final index = _items.indexWhere((e) => e.id == item.id);
       if (index == -1) {
@@ -393,7 +393,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     'workspace_notes': item.workspaceNotes,
     'booking_refs': item.bookingRefs,
     'shared_with': item.sharedWith,
-    'saved_at': item.savedAt.toIso8601String(),
+    'saved_at': item.savedAt.toUtc().toIso8601String(),
     'updated_at': DateTime.now().toUtc().toIso8601String(),
   };
 

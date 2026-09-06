@@ -578,61 +578,70 @@ class _AiInsightBox extends StatelessWidget {
   }
 }
 
-class _CardActions extends StatelessWidget {
+class _CardActions extends StatefulWidget {
   const _CardActions({required this.theme, required this.data});
   final ThemeData theme;
   final Map<String, dynamic> data;
 
+  @override
+  State<_CardActions> createState() => _CardActionsState();
+}
+
+class _CardActionsState extends State<_CardActions> {
+  bool _isAdding = false;
+
   Future<void> _onAddToWishlist(BuildContext context) async {
+    if (_isAdding) return;
     final l10n = AppLocalizations.of(context)!;
-    final name = data['name'] as String;
-    bool added;
+    final name = widget.data['name'] as String;
+    _isAdding = true;
     try {
-      added = await SavedTripsProvider.of(context).saveToWishlist(
+      final added = await SavedTripsProvider.of(context).saveToWishlist(
         name: name,
-        imageUrl: data['imageUrl'] as String,
-        price: data['price'] as String,
-        matchPercent: data['matchPercent'] as int,
-        rating: (data['rating'] as num).toDouble(),
-        reviewCount: data['reviewCount'] as int,
-        aiInsight: data['aiInsight'] as String,
+        imageUrl: widget.data['imageUrl'] as String,
+        price: widget.data['price'] as String,
+        matchPercent: widget.data['matchPercent'] as int,
+        rating: (widget.data['rating'] as num).toDouble(),
+        reviewCount: widget.data['reviewCount'] as int,
+        aiInsight: widget.data['aiInsight'] as String,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                added ? Icons.favorite : Icons.info_outline,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  added
+                      ? '$name ${l10n.addedToWishlist}'
+                      : '$name ${l10n.alreadySaved}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: added
+              ? AppTheme.primaryPink.withValues(alpha: 0.9)
+              : const Color(0xFF475569),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
       );
-      return;
+    } finally {
+      _isAdding = false;
     }
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              added ? Icons.favorite : Icons.info_outline,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                added
-                    ? '$name ${l10n.addedToWishlist}'
-                    : '$name ${l10n.alreadySaved}',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: added
-            ? AppTheme.primaryPink.withValues(alpha: 0.9)
-            : const Color(0xFF475569),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   void _onShare(BuildContext context) {
@@ -655,6 +664,7 @@ class _CardActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return Row(
       children: [
         // Share button

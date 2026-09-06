@@ -51,6 +51,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   bool _isSavingReview = false;
   bool _isLoadingReviews = false;
   bool _isLoading = true;
+  bool _isSaving = false;
   String? _error;
 
   SavedItem? _savedItem;
@@ -227,6 +228,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   Future<void> _onSaveInfo(BuildContext context) async {
+    if (_isSaving) return;
     if (_detail == null) return;
     final l10n = AppLocalizations.of(context)!;
     final d = _detail!;
@@ -250,6 +252,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       );
       return;
     }
+    _isSaving = true;
     try {
       final item = await _saveCurrentDetail();
       if (!context.mounted) return;
@@ -274,12 +277,16 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
       );
+    } finally {
+      _isSaving = false;
     }
   }
 
   /// Có itinerary tức là có trip: chưa lưu thì lưu trước rồi mới mở plan.
   Future<void> _onGenerateItinerary() async {
+    if (_isSaving) return;
     if (_detail == null) return;
+    _isSaving = true;
     try {
       _savedItem ??= await _saveCurrentDetail();
       if (!mounted) return;
@@ -297,6 +304,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: const Color(0xFFB91C1C)),
       );
+    } finally {
+      _isSaving = false;
     }
   }
 
@@ -457,7 +466,6 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                         onSaveInfo: () => _onSaveInfo(context),
                         onGenerateItinerary: _onGenerateItinerary,
                         destinationName: d.name,
-                        dateRange: d.dateRange,
                       ),
                       const SizedBox(height: 120),
                     ],
@@ -971,13 +979,11 @@ class _ActionButtons extends StatelessWidget {
     required this.onSaveInfo,
     required this.onGenerateItinerary,
     required this.destinationName,
-    required this.dateRange,
   });
   final ThemeData theme;
   final VoidCallback onSaveInfo;
   final VoidCallback onGenerateItinerary;
   final String destinationName;
-  final String dateRange;
 
   @override
   Widget build(BuildContext context) {
