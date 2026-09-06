@@ -17,7 +17,7 @@
 - Không dùng em dash hay en dash trong bất kỳ text nào.
 - Không chạm `lib/services/ai_cache_service.dart` và `lib/services/gemini_service.dart` (thuộc plan simple-cache).
 - Số ngày itinerary tính cả ngày đi và ngày về, kẹp 1..7, mặc định 3.
-- `lib/data/saved_trips_provider.dart` sau khi xong dưới 250 dòng.
+- `lib/data/saved_trips_provider.dart` sau khi xong dưới 400 dòng (file cũ 497 dòng; phần giảm chính là bỏ merge sync, realtime, persistence queue, migration box cũ).
 
 ---
 
@@ -728,7 +728,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
 - [ ] **Step 2: Kiểm tra kích thước và không còn API cũ**
 
 Run: `wc -l lib/data/saved_trips_provider.dart && grep -n "cloudId\|_syncFromSupabase\|_subscribeToSavedTrips\|_persistenceQueue\|_migrateLegacyDataIfNeeded" lib/data/saved_trips_provider.dart`
-Expected: dưới 250 dòng, grep không có kết quả.
+Expected: dưới 400 dòng, grep không có kết quả.
 
 - [ ] **Step 3: Analyze file**
 

@@ -153,7 +153,7 @@ create policy "Users can delete their own search history"
 
 RLS của `saved_trips` và `saved_itineraries` giữ nguyên. Cột `destination_name` trong `saved_itineraries` giữ lại để hiển thị.
 
-### 2.5. Provider (`lib/data/saved_trips_provider.dart`, viết lại, mục tiêu dưới 250 dòng)
+### 2.5. Provider (`lib/data/saved_trips_provider.dart`, viết lại, ngắn hơn bản cũ 497 dòng rõ rệt, mục tiêu dưới 400)
 
 State: `TripData _currentTrip`, `List<SavedItem> _items`, `Map<String, ItineraryPlan> _itineraries` (key = `tripId`).
 
