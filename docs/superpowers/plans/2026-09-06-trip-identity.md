@@ -1079,6 +1079,13 @@ git commit -m "feat: screens pass SavedItem/tripId, await cloud writes, restore 
 
 ---
 
+**Điều chỉnh sau review Task 4 (áp dụng khi thực thi, thay cho các đoạn code ở trên nếu khác):**
+- `_WorkspacePanel` là `StatefulWidget`: `_notesDraft` seed ở `initState`, resync trong `didUpdateWidget` khi `widget.item.workspaceNotes` đổi; `onChanged` chỉ set draft; `onTapOutside`/`onFieldSubmitted` gọi `_saveNotes()`. Bản draft cục bộ trong `build` bị reset sau mỗi rebuild nên mất chữ.
+- `saveFullTrip` nhận thêm `TripData? tripData` (provider); detail truyền `tripData: _trip` để lưu đúng trip đang xem. `_onSaveInfo`: nếu `_savedItem != null` thì chỉ hiện `alreadySavedMessage`, không tạo trip thứ hai từ cùng màn hình.
+- Xoá item: capture `ScaffoldMessenger.of(context)` và chuỗi l10n trước `await`; `onRemoved?.call()` chỉ khi `context.mounted`.
+
+---
+
 ### Task 5: Nghiệm thu tay và mở PR
 
 **Files:** không sửa code.

@@ -168,7 +168,7 @@ List<SavedItem> get wishlistItems;    // tripData == null
 ItineraryPlan? itineraryFor(String tripId);
 
 void updateTrip(TripData trip);                                  // chỉ Hive
-Future<SavedItem> saveFullTrip({...các trường như hiện tại});    // luôn tạo item mới, cho phép trùng tên
+Future<SavedItem> saveFullTrip({...các trường như hiện tại, TripData? tripData}); // tạo item mới; tripData null thì dùng currentTrip
 Future<bool> saveToWishlist({...});                              // false nếu wishlist đã có cùng name
 Future<void> updateWorkspace(SavedItem updated);                 // upsert theo id
 Future<void> removeItem(SavedItem item);                         // delete theo id, itinerary cascade
@@ -191,8 +191,8 @@ Xoá khỏi provider: `_syncFromSupabase`, `_subscribeToSavedTrips`, `_persisten
 
 ### 2.6. Screens
 
-- `saved_screen.dart`: mở trip truyền `DestinationDetailScreen(destinationName: item.name, savedItem: item)`. `removeSavedItem` và `updateWorkspaceNotes` thành `await` trong try/catch, lỗi hiện snackbar.
-- `destination_detail_screen.dart`: thêm tham số `SavedItem? savedItem`, giữ state `SavedItem? _savedItem` khởi tạo từ tham số. `trip` cho AI = `_savedItem?.tripData ?? provider.currentTrip`. Nút Lưu: `_savedItem = await provider.saveFullTrip(...)`. Nút "Tạo itinerary": nếu `_savedItem == null` thì lưu trước rồi mới mở `DestinationPlanScreen(tripId: _savedItem!.id, destinationName: ...)`. Quy tắc: **có itinerary tức là có trip.** Prefetch itinerary dùng `trip.dayCount()`.
+- `saved_screen.dart`: mở trip truyền `DestinationDetailScreen(destinationName: item.name, savedItem: item)`. Mọi thao tác ghi đi qua helper `runSave` (await + snackbar lỗi). Ô ghi chú: panel là `StatefulWidget` giữ bản nháp, lưu khi rời ô (`onTapOutside`/`onFieldSubmitted`), không lưu mỗi phím vì mỗi lần ghi là một request cloud. Snackbar sau khi xoá dùng `ScaffoldMessenger` đã capture trước `await`.
+- `destination_detail_screen.dart`: thêm tham số `SavedItem? savedItem`, giữ state `SavedItem? _savedItem` khởi tạo từ tham số. `trip` cho AI = `_savedItem?.tripData ?? provider.currentTrip`. Nút Lưu: nếu `_savedItem` đã có (mở từ Saved hoặc đã lưu trong phiên) thì chỉ báo "đã lưu", không tạo thêm; ngược lại `_savedItem = await provider.saveFullTrip(..., tripData: _trip)`. Nút "Tạo itinerary": nếu `_savedItem == null` thì lưu trước rồi mới mở `DestinationPlanScreen(tripId: _savedItem!.id, destinationName: ...)`. Quy tắc: **có itinerary tức là có trip.** Prefetch itinerary dùng `trip.dayCount()`.
 - `destination_plan_screen.dart`: nhận `tripId`, `itineraryFor(tripId)`, `numDays = trip.dayCount()`, plan tạo ra gán `tripId` trước khi `await saveItinerary`. Refine cũng vậy.
 - `suggestions_screen.dart`: `saveToWishlist` thành `await` trong try/catch.
 
