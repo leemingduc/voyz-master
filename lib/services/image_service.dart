@@ -54,11 +54,6 @@ class ImageService {
     return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
   }
 
-  /// Backward-compatible alias: the REST summary chain is already the fast
-  /// path (1 request per destination), so "fast" and "full" are the same now.
-  Future<Map<String, String>> getImageUrlsFast(List<String> names) =>
-      getImageUrls(names);
-
   /// Fetches multiple supplementary photos for specific landmarks of a destination.
   Future<List<DestinationLandmarkPhoto>> getLandmarkPhotos(
     String destinationName,

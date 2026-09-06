@@ -18,8 +18,8 @@ import 'package:voyz/services/image_service.dart';
 /// Central service for interacting with the Gemini Flash 3 API.
 ///
 /// Prompts include a language instruction so the AI responds in the
-/// user's active locale. All methods check Multi-Tier cache first; only
-/// calls the API on cache miss.
+/// user's active locale. Every feature checks the Hive cache first and
+/// only calls the API on a miss.
 class GeminiService {
   GeminiService._();
   static final GeminiService instance = GeminiService._();
@@ -86,33 +86,17 @@ class GeminiService {
     return _model!;
   }
 
-  /// Asynchronously pre-caches image URLs in the background and updates the multi-tier cache.
-  void _precacheAndStoreImages(
-    String cacheKey,
-    List<DestinationSuggestion> suggestions, {
-    required String featureType,
-    String? destination,
-    required String languageCode,
-  }) {
-    Future.microtask(() async {
-      try {
-        final names = suggestions.map((s) => s.name).toList();
-        final imageUrls = await ImageService.instance.getImageUrls(names);
-        final cached = await _aiCache.getResponse(cacheKey);
-        if (cached != null) {
-          await _aiCache.putResponse(
-            cacheKey,
-            cached.payload,
-            featureType: featureType,
-            destination: destination,
-            languageCode: languageCode,
-            imageUrls: imageUrls,
-          );
-        }
-      } catch (e) {
-        debugPrint('Image pre-caching error (non-fatal): $e');
-      }
-    });
+  /// Tra URL ảnh cho danh sách gợi ý qua ImageService.
+  /// Lỗi ảnh không làm hỏng kết quả AI: trả lại danh sách không ảnh.
+  Future<List<DestinationSuggestion>> _withImages(
+    List<DestinationSuggestion> suggestions,
+  ) async {
+    try {
+      return await enrichSuggestionsWithImages(suggestions);
+    } catch (e) {
+      debugPrint('Image fetch error (non-fatal): $e');
+      return suggestions;
+    }
   }
 
   // ── Explore (independent, no TripData needed) ─────────────────────────
@@ -153,14 +137,13 @@ class GeminiService {
     final cacheKey = _aiCache.buildKey('explore_trending', {
       'limit': limit,
       'lang': languageCode,
-      if (!forceRefresh && category != null) 'category': category,
-      if (forceRefresh) 'nonce': randomSeed,
+      'category': category ?? '',
     });
 
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
+      final cached = _aiCache.get(cacheKey);
       if (cached != null) {
-        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
+        return _withImages(parseSuggestionsSync(cached));
       }
     }
 
@@ -200,49 +183,8 @@ Quy tắc:
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'explore_trending',
-      languageCode: languageCode,
-    );
-
-    final suggestions = parseSuggestionsSync(text);
-
-    // Fetch images immediately in parallel with 1 fast request per destination
-    // (curated registry → Wikipedia thumbnail → themed fallback)
-    try {
-      final names = suggestions.map((s) => s.name).toList();
-      final imageUrls = await ImageService.instance.getImageUrlsFast(names);
-
-      final enriched = suggestions.map((s) {
-        final img = imageUrls[s.name] ?? '';
-        if (img.isEmpty) return s;
-        return DestinationSuggestion(
-          name: s.name,
-          imageUrl: img,
-          matchPercent: s.matchPercent,
-          rating: s.rating,
-          reviewCount: s.reviewCount,
-          price: s.price,
-          aiInsight: s.aiInsight,
-          isTopMatch: s.isTopMatch,
-        );
-      }).toList();
-
-      // Store enriched (with images) back to cache for next time
-      _precacheAndStoreImages(
-        cacheKey,
-        enriched,
-        featureType: 'explore_trending',
-        languageCode: languageCode,
-      );
-
-      return enriched;
-    } catch (e) {
-      debugPrint('Image fetch error (non-fatal): $e');
-      return suggestions;
-    }
+    await _aiCache.put(cacheKey, text);
+    return _withImages(parseSuggestionsSync(text));
   }
 
   // ── Suggestions ──────────────────────────────────────────────────────────
@@ -250,7 +192,6 @@ Quy tắc:
   /// Get AI travel suggestions based on user's trip preferences.
   ///
   /// **Phase 1 (fast, ~1-2s or <100ms on cache):** Returns suggestions immediately.
-  /// If pre-cached images are available from the multi-tier cache, they are rendered right away.
   ///
   /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
   /// image URLs asynchronously if not already cached.
@@ -276,14 +217,13 @@ Quy tắc:
       'notes': trip.additionalNotes.trim(),
       'depart': trip.departDate?.toIso8601String() ?? '',
       'return': trip.returnDate?.toIso8601String() ?? '',
+      'participants': trip.participants.trim(),
+      'ageRange': trip.ageRange.trim(),
     });
 
-    // Check Multi-Tier cache (Memory -> Hive -> Supabase)
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return parseSuggestionsSync(cached);
     }
 
     // Cache miss — call Gemini API
@@ -292,27 +232,8 @@ Quy tắc:
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    // Save to multi-tier cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'suggestions',
-      destination: trip.destination.isNotEmpty ? trip.destination : null,
-      languageCode: languageCode,
-    );
-
-    final suggestions = parseSuggestionsSync(text);
-
-    // Pre-cache images in background
-    _precacheAndStoreImages(
-      cacheKey,
-      suggestions,
-      featureType: 'suggestions',
-      destination: trip.destination.isNotEmpty ? trip.destination : null,
-      languageCode: languageCode,
-    );
-
-    return suggestions;
+    await _aiCache.put(cacheKey, text);
+    return parseSuggestionsSync(text);
   }
 
   /// Phase 2: Back-fill image URLs into an existing list of suggestions.
@@ -348,12 +269,8 @@ Quy tắc:
   }
 
   /// Synchronously parse raw JSON text into DestinationSuggestions.
-  ///
-  /// If [imageUrls] map is provided, image URLs are attached immediately.
-  List<DestinationSuggestion> parseSuggestionsSync(
-    String text, {
-    Map<String, String>? imageUrls,
-  }) {
+  /// Ảnh không nằm trong JSON của AI; tra sau bằng [enrichSuggestionsWithImages].
+  List<DestinationSuggestion> parseSuggestionsSync(String text) {
     final decoded = safeJsonDecode(text);
     final List<dynamic> jsonList;
     if (decoded is List) {
@@ -377,7 +294,6 @@ Quy tắc:
     final suggestions = jsonList.whereType<Map>().map((e) {
       final rawMap = Map<String, dynamic>.from(e);
       final name = rawMap['name']?.toString() ?? '';
-      final cachedImage = imageUrls?[name] ?? '';
       final map = <String, dynamic>{
         'name': name,
         'matchPercent': (rawMap['matchPercent'] is num)
@@ -395,7 +311,7 @@ Quy tắc:
             ? rawMap['isTopMatch'] as bool
             : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
       };
-      return DestinationSuggestion.fromJson(map, cachedImage);
+      return DestinationSuggestion.fromJson(map, '');
     }).toList();
 
     // Mark the first item as top match if none is flagged.
@@ -534,14 +450,16 @@ Quy tắc quan trọng:
       'name': destinationName,
       'lang': languageCode,
       'aiPrompt': trip.aiPrompt.trim(),
+      'budget': trip.budget,
+      'currency': trip.currency,
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return _parseDetail(cached.payload, destinationName);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return _parseDetail(cached, destinationName);
     }
 
     // Cache miss — call Gemini API
@@ -553,13 +471,7 @@ Quy tắc quan trọng:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'detail',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     return _parseDetail(text, destinationName);
   }
@@ -677,14 +589,16 @@ Quy tắc:
       'lang': languageCode,
       'instruction': additionalInstruction,
       'aiPrompt': trip.aiPrompt.trim(),
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
+      final cached = _aiCache.get(cacheKey);
       if (cached != null) {
         final Map<String, dynamic> json =
-            safeJsonDecode(cached.payload) as Map<String, dynamic>;
+            safeJsonDecode(cached) as Map<String, dynamic>;
         return ItineraryPlan.fromJson(json);
       }
     }
@@ -705,13 +619,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'itinerary',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     try {
       final Map<String, dynamic> json =
@@ -871,10 +779,10 @@ Trả về JSON object với cấu trúc:
       'lang': languageCode,
     });
 
-    final cached = await _aiCache.getResponse(cacheKey);
+    final cached = _aiCache.get(cacheKey);
     if (cached != null) {
       final Map<String, dynamic> json =
-          safeJsonDecode(cached.payload) as Map<String, dynamic>;
+          safeJsonDecode(cached) as Map<String, dynamic>;
       return DestinationComparison.fromJson(json);
     }
 
@@ -925,12 +833,7 @@ Quy tắc:
       throw Exception('noAiResponse');
     }
 
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'comparison',
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
@@ -953,10 +856,10 @@ Quy tắc:
     });
 
     // Check cache
-    final cached = await _aiCache.getResponse(cacheKey);
+    final cached = _aiCache.get(cacheKey);
     if (cached != null) {
       final Map<String, dynamic> json =
-          safeJsonDecode(cached.payload) as Map<String, dynamic>;
+          safeJsonDecode(cached) as Map<String, dynamic>;
       return BestTimeTravel.fromJson(json);
     }
 
@@ -1015,13 +918,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'best_time',
-      destination: destination,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
@@ -1046,10 +943,8 @@ Quy tắc:
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return _parseCulturalTips(cached.payload, destinationName);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return _parseCulturalTips(cached, destinationName);
     }
 
     // Cache miss — call Gemini API
@@ -1061,14 +956,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'cultural_tips',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
-
+    await _aiCache.put(cacheKey, text);
     return _parseCulturalTips(text, destinationName);
   }
 
