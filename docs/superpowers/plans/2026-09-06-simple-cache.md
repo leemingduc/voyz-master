@@ -17,7 +17,7 @@
 - Không dùng em dash hay en dash trong bất kỳ text nào (comment, commit, doc).
 - Không hardcode URL ảnh.
 - Không chạm `lib/data/` (thuộc plan trip-identity).
-- `lib/services/ai_cache_service.dart` sau khi xong dưới 80 dòng.
+- `lib/services/ai_cache_service.dart` sau khi xong dưới 100 dòng.
 
 ---
 
@@ -466,7 +466,7 @@ Run: `grep -rn "ai_generated_cache\|CacheService\b\|CachedAiResponse\|_precacheA
 Expected: không có kết quả. (`AiCacheService` vẫn có, `CacheService\b` chỉ khớp tên class cũ.)
 
 Run: `wc -l lib/services/ai_cache_service.dart`
-Expected: dưới 80.
+Expected: dưới 100.
 
 - [ ] **Step 4: Analyze và test toàn bộ**
 

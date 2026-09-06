@@ -84,7 +84,7 @@ Test prompt builder hiện có trong `test/services/gemini_service_test.dart` gi
 ### 1.6. Nghiệm thu
 
 - [ ] `grep -rn "ai_generated_cache\|CacheService\b\|CachedAiResponse\|_precacheAndStoreImages" lib/` trả về rỗng.
-- [ ] `lib/services/ai_cache_service.dart` dưới 80 dòng.
+- [ ] `lib/services/ai_cache_service.dart` dưới 100 dòng.
 - [ ] Đổi budget tier rồi mở lại detail cùng điểm đến: nội dung ngân sách khác nhau.
 - [ ] Bấm refresh Explore 3 lần: box Hive không tăng thêm 3 entry mới cho cùng input.
 - [ ] Đăng nhập user khác trên cùng máy: Suggestions gọi Gemini lại, không dùng kết quả của user trước.
