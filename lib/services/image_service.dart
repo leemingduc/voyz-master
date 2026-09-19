@@ -23,7 +23,15 @@ class ImageService {
   /// phải đi qua client này.
   static http.Client client = http.Client();
 
-  final Map<String, String> _cache = {};
+  /// Cache trong phiên. URL tìm được giữ suốt phiên; URL rỗng chỉ giữ
+  /// [negativeTtl] để một lần lỗi mạng không làm điểm đến mất ảnh tới khi
+  /// restart.
+  final Map<String, ({String url, DateTime fetchedAt})> _cache = {};
+
+  static const negativeTtl = Duration(minutes: 10);
+
+  /// Swap được trong test để đẩy thời gian.
+  static DateTime Function() now = DateTime.now;
 
   static final _vietnameseDiacritics = RegExp(
     r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]',
@@ -41,13 +49,16 @@ class ImageService {
   /// Returns an empty string when no verifiable image is found;
   /// the UI's errorWidget renders the placeholder in that case.
   Future<String> getImageUrl(String destinationName) async {
-    if (_cache.containsKey(destinationName)) {
-      return _cache[destinationName]!;
+    final hit = _cache[destinationName];
+    if (hit != null) {
+      final stillFresh =
+          hit.url.isNotEmpty || now().difference(hit.fetchedAt) < negativeTtl;
+      if (stillFresh) return hit.url;
     }
 
     final placeName = destinationName.split(',').first.trim();
 
-    // 1. Wikipedia REST summary (vi rồi en)
+    // 1. Wikipedia REST summary, thứ tự ngôn ngữ theo dấu tiếng Việt
     final langs = hasVietnameseDiacritics(placeName)
         ? const ['vi', 'en']
         : const ['en', 'vi'];
@@ -62,7 +73,7 @@ class ImageService {
 
     // 3. Bó tay: trả rỗng, UI errorWidget lo phần placeholder.
     final result = url ?? '';
-    _cache[destinationName] = result;
+    _cache[destinationName] = (url: result, fetchedAt: now());
     return result;
   }
 

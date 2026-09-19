@@ -181,4 +181,45 @@ void main() {
       expect(hosts[1], 'en.wikipedia.org');
     });
   });
+
+  group('negative cache', () {
+    tearDown(() {
+      ImageService.now = DateTime.now;
+    });
+
+    test('empty result is not refetched within 10 minutes', () async {
+      var calls = 0;
+      ImageService.client = MockClient((request) async {
+        calls++;
+        return http.Response('not found', 404);
+      });
+      final t0 = DateTime(2026, 9, 19, 10, 0);
+      ImageService.now = () => t0;
+
+      await ImageService.instance.getImageUrl('Empty Place I');
+      final firstRoundCalls = calls;
+      expect(firstRoundCalls, greaterThan(0));
+
+      ImageService.now = () => t0.add(const Duration(minutes: 9));
+      await ImageService.instance.getImageUrl('Empty Place I');
+      expect(calls, firstRoundCalls);
+    });
+
+    test('empty result is refetched after 10 minutes', () async {
+      var calls = 0;
+      ImageService.client = MockClient((request) async {
+        calls++;
+        return http.Response('not found', 404);
+      });
+      final t0 = DateTime(2026, 9, 19, 11, 0);
+      ImageService.now = () => t0;
+
+      await ImageService.instance.getImageUrl('Empty Place J');
+      final firstRoundCalls = calls;
+
+      ImageService.now = () => t0.add(const Duration(minutes: 11));
+      await ImageService.instance.getImageUrl('Empty Place J');
+      expect(calls, greaterThan(firstRoundCalls));
+    });
+  });
 }
