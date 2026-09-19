@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
@@ -353,6 +354,36 @@ Please let me know if you need anything else!
       expect(p, contains('beach, adventure, culture, food, wellness'));
       expect(p, contains('economy | moderate | premium | luxury'));
       expect(p, contains('không dịch'));
+    });
+  });
+
+  group('fillEmptyLandmarkImages', () {
+    const main = 'https://upload.wikimedia.org/x/Main.jpg';
+
+    test('landmark rong lay anh chinh, landmark co anh giu nguyen', () {
+      final gallery = [
+        const DestinationLandmarkPhoto(title: 'Cau Vang', imageUrl: ''),
+        const DestinationLandmarkPhoto(
+          title: 'Ba Na',
+          imageUrl: 'https://upload.wikimedia.org/x/BaNa.jpg',
+        ),
+      ];
+
+      final filled = GeminiService.fillEmptyLandmarkImages(gallery, main);
+
+      expect(filled[0].title, 'Cau Vang');
+      expect(filled[0].imageUrl, main);
+      expect(filled[1].imageUrl, 'https://upload.wikimedia.org/x/BaNa.jpg');
+    });
+
+    test('anh chinh rong thi giu gallery nguyen ven', () {
+      final gallery = [
+        const DestinationLandmarkPhoto(title: 'Cau Vang', imageUrl: ''),
+      ];
+
+      final filled = GeminiService.fillEmptyLandmarkImages(gallery, '');
+
+      expect(filled.single.imageUrl, isEmpty);
     });
   });
 }
