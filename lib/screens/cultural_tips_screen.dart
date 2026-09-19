@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
 // ── Theme colors for sections ──
@@ -227,15 +227,10 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (tips.imageUrl.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: tips.imageUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
-                    _gradientFallback(tips.destinationName),
-              )
-            else
-              _gradientFallback(tips.destinationName),
+            DestinationImage(
+              imageUrl: tips.imageUrl,
+              destinationName: tips.destinationName,
+            ),
             // Gradient overlay
             Container(
               decoration: BoxDecoration(
@@ -263,26 +258,6 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _gradientFallback(String name) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryPink.withValues(alpha: 0.4),
-            AppTheme.secondaryOrange.withValues(alpha: 0.3),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.public,
-          size: 64,
-          color: Colors.white.withValues(alpha: 0.3),
         ),
       ),
     );
