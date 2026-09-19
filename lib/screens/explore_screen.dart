@@ -53,11 +53,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      var results = await DestinationRepository.instance.getFeaturedDestinations(
-        categoryKey: _selectedCategoryKey,
-        limit: 10,
-        forceRefresh: forceRefresh,
-      );
+      // Repository lỗi (mạng, Supabase) coi như rỗng để rơi xuống Gemini,
+      // thay vì hiện màn lỗi khi vẫn còn nguồn thứ hai.
+      List<DestinationSuggestion> results;
+      try {
+        results = await DestinationRepository.instance.getFeaturedDestinations(
+          categoryKey: _selectedCategoryKey,
+          limit: 10,
+          forceRefresh: forceRefresh,
+        );
+      } catch (_) {
+        results = const [];
+      }
 
       if (results.isEmpty) {
         results = await GeminiService.instance.getExploreTrending(
