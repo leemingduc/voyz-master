@@ -1,12 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:voyz/models/destination_detail.dart';
 
 /// Service to fetch real destination photography from verifiable sources.
 ///
 /// Priority chain:
-///   1. Wikipedia REST summary (vi rồi en) — 1 request, CORS chính thức,
+///   1. Wikipedia REST summary (vi rồi en với tên có dấu, en rồi vi với tên không dấu), 1 request, CORS chính thức,
 ///      server trả sẵn URL thumbnail hợp lệ nên không bao giờ dính 400/404
 ///      do tự đoán hash path hay kích thước thumb.
 ///   2. Wikimedia Commons full-text search.
@@ -24,6 +25,18 @@ class ImageService {
 
   final Map<String, String> _cache = {};
 
+  static final _vietnameseDiacritics = RegExp(
+    r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]',
+    caseSensitive: false,
+  );
+
+  /// Tên có dấu tiếng Việt thì trang vi.wikipedia gần như chắc chắn tồn tại,
+  /// nên hỏi vi trước. Tên không dấu (đa số tên AI sinh) hỏi en trước để
+  /// tránh một request 404 thừa.
+  @visibleForTesting
+  static bool hasVietnameseDiacritics(String s) =>
+      _vietnameseDiacritics.hasMatch(s);
+
   /// Gets the single most iconic photo for a destination.
   /// Returns an empty string when no verifiable image is found;
   /// the UI's errorWidget renders the placeholder in that case.
@@ -35,8 +48,14 @@ class ImageService {
     final placeName = destinationName.split(',').first.trim();
 
     // 1. Wikipedia REST summary (vi rồi en)
-    String? url = await _fetchWikipediaSummaryImage(placeName, 'vi');
-    url ??= await _fetchWikipediaSummaryImage(placeName, 'en');
+    final langs = hasVietnameseDiacritics(placeName)
+        ? const ['vi', 'en']
+        : const ['en', 'vi'];
+    String? url;
+    for (final lang in langs) {
+      url = await _fetchWikipediaSummaryImage(placeName, lang);
+      if (url != null) break;
+    }
 
     // 2. Wikimedia Commons full-text search
     url ??= await _fetchCommonsImage(placeName);

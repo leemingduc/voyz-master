@@ -133,4 +133,52 @@ void main() {
     final url = await ImageService.instance.getImageUrl('Map Place F');
     expect(url, isEmpty);
   });
+
+  group('language order', () {
+    test('hasVietnameseDiacritics detects accented names', () {
+      expect(ImageService.hasVietnameseDiacritics('Đà Lạt'), isTrue);
+      expect(ImageService.hasVietnameseDiacritics('Hội An'), isTrue);
+      expect(ImageService.hasVietnameseDiacritics('Da Lat'), isFalse);
+      expect(ImageService.hasVietnameseDiacritics('Kyoto'), isFalse);
+    });
+
+    test('unaccented name asks en first and skips vi when en has an image',
+        () async {
+      final hosts = <String>[];
+      ImageService.client = MockClient((request) async {
+        hosts.add(request.url.host);
+        if (request.url.host == 'en.wikipedia.org') {
+          return http.Response(
+            jsonEncode({
+              'thumbnail': {
+                'source':
+                    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Lang.jpg/640px-Lang.jpg',
+                'width': 640,
+                'height': 420,
+              },
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('not found', 404);
+      });
+
+      final url = await ImageService.instance.getImageUrl('Lang Place G');
+      expect(url, contains('Lang.jpg'));
+      expect(hosts, ['en.wikipedia.org']);
+    });
+
+    test('accented name asks vi first', () async {
+      final hosts = <String>[];
+      ImageService.client = MockClient((request) async {
+        hosts.add(request.url.host);
+        return http.Response('not found', 404);
+      });
+
+      await ImageService.instance.getImageUrl('Đà Lạt Place H');
+      expect(hosts.first, 'vi.wikipedia.org');
+      expect(hosts[1], 'en.wikipedia.org');
+    });
+  });
 }
