@@ -219,3 +219,12 @@ Bạn bè, chat xã hội, community reviews, presence. CDN ảnh và upload ả
 | File chính | `trip_data.dart`, `saved_trips_provider.dart`, `itinerary_plan.dart`, `saved_screen.dart`, migration `trip_identity`, `image_service.dart`, `destination_image.dart` | `ai_cache_service.dart`, `gemini_service.dart`, `smart_planner_screen.dart`, `trip_chips.dart`, `pricing/`, migration `drop_ai_generated_cache` |
 
 Điểm giao duy nhất: `TripData` (A không đổi hình dạng, B chỉ thêm hàm trả về `TripData`) và `destination_detail_screen.dart` (A sửa phần restore dữ liệu, B thêm section chỗ ở). Ai xong trước nhận việc viết `README.md` setup.
+
+## 8. Ghi chú xem lại sau khi xong 2.4 (thêm ngày 19/09/2026)
+
+Nghiên cứu `docs/research/2026-09-19-gemini-image-sources.md` kết luận: Gemini không thay được Wikipedia làm nguồn ảnh (free tier không có grounding cho model 3.x, ảnh sinh ra là ảnh giả có watermark, URL do model nhớ ra là bịa). Kiến trúc ảnh giữ nguyên như mục 2.4.
+
+Hai việc ghi lại để quyết định sau, KHÔNG làm trong nhánh ảnh:
+
+1. **Package `google_generative_ai` đã ngừng phát triển** (đóng băng ở 0.4.7, chỉ có function calling và code execution). Đường chuyển đổi chính thức là `firebase_ai` (có `Tool.googleSearch()`, `Tool.googleMaps()`, `Tool.urlContext()`, nhưng cần Firebase project). Chỉ cân nhắc khi app thật sự cần một tool của Gemini; hiện tại chưa cần. Đây là quyết định riêng, không liên quan tới ảnh.
+2. **Wikimedia đã chuyển host thumbnail** của REST summary sang `thumb.wikimedia.org`. Regex trong `tool/verify_image_urls.dart` chỉ nhận `upload.wikimedia.org` và `commons.wikimedia.org`, nên sẽ bỏ qua URL seed mới trên host này. Chưa ảnh hưởng render vì `lib/` không còn allowlist host. Sửa verifier khi có đợt cập nhật seed kế tiếp.
