@@ -30,6 +30,10 @@ class ImageService {
 
   static const negativeTtl = Duration(minutes: 10);
 
+  /// Số tên tra song song tối đa. Bắn cả 10 gợi ý cùng lúc (tới 30 request)
+  /// dễ dính 429 từ Wikimedia.
+  static const batchSize = 3;
+
   /// Swap được trong test để đẩy thời gian.
   static DateTime Function() now = DateTime.now;
 
@@ -77,26 +81,40 @@ class ImageService {
     return result;
   }
 
-  /// Fetches image URLs for all destinations in parallel.
+  /// Tra URL ảnh cho nhiều điểm đến, tối đa [batchSize] tên song song.
   Future<Map<String, String>> getImageUrls(List<String> names) async {
-    final futures = names.map((name) => getImageUrl(name));
-    final urls = await Future.wait(futures);
+    final urls = await _inBatches(names, getImageUrl);
     return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
   }
 
-  /// Fetches multiple supplementary photos for specific landmarks of a destination.
+  /// Tra ảnh cho từng landmark của một điểm đến, tối đa [batchSize] song song.
+  /// Landmark không có ảnh trả `imageUrl` rỗng; GeminiService điền ảnh chính
+  /// của điểm đến vào chỗ rỗng.
   Future<List<DestinationLandmarkPhoto>> getLandmarkPhotos(
     String destinationName,
     List<String> landmarkTitles,
   ) async {
-    final futures = landmarkTitles.map((title) async {
-      final query = title.isNotEmpty
-          ? '$title, $destinationName'
-          : destinationName;
-      final url = await getImageUrl(query);
-      return DestinationLandmarkPhoto(title: title, imageUrl: url);
+    final urls = await _inBatches(landmarkTitles, (title) {
+      final query = title.isNotEmpty ? '$title, $destinationName' : destinationName;
+      return getImageUrl(query);
     });
-    return Future.wait(futures);
+    return [
+      for (int i = 0; i < landmarkTitles.length; i++)
+        DestinationLandmarkPhoto(title: landmarkTitles[i], imageUrl: urls[i]),
+    ];
+  }
+
+  /// Chạy [run] trên từng phần tử, [batchSize] phần tử một lúc, giữ thứ tự.
+  Future<List<String>> _inBatches(
+    List<String> items,
+    Future<String> Function(String) run,
+  ) async {
+    final results = <String>[];
+    for (var i = 0; i < items.length; i += batchSize) {
+      final end = (i + batchSize < items.length) ? i + batchSize : items.length;
+      results.addAll(await Future.wait(items.sublist(i, end).map(run)));
+    }
+    return results;
   }
 
   // ── Wikipedia REST summary ──────────────────────────────────────────────

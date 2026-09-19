@@ -222,4 +222,23 @@ void main() {
       expect(calls, greaterThan(firstRoundCalls));
     });
   });
+
+  test('getImageUrls runs at most 3 lookups at a time', () async {
+    var inFlight = 0;
+    var maxInFlight = 0;
+    ImageService.client = MockClient((request) async {
+      inFlight++;
+      if (inFlight > maxInFlight) maxInFlight = inFlight;
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      inFlight--;
+      return http.Response('not found', 404);
+    });
+
+    final names = List.generate(7, (i) => 'Batch Place K$i');
+    final urls = await ImageService.instance.getImageUrls(names);
+
+    expect(urls.length, 7);
+    expect(maxInFlight, lessThanOrEqualTo(ImageService.batchSize));
+    expect(maxInFlight, greaterThan(1));
+  });
 }
