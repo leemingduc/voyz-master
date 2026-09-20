@@ -9,6 +9,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
@@ -30,14 +31,39 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String? _error;
   String _selectedCategoryKey = 'random';
 
-  static const List<(String key, String label, String? promptCategory)> _categories = [
+  static const List<(String key, String label, String? promptCategory)>
+  _categories = [
     ('random', '🎲 Ngẫu nhiên', null),
-    ('beach', '🏖️ Biển đảo', 'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ'),
-    ('mountain', '🏔️ Vùng núi & Đèo', 'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang'),
-    ('heritage', '🏯 Cổ kính & Di sản', 'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính'),
-    ('city', '🏙️ Đô thị sôi động', 'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm'),
-    ('wellness', '🌿 Nghỉ dưỡng thiên nhiên', 'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát'),
-    ('hidden_gems', '💎 Độc lạ (Hidden Gems)', 'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến'),
+    (
+      'beach',
+      '🏖️ Biển đảo',
+      'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
+    ),
+    (
+      'mountain',
+      '🏔️ Vùng núi & Đèo',
+      'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
+    ),
+    (
+      'heritage',
+      '🏯 Cổ kính & Di sản',
+      'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính',
+    ),
+    (
+      'city',
+      '🏙️ Đô thị sôi động',
+      'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm',
+    ),
+    (
+      'wellness',
+      '🌿 Nghỉ dưỡng thiên nhiên',
+      'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát',
+    ),
+    (
+      'hidden_gems',
+      '💎 Độc lạ (Hidden Gems)',
+      'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến',
+    ),
   ];
 
   @override
@@ -46,18 +72,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadExplore());
   }
 
-  Future<void> _loadExplore({bool forceRefresh = false, String? categoryPrompt}) async {
+  Future<void> _loadExplore({
+    bool forceRefresh = false,
+    String? categoryPrompt,
+  }) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      var results = await DestinationRepository.instance.getFeaturedDestinations(
-        categoryKey: _selectedCategoryKey,
-        limit: 10,
-        forceRefresh: forceRefresh,
-      );
+      var results = await DestinationRepository.instance
+          .getFeaturedDestinations(
+            categoryKey: _selectedCategoryKey,
+            limit: 10,
+            forceRefresh: forceRefresh,
+          );
 
       if (results.isEmpty) {
         results = await GeminiService.instance.getExploreTrending(
@@ -122,7 +152,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D0A16), Color(0xFF1A1528)],
+            colors: [Color(0xFF10131A), Color(0xFF06070B)],
           ),
         ),
         child: SafeArea(
@@ -163,6 +193,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const AivivuWordmark(fontSize: 14),
+                const SizedBox(height: 6),
                 Text(
                   AppLocalizations.of(context)!.exploreTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -246,9 +278,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         colors: [Color(0xFFE91E63), Color(0xFFFF4081)],
                       )
                     : null,
-                color: isSelected
-                    ? null
-                    : Colors.white.withValues(alpha: 0.06),
+                color: isSelected ? null : Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected

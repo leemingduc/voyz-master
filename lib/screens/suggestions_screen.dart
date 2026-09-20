@@ -136,7 +136,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D0A16), Color(0xFF1A1528)],
+            colors: [Color(0xFF10131A), Color(0xFF06070B)],
           ),
         ),
         child: SafeArea(

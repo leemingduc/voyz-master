@@ -323,7 +323,7 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
+      bottomNavigationBar: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
     );
   }
 }

@@ -133,7 +133,7 @@ class AIToolsScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomNavBar(
-        currentIndex: 3,
+        currentIndex: 0,
         onTap: (index) => _onNavTap(context, index),
       ),
     );
