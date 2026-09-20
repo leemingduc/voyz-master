@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:voyz/l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/saved_screen.dart';
-import 'package:voyz/screens/suggestions_screen.dart';
+import 'package:voyz/screens/trip_consultation_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
@@ -16,7 +14,6 @@ import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
-import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/interest_chip.dart';
 
 class SmartPlannerScreen extends StatefulWidget {
@@ -28,14 +25,8 @@ class SmartPlannerScreen extends StatefulWidget {
 
 class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   final _promptController = TextEditingController();
-  final _destinationController = TextEditingController();
-  final _participantsController = TextEditingController();
-  final _ageRangeController = TextEditingController();
-  final _notesController = TextEditingController();
 
   String _selectedBudgetTier = 'moderate';
-  DateTime? _departDate;
-  DateTime? _returnDate;
   late List<bool> _selectedInterests;
 
   String _getLocalizedInterest(String interestKey, AppLocalizations l10n) {
@@ -79,13 +70,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           : preferredStyles;
 
       setState(() {
-        _destinationController.text = trip.destination;
-        _departDate = trip.departDate;
-        _returnDate = trip.returnDate;
         _selectedBudgetTier = trip.budget.isNotEmpty ? trip.budget : 'moderate';
-        _participantsController.text = trip.participants;
-        _ageRangeController.text = trip.ageRange;
-        _notesController.text = trip.additionalNotes;
         _promptController.text = trip.aiPrompt;
 
         _selectedInterests = List.filled(MockData.interests.length, false);
@@ -102,64 +87,14 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   void dispose() {
     _promptController.dispose();
-    _destinationController.dispose();
-    _participantsController.dispose();
-    _ageRangeController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate({required bool isDepart}) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: (isDepart ? _departDate : _returnDate) ?? now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 2)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              surface: AppTheme.surfaceDark,
-              onSurface: Colors.white,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppTheme.surfaceDark,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        if (isDepart) {
-          _departDate = picked;
-          if (_returnDate != null && _returnDate!.isBefore(picked)) {
-            _returnDate = null;
-          }
-        } else {
-          _returnDate = picked;
-        }
-      });
-    }
-  }
-
-  String _formatDate(DateTime? date, AppLocalizations l10n) {
-    if (date == null) return l10n.addDate;
-    return DateFormat('dd/MM/yyyy').format(date);
-  }
-
   bool _validateInput() {
-    if (_destinationController.text.trim().isEmpty ||
-        _departDate == null ||
-        _returnDate == null ||
-        _selectedBudgetTier.trim().isEmpty ||
-        _participantsController.text.trim().isEmpty ||
-        _ageRangeController.text.trim().isEmpty) {
+    if (_promptController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.fillAllRequired),
+          content: Text(AppLocalizations.of(context)!.plannerPromptRequired),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -196,14 +131,16 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     }
     SavedTripsProvider.of(context).updateTrip(
       TripData(
-        destination: _destinationController.text,
-        departDate: _departDate,
-        returnDate: _returnDate,
+        destination: SavedTripsProvider.of(context).currentTrip.destination,
+        departDate: SavedTripsProvider.of(context).currentTrip.departDate,
+        returnDate: SavedTripsProvider.of(context).currentTrip.returnDate,
         budget: _selectedBudgetTier,
         currency: CurrencyProvider.of(context).value,
-        participants: _participantsController.text,
-        ageRange: _ageRangeController.text,
-        additionalNotes: _notesController.text,
+        participants: SavedTripsProvider.of(context).currentTrip.participants,
+        ageRange: SavedTripsProvider.of(context).currentTrip.ageRange,
+        additionalNotes: SavedTripsProvider.of(
+          context,
+        ).currentTrip.additionalNotes,
         aiPrompt: _promptController.text,
         selectedInterests: selected,
       ),
@@ -220,7 +157,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     if (!mounted) return;
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SuggestionsScreen()));
+    ).push(MaterialPageRoute(builder: (_) => const TripConsultationScreen()));
   }
 
   @override
@@ -279,240 +216,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         children: [
                           const SizedBox(height: 16),
                           _buildPlannerHero(theme, l10n),
-                          const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.edit_note,
-                                  color: theme.colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  l10n.requiredInfo,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.colorScheme.primary,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _buildTextField(
-                            icon: Icons.public,
-                            label: l10n.destination,
-                            hint: l10n.destinationHint,
-                            controller: _destinationController,
-                            keyboardType: TextInputType.text,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDateField(
-                                  icon: Icons.calendar_today,
-                                  label: l10n.departDate,
-                                  value: _formatDate(_departDate, l10n),
-                                  onTap: () => _pickDate(isDepart: true),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDateField(
-                                  icon: Icons.calendar_month,
-                                  label: l10n.returnDate,
-                                  value: _formatDate(_returnDate, l10n),
-                                  onTap: () => _pickDate(isDepart: false),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  icon: Icons.group,
-                                  label: l10n.participants,
-                                  hint: l10n.participantsHint,
-                                  controller: _participantsController,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildTextField(
-                                  icon: Icons.cake,
-                                  label: l10n.ageRange,
-                                  hint: l10n.ageRangeHint,
-                                  controller: _ageRangeController,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  l10n.optionalInfo,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    l10n.optional.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GlassCard(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF1E293B,
-                                    ).withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.sticky_note_2,
-                                    color: Color(0xFF94A3B8),
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n.additionalNotes.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF64748B),
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      TextField(
-                                        controller: _notesController,
-                                        maxLines: 3,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: l10n.notesHint,
-                                          hintStyle: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.25,
-                                            ),
-                                          ),
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const ExploreScreen(),
-                                      ),
-                                    );
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    side: BorderSide(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        AppTheme.radiusMd,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    l10n.explore,
-                                    style: const TextStyle(
-                                      color: Color(0xFFCBD5E1),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: GradientButton(
-                                  label: l10n.getAiSuggestions,
-                                  icon: Icons.arrow_forward,
-                                  height: 52,
-                                  onPressed: _onGetSuggestions,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 100),
                         ],
                       ),
@@ -658,119 +361,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildTextField({
-    required IconData icon,
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  inputFormatters: inputFormatters,
-                  style: const TextStyle(fontSize: 14, color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateField({
-    required IconData icon,
-    required String label,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    final hasValue = value != AppLocalizations.of(context)!.addDate;
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF64748B),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: hasValue
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1027,28 +617,70 @@ class _AiPromptBox extends StatelessWidget {
               runSpacing: 8,
               alignment: WrapAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: onExplore,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white.withValues(alpha: 0.85),
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: onExplore,
+                    icon: const Icon(Icons.explore_outlined, size: 19),
+                    label: Text(l10n.explore),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.cyan,
+                      backgroundColor: AppTheme.cyan.withValues(alpha: 0.08),
+                      side: const BorderSide(color: AppTheme.cyan, width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  child: Text(l10n.explore),
                 ),
-                ElevatedButton.icon(
-                  onPressed: onSuggest,
-                  icon: const Icon(Icons.auto_awesome, size: 17),
-                  label: Text(l10n.getAiSuggestions),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.brandGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.magenta.withValues(alpha: 0.36),
+                        blurRadius: 20,
+                        offset: const Offset(0, 7),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onSuggest,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 22),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome,
+                              size: 19,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 9),
+                            Text(
+                              l10n.getAiSuggestions,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
