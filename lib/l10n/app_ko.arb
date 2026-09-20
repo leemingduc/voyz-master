@@ -287,6 +287,24 @@
   "inviteFriendSuccess": "여행 워크스페이스에 초대가 추가되었습니다.",
   "@inviteFriendSuccess": {"description": "Confirmation when a friend is invited to a trip"},
 
+  "contextCompareSuggestions": "이 추천들 비교하기",
+  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
+
+  "contextBestTime": "언제 가는 게 좋을까요?",
+  "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},
+
+  "contextAskAboutDestination": "이 곳에 대해 AI에게 물어보기",
+  "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
+
+  "refineForBudget": "예산에 맞게 최적화",
+  "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
+
+  "refineForFamily": "어린이/노인에 적합하게",
+  "@refineForFamily": {"description": "Action to make an itinerary more suitable for children or older adults"},
+
+  "refineLessTravel": "이동 시간 줄이기",
+  "@refineLessTravel": {"description": "Action to reduce travel time between itinerary stops"},
+
   "currencySelectorTitle": "표시 통화",
   "currencySelectorDescription": "Voyz의 가격은 최신 기준 환율로 환산됩니다.",
   "currencyVietnameseDong": "베트남 동",

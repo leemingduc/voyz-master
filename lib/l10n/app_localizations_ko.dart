@@ -729,22 +729,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get inviteFriendSuccess => '여행 워크스페이스에 초대가 추가되었습니다.';
 
   @override
-  String get contextCompareSuggestions => 'Compare these suggestions';
+  String get contextCompareSuggestions => '이 추천들 비교하기';
 
   @override
-  String get contextBestTime => 'When should I go?';
+  String get contextBestTime => '언제 가는 게 좋을까요?';
 
   @override
-  String get contextAskAboutDestination => 'Ask AI about this place';
+  String get contextAskAboutDestination => '이 곳에 대해 AI에게 물어보기';
 
   @override
-  String get refineForBudget => 'Optimize for budget';
+  String get refineForBudget => '예산에 맞게 최적화';
 
   @override
-  String get refineForFamily => 'Better for children or seniors';
+  String get refineForFamily => '어린이/노인에 적합하게';
 
   @override
-  String get refineLessTravel => 'Less travel between stops';
+  String get refineLessTravel => '이동 시간 줄이기';
 
   @override
   String get currencySelectorTitle => '표시 통화';
