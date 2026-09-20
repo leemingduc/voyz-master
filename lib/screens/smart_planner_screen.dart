@@ -1103,8 +1103,7 @@ class _QuickPromptChips extends StatelessWidget {
 class _CosmicEarthArtwork extends StatelessWidget {
   const _CosmicEarthArtwork();
 
-  static const _earthImageUrl =
-      'https://lh3.googleusercontent.com/aida/AEtjO1UQPvyT_nu9zU5FsVtxdmDeFtCn3iQ24_GfiR953ImfJe-9Y5pztaYxfgKGhydo99NfTER2JWUvvHKCFNgR1kQmXnZYNGHTicNY-N9tmTJ9C5Qc-EoO4eAhLUax6VzQfR-W8LBA7xOjCzX24UfNjIflS_CO1DpPujHOs071Jsx3fLIa5J1rm4f3O5LovGlzGkQayPNXiHv8O9eYEBHs8nwOtPg3zfTkwdMScjfzF4ocRcjUqP2d8L_kPE8';
+  static const _earthAssetPath = 'assets/images/cosmic_earth.png';
 
   @override
   Widget build(BuildContext context) {
@@ -1128,8 +1127,8 @@ class _CosmicEarthArtwork extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                _earthImageUrl,
+              Image.asset(
+                _earthAssetPath,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   decoration: const BoxDecoration(

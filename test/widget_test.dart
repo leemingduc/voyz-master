@@ -102,6 +102,20 @@ void main() {
     },
   );
 
+  testWidgets('bottom sheet navigation stays a compact floating dock', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(bottomSheet: BottomNavBar(currentIndex: 0)),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(BottomNavBar)).height, lessThan(100));
+  });
+
   testWidgets('AI tools uses the shared AIVIVU header', (
     WidgetTester tester,
   ) async {
