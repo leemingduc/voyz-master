@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/services/search_history_service.dart';
 
 void main() {

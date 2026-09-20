@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/models/ai_function_call.dart';
 import 'package:voyz/models/best_time_travel.dart';
 import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/models/cultural_tips.dart';
@@ -902,6 +903,218 @@ Trả về JSON object với cấu trúc:
     }
     return text.trim();
   }
+
+  /// Send a chat message with AI Function Calling capabilities enabled.
+  ///
+  /// Gemini can detect user intent and return function call requests for:
+  /// - `navigateToPage` (saved, planner, explore)
+  /// - `createTravelPlan` (destination, durationDays, budgetTier, interests, notes)
+  Future<AIFunctionCallResult> chatWithFunctionCalling(
+    String message, {
+    required List<ChatMessage> history,
+    String languageCode = 'vi',
+    String? destinationName,
+  }) async {
+    final langInst = chatLanguageInstruction(languageCode);
+
+    final contents = <Content>[];
+
+    // System instruction defining AI persona and tool guidance
+    contents.add(
+      Content.text(
+        'You are an intelligent AI travel assistant for the Voyz app. '
+        'Help users plan trips, discover destinations, navigate screens, compare places, check travel timing, read cultural guides, and answer travel questions. '
+        'You have access to tools for web app actions: '
+        '1. Use "navigateToPage" tool when user asks to open/go to "saved", "planner", "explore", or "ai_tools" page. '
+        '2. Use "createTravelPlan" tool when user asks to plan a trip or build an itinerary for a destination. '
+        '3. Use "compareDestinations" tool when user asks to compare 2 or 3 destinations. '
+        '4. Use "getBestTimeToTravel" tool when user asks when is the best time or month to visit a destination. '
+        '5. Use "getCulturalTips" tool when user asks for local etiquette, do\'s & don\'ts, phrases, or cultural advice for a destination. '
+        '6. Use "viewDestinationDetail" tool when user asks to see details, landmarks, or guide for a specific destination. '
+        'Be helpful, concise, friendly, and enthusiastic. '
+        '${destinationName == null || destinationName.isEmpty ? '' : 'The user is currently viewing $destinationName. '} '
+        '$langInst',
+      ),
+    );
+
+    // Add prior conversation history
+    for (final msg in history) {
+      if (msg.isUser) {
+        contents.add(Content.text(msg.text));
+      } else {
+        contents.add(Content('model', [TextPart(msg.text)]));
+      }
+    }
+
+    // Add current user prompt
+    contents.add(Content.text(message));
+
+    final tools = _buildFunctionCallingTools();
+    final modelWithTools = GenerativeModel(
+      model: modelName,
+      apiKey: requireApiKey(dotenv.env['GEMINI_API_KEY']),
+      tools: tools,
+      generationConfig: GenerationConfig(
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      ),
+    );
+
+    final response = await modelWithTools.generateContent(contents);
+
+    String? functionName;
+    Map<String, dynamic>? arguments;
+
+    final functionCalls = response.functionCalls.toList();
+    if (functionCalls.isNotEmpty) {
+      final call = functionCalls.first;
+      functionName = call.name;
+      arguments = Map<String, dynamic>.from(call.args);
+    }
+
+    var text = response.text?.trim() ?? '';
+    if (text.isEmpty) {
+      if (functionName == 'navigateToPage') {
+        final page = arguments?['page']?.toString().toLowerCase() ?? '';
+        final pageLabel = switch (page) {
+          'saved' => 'Chuyến đi đã lưu (Saved)',
+          'planner' => 'Lên kế hoạch (Planner)',
+          'explore' => 'Khám phá (Explore)',
+          'ai_tools' => 'Trung tâm công cụ AI (AI Tools)',
+          _ => page,
+        };
+        text = 'Đang chuyển sang trang $pageLabel giúp bạn...';
+      } else if (functionName == 'createTravelPlan') {
+        final dest = arguments?['destination']?.toString() ?? 'điểm đến';
+        final days = arguments?['durationDays'];
+        final daysText = days != null ? ' ($days ngày)' : '';
+        text = 'Đã khởi tạo kế hoạch du lịch $dest$daysText cho bạn! Đang mở trang lịch trình...';
+      } else if (functionName == 'compareDestinations') {
+        final raw = arguments?['destinations'];
+        final destList = TripData.stringList(raw);
+        final dests = destList.join(' và ');
+        text = 'Đang chuẩn bị bảng so sánh chi tiết cho ${dests.isNotEmpty ? dests : "các điểm đến"}...';
+      } else if (functionName == 'getBestTimeToTravel') {
+        final dest = arguments?['destination']?.toString() ?? 'điểm đến';
+        text = 'Đang phân tích thời điểm lý tưởng nhất để du lịch $dest...';
+      } else if (functionName == 'getCulturalTips') {
+        final dest = arguments?['destination']?.toString() ?? 'điểm đến';
+        text = 'Đang tổng hợp hướng dẫn văn hóa và mẹo ứng xử tại $dest...';
+      } else if (functionName == 'viewDestinationDetail') {
+        final dest = arguments?['destination']?.toString() ?? 'điểm đến';
+        text = 'Đang mở thông tin chi tiết về $dest...';
+      } else {
+        text = 'Tôi đã nhận được yêu cầu của bạn.';
+      }
+    }
+
+    return AIFunctionCallResult(
+      responseText: text,
+      functionName: functionName,
+      arguments: arguments,
+    );
+  }
+
+  /// Builds tools for AI Function Calling (Page Navigation & Travel Planning & AI Tools).
+  List<Tool> _buildFunctionCallingTools() {
+    return [
+      Tool(
+        functionDeclarations: [
+          FunctionDeclaration(
+            'navigateToPage',
+            'Switch or navigate screen view to one of the main app pages: "saved" (trang đã lưu), "planner" (trang lên kế hoạch), "explore" (trang khám phá), or "ai_tools" (trung tâm công cụ AI). Use this tool whenever user asks to open or go to these screens.',
+            Schema.object(
+              properties: {
+                'page': Schema.string(
+                  description: 'Target page ID: "saved", "planner", "explore", or "ai_tools"',
+                ),
+              },
+              requiredProperties: ['page'],
+            ),
+          ),
+          FunctionDeclaration(
+            'createTravelPlan',
+            'Create or generate a travel itinerary plan for a specific destination with parameters like destination name, duration in days, budget tier, travel interests, and notes. Use this tool whenever user asks to plan a trip or build an itinerary.',
+            Schema.object(
+              properties: {
+                'destination': Schema.string(
+                  description: 'Destination name, e.g., Đà Lạt, Phú Quốc, Tokyo, Paris, Sapa',
+                ),
+                'durationDays': Schema.integer(
+                  description: 'Duration of the trip in days (e.g. 3, 5, 7)',
+                  nullable: true,
+                ),
+                'budgetTier': Schema.string(
+                  description: 'Budget tier: "budget", "moderate", or "luxury"',
+                  nullable: true,
+                ),
+                'interests': Schema.array(
+                  description: 'List of interest tags, e.g. ["beach", "food", "culture", "adventure", "wellness"]',
+                  items: Schema.string(),
+                  nullable: true,
+                ),
+                'notes': Schema.string(
+                  description: 'Additional travel notes or special preferences',
+                  nullable: true,
+                ),
+              },
+              requiredProperties: ['destination'],
+            ),
+          ),
+          FunctionDeclaration(
+            'compareDestinations',
+            'Compare 2 or 3 travel destinations side-by-side by cost, weather, food, and activities. Use this tool whenever user asks to compare two or three destinations (e.g. compare Da Lat and Sapa).',
+            Schema.object(
+              properties: {
+                'destinations': Schema.array(
+                  description: 'List of 2 to 3 destination names to compare, e.g. ["Đà Lạt", "Sapa"]',
+                  items: Schema.string(),
+                ),
+              },
+              requiredProperties: ['destinations'],
+            ),
+          ),
+          FunctionDeclaration(
+            'getBestTimeToTravel',
+            'Analyze the best month, season, weather, and practical travel tips for a destination. Use this tool whenever user asks when is the best time to visit a destination.',
+            Schema.object(
+              properties: {
+                'destination': Schema.string(
+                  description: 'Destination name, e.g., Nha Trang, Đà Lạt, Tokyo',
+                ),
+              },
+              requiredProperties: ['destination'],
+            ),
+          ),
+          FunctionDeclaration(
+            'getCulturalTips',
+            'Get local cultural etiquette, do\'s & don\'ts, essential local phrases, and temple/dining rules for a destination. Use this tool whenever user asks about culture, etiquette, or rules for a destination.',
+            Schema.object(
+              properties: {
+                'destination': Schema.string(
+                  description: 'Destination name, e.g., Tokyo, Bali, Kyoto',
+                ),
+              },
+              requiredProperties: ['destination'],
+            ),
+          ),
+          FunctionDeclaration(
+            'viewDestinationDetail',
+            'View detailed information, landmark photo gallery, and travel guide for a specific destination. Use this tool whenever user asks to see details or view information for a destination.',
+            Schema.object(
+              properties: {
+                'destination': Schema.string(
+                  description: 'Destination name, e.g., Phú Quốc, Đà Nẵng, Paris',
+                ),
+              },
+              requiredProperties: ['destination'],
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
 
   // ── Compare Destinations ──────────────────────────────────────────────────
 

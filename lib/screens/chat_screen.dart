@@ -1,18 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/data/saved_trips_provider.dart';
+import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/models/ai_function_call.dart';
 import 'package:voyz/models/chat_message.dart';
-import 'package:voyz/screens/smart_planner_screen.dart';
+import 'package:voyz/screens/ai_tools_screen.dart';
+import 'package:voyz/screens/best_time_screen.dart';
+import 'package:voyz/screens/compare_screen.dart';
+import 'package:voyz/screens/cultural_tips_screen.dart';
+import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
-import 'package:voyz/services/gemini_service.dart';
+import 'package:voyz/screens/smart_planner_screen.dart';
+import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/services/chat_history_service.dart';
+import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
-/// AI Travel Chatbot screen — chat directly with the AI travel assistant.
+/// AI Travel Chatbot screen — chat directly with the AI travel assistant with Function Calling capabilities.
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, this.destinationName});
 
@@ -35,7 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await ChatHistoryService.instance.load(destinationName: widget.destinationName);
+    final history = await ChatHistoryService.instance.load(
+      destinationName: widget.destinationName,
+    );
     if (!mounted) return;
     setState(() {
       _messages
@@ -50,8 +61,10 @@ class _ChatScreenState extends State<ChatScreen> {
     unawaited(_persistMessages());
   }
 
-  Future<void> _persistMessages() =>
-      ChatHistoryService.instance.save(_messages, destinationName: widget.destinationName);
+  Future<void> _persistMessages() => ChatHistoryService.instance.save(
+    _messages,
+    destinationName: widget.destinationName,
+  );
 
   @override
   void dispose() {
@@ -74,22 +87,53 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final response = await GeminiService.instance.chat(
+      final result = await GeminiService.instance.chatWithFunctionCalling(
         text,
-        // The current user message was just appended above; pass only prior
-        // messages so it is not duplicated in the prompt.
         history: _messages.take(_messages.length - 1).toList(),
         languageCode: LocaleProvider.of(context).value.languageCode,
         destinationName: widget.destinationName,
       );
 
       if (mounted) {
+        String? actionSummary;
+        if (result.hasFunctionCall) {
+          if (result.functionName == 'navigateToPage') {
+            final page = result.arguments?['page']?.toString() ?? '';
+            actionSummary = '✨ Điều hướng: Trang ${page.toUpperCase()}';
+          } else if (result.functionName == 'createTravelPlan') {
+            final dest = result.arguments?['destination']?.toString() ?? '';
+            actionSummary = '✈️ Khởi tạo chuyến đi: $dest';
+          } else if (result.functionName == 'compareDestinations') {
+            final dests = TripData.stringList(result.arguments?['destinations']).join(', ');
+            actionSummary = '⚖️ So sánh: $dests';
+          } else if (result.functionName == 'getBestTimeToTravel') {
+            final dest = result.arguments?['destination']?.toString() ?? '';
+            actionSummary = '☀️ Thời điểm du lịch: $dest';
+          } else if (result.functionName == 'getCulturalTips') {
+            final dest = result.arguments?['destination']?.toString() ?? '';
+            actionSummary = '⛩️ Mẹo văn hóa: $dest';
+          } else if (result.functionName == 'viewDestinationDetail') {
+            final dest = result.arguments?['destination']?.toString() ?? '';
+            actionSummary = '📍 Chi tiết: $dest';
+          }
+        }
+
         setState(() {
-          _messages.add(ChatMessage.ai(response));
+          _messages.add(
+            ChatMessage.ai(
+              result.responseText,
+              actionName: result.functionName,
+              actionSummary: actionSummary,
+            ),
+          );
           _isSending = false;
         });
         unawaited(_persistMessages());
         _scrollToBottom();
+
+        if (result.hasFunctionCall) {
+          _handleFunctionCall(result);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -101,6 +145,119 @@ class _ChatScreenState extends State<ChatScreen> {
         unawaited(_persistMessages());
         _scrollToBottom();
       }
+    }
+  }
+
+  void _handleFunctionCall(AIFunctionCallResult result) {
+    if (!mounted) return;
+
+    final name = result.functionName;
+    final args = result.arguments ?? {};
+
+    if (name == 'navigateToPage') {
+      final page = args['page']?.toString().toLowerCase() ?? '';
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        switch (page) {
+          case 'saved':
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const SavedScreen()),
+              (route) => false,
+            );
+            break;
+          case 'planner':
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const SmartPlannerScreen()),
+              (route) => false,
+            );
+            break;
+          case 'explore':
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const ExploreScreen()),
+              (route) => false,
+            );
+            break;
+          case 'ai_tools':
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AIToolsScreen()),
+            );
+            break;
+        }
+      });
+    } else if (name == 'createTravelPlan') {
+      final destination = args['destination']?.toString() ?? '';
+      final durationDays = (args['durationDays'] as num?)?.toInt() ?? 3;
+      final budgetTier = args['budgetTier']?.toString() ?? 'moderate';
+      final interests = TripData.stringList(args['interests']);
+      final notes = args['notes']?.toString() ?? '';
+
+      if (destination.isNotEmpty) {
+        final now = DateTime.now();
+        final depart = DateTime(now.year, now.month, now.day + 1);
+        final returnDate = depart.add(Duration(days: durationDays));
+
+        final currentTrip = SavedTripsProvider.of(context).currentTrip;
+        final updatedTrip = currentTrip.copyWith(
+          destination: destination,
+          departDate: depart,
+          returnDate: returnDate,
+          budget: budgetTier,
+          selectedInterests: interests.isNotEmpty ? interests : currentTrip.selectedInterests,
+          additionalNotes: notes.isNotEmpty ? notes : currentTrip.additionalNotes,
+          aiPrompt: 'Tạo lịch trình du lịch $durationDays ngày tại $destination ($budgetTier budget)',
+        );
+
+        SavedTripsProvider.of(context).updateTrip(updatedTrip);
+
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          if (!mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SuggestionsScreen(),
+            ),
+          );
+        });
+      }
+    } else if (name == 'compareDestinations') {
+      final destinations = TripData.stringList(args['destinations']);
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CompareScreen(initialDestinations: destinations),
+          ),
+        );
+      });
+    } else if (name == 'getBestTimeToTravel') {
+      final destination = args['destination']?.toString() ?? '';
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BestTimeScreen(initialDestination: destination),
+          ),
+        );
+      });
+    } else if (name == 'getCulturalTips') {
+      final destination = args['destination']?.toString() ?? '';
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CulturalTipsScreen(destinationName: destination),
+          ),
+        );
+      });
+    } else if (name == 'viewDestinationDetail') {
+      final destination = args['destination']?.toString() ?? '';
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DestinationDetailScreen(destinationName: destination),
+          ),
+        );
+      });
     }
   }
 
@@ -270,6 +427,23 @@ class _ChatBubble extends StatelessWidget {
 
   final ChatMessage message;
 
+  IconData _getActionIcon(String? name) {
+    switch (name) {
+      case 'createTravelPlan':
+        return Icons.flight_takeoff;
+      case 'compareDestinations':
+        return Icons.compare_arrows;
+      case 'getBestTimeToTravel':
+        return Icons.wb_sunny_outlined;
+      case 'getCulturalTips':
+        return Icons.menu_book_outlined;
+      case 'viewDestinationDetail':
+        return Icons.place_outlined;
+      default:
+        return Icons.touch_app;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
@@ -316,13 +490,54 @@ class _ChatBubble extends StatelessWidget {
                       : Colors.white.withValues(alpha: 0.1),
                 ),
               ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message.text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  if (message.actionSummary != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentBlue.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.accentBlue.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getActionIcon(message.actionName),
+                            color: AppTheme.accentBlue,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            message.actionSummary!,
+                            style: const TextStyle(
+                              color: AppTheme.accentBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
