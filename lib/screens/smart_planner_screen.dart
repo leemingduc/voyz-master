@@ -273,26 +273,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 820),
+                      constraints: const BoxConstraints(maxWidth: 1180),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 16),
-                          ShaderMask(
-                            blendMode: BlendMode.srcIn,
-                            shaderCallback: AppTheme.brandGradient.createShader,
-                            child: Text(
-                              l10n.plannerGreeting,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.8,
-                                height: 1.15,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _AiPromptBox(controller: _promptController),
+                          _buildPlannerHero(theme, l10n),
                           const SizedBox(height: 24),
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -346,8 +332,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          _buildBudgetTierSelector(l10n),
-                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
@@ -374,8 +358,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          _buildInterests(l10n),
                           const SizedBox(height: 24),
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -543,6 +525,139 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         ),
       ),
       bottomSheet: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
+    );
+  }
+
+  Widget _buildPlannerHero(ThemeData theme, AppLocalizations l10n) {
+    final intro = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppTheme.cyan.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: AppTheme.cyan.withValues(alpha: 0.32)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  color: AppTheme.cyan,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.smartPlanner.toUpperCase(),
+                style: const TextStyle(
+                  color: AppTheme.cyan,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: AppTheme.brandGradient.createShader,
+          child: Text(
+            l10n.plannerGreeting,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -0.9,
+              height: 1.12,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final prompt = _AiPromptBox(
+      controller: _promptController,
+      onSuggest: _onGetSuggestions,
+      onExplore: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ExploreScreen()));
+      },
+    );
+
+    final quickPrompts = _QuickPromptChips(
+      onSelected: (promptText) => _promptController.text = promptText,
+    );
+
+    final filters = LayoutBuilder(
+      builder: (context, constraints) {
+        final canUseTwoColumns = constraints.maxWidth >= 560;
+        final budget = _buildBudgetTierSelector(l10n);
+        final interests = _buildInterests(l10n);
+        if (!canUseTwoColumns) {
+          return Column(
+            children: [budget, const SizedBox(height: 12), interests],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: budget),
+            const SizedBox(width: 14),
+            Expanded(child: interests),
+          ],
+        );
+      },
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 900;
+        if (!isDesktop) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              intro,
+              const SizedBox(height: 20),
+              const _CosmicEarthArtwork(),
+              const SizedBox(height: 24),
+              prompt,
+              const SizedBox(height: 12),
+              quickPrompts,
+              const SizedBox(height: 20),
+              filters,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Expanded(flex: 9, child: _CosmicEarthArtwork()),
+            const SizedBox(width: 42),
+            Expanded(
+              flex: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  intro,
+                  const SizedBox(height: 22),
+                  prompt,
+                  const SizedBox(height: 12),
+                  quickPrompts,
+                  const SizedBox(height: 20),
+                  filters,
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -843,59 +958,207 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 }
 
 class _AiPromptBox extends StatelessWidget {
-  const _AiPromptBox({required this.controller});
+  const _AiPromptBox({
+    required this.controller,
+    required this.onSuggest,
+    required this.onExplore,
+  });
 
   final TextEditingController controller;
+  final VoidCallback onSuggest;
+  final VoidCallback onExplore;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary;
+    final primaryColor = Theme.of(context).colorScheme.primary;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+        color: AppTheme.surfaceDark.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.9),
+          width: 2,
+        ),
         boxShadow: [
-          BoxShadow(color: primaryColor.withValues(alpha: 0.1), blurRadius: 20),
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.12),
+            blurRadius: 20,
+          ),
         ],
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          TextField(
-            controller: controller,
-            maxLines: 3,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: l10n.aiPromptHint,
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
-                fontSize: 14,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.search, color: primaryColor, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  maxLines: 2,
+                  minLines: 2,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: l10n.aiPromptHint,
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      fontSize: 16,
+                      height: 1.25,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
               ),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Divider(color: primaryColor.withValues(alpha: 0.1), height: 1),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
-            child: Text(
-              l10n.aiPowered,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-                color: primaryColor.withValues(alpha: 0.8),
-              ),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: onExplore,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white.withValues(alpha: 0.85),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: Text(l10n.explore),
+                ),
+                ElevatedButton.icon(
+                  onPressed: onSuggest,
+                  icon: const Icon(Icons.auto_awesome, size: 17),
+                  label: Text(l10n.getAiSuggestions),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickPromptChips extends StatelessWidget {
+  const _QuickPromptChips({required this.onSelected});
+
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const prompts = [
+      'Tokyo mùa hoa anh đào',
+      'Đà Lạt 3 ngày 2 đêm',
+      'Bali nghỉ dưỡng',
+      'Phú Quốc ngắm hoàng hôn',
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          'Gợi ý nhanh:',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.56),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        ...prompts.map(
+          (prompt) => ActionChip(
+            label: Text(prompt),
+            onPressed: () => onSelected(prompt),
+            avatar: const Icon(Icons.auto_awesome, size: 14),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CosmicEarthArtwork extends StatelessWidget {
+  const _CosmicEarthArtwork();
+
+  static const _earthImageUrl =
+      'https://lh3.googleusercontent.com/aida/AEtjO1UQPvyT_nu9zU5FsVtxdmDeFtCn3iQ24_GfiR953ImfJe-9Y5pztaYxfgKGhydo99NfTER2JWUvvHKCFNgR1kQmXnZYNGHTicNY-N9tmTJ9C5Qc-EoO4eAhLUax6VzQfR-W8LBA7xOjCzX24UfNjIflS_CO1DpPujHOs071Jsx3fLIa5J1rm4f3O5LovGlzGkQayPNXiHv8O9eYEBHs8nwOtPg3zfTkwdMScjfzF4ocRcjUqP2d8L_kPE8';
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          gradient: AppTheme.brandGradient,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.violet.withValues(alpha: 0.24),
+              blurRadius: 30,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                _earthImageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [Color(0xFF143651), AppTheme.backgroundDark],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.public,
+                    color: AppTheme.cyan,
+                    size: 96,
+                  ),
+                ),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      AppTheme.backgroundDark.withValues(alpha: 0.12),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
