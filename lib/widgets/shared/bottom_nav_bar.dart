@@ -12,8 +12,8 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final activeIndex = currentIndex.clamp(0, 2);
 
     final items = [
       _NavItem(
@@ -33,50 +33,83 @@ class BottomNavBar extends StatelessWidget {
       ),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundDark.withValues(alpha: 0.95),
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark.withValues(alpha: 0.94),
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+          ),
         ),
-      ),
-      padding: const EdgeInsets.only(top: 12, bottom: 28, left: 8, right: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (i) {
-          final item = items[i];
-          final isActive = i == currentIndex;
-          final color = isActive
-              ? theme.colorScheme.primary
-              : const Color(0xFF64748B);
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final item = items[i];
+            final isActive = i == activeIndex;
+            final color = isActive ? AppTheme.cyan : AppTheme.textMuted;
 
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTap?.call(i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isActive ? item.activeIcon : item.icon,
-                    color: color,
-                    size: 26,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                      color: color,
-                      letterSpacing: 0.5,
+            return Expanded(
+              child: Semantics(
+                selected: isActive,
+                button: true,
+                child: InkWell(
+                  onTap: () => onTap?.call(i),
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    height: 52,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          key: isActive
+                              ? const ValueKey('bottom_nav_active_indicator')
+                              : null,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          width: 42,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(15),
+                            color: isActive
+                                ? AppTheme.cyan.withValues(alpha: 0.16)
+                                : Colors.transparent,
+                            border: isActive
+                                ? Border.all(
+                                    color: AppTheme.cyan.withValues(
+                                      alpha: 0.28,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          child: Icon(
+                            isActive ? item.activeIcon : item.icon,
+                            color: color,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isActive
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: color,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }

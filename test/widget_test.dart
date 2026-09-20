@@ -5,6 +5,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/splash_screen.dart';
+import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
 /// A minimal widget that renders a single localized string so we can assert
@@ -51,6 +52,27 @@ void main() {
 
     expect(find.text('AIVIVU'), findsOneWidget);
   });
+
+  testWidgets(
+    'bottom navigation has three equal destinations and an active indicator',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            bottomNavigationBar: BottomNavBar(currentIndex: 1),
+          ),
+        ),
+      );
+
+      expect(find.byType(Expanded), findsNWidgets(3));
+      expect(
+        find.byKey(const ValueKey('bottom_nav_active_indicator')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('generated localization supplies Vietnamese copy', (
     tester,
