@@ -7,9 +7,10 @@ import 'package:voyz/models/destination_detail.dart';
 /// Service to fetch real destination photography from verifiable sources.
 ///
 /// Priority chain:
-///   1. Wikipedia REST summary (vi rồi en với tên có dấu, en rồi vi với tên không dấu), 1 request, CORS chính thức,
-///      server trả sẵn URL thumbnail hợp lệ nên không bao giờ dính 400/404
-///      do tự đoán hash path hay kích thước thumb.
+///   1. Wikipedia REST summary (vi rồi en với tên có dấu, en rồi vi với tên
+///      không dấu), 1 request, CORS chính thức, server trả sẵn URL thumbnail
+///      hợp lệ nên không bao giờ dính 400/404 do tự đoán hash path hay
+///      kích thước thumb.
 ///   2. Wikimedia Commons full-text search.
 ///   3. Chuỗi rỗng — UI đã có errorWidget placeholder ở mọi call site.
 ///
@@ -95,7 +96,9 @@ class ImageService {
     List<String> landmarkTitles,
   ) async {
     final urls = await _inBatches(landmarkTitles, (title) {
-      final query = title.isNotEmpty ? '$title, $destinationName' : destinationName;
+      final query = title.isNotEmpty
+          ? '$title, $destinationName'
+          : destinationName;
       return getImageUrl(query);
     });
     return [

@@ -583,7 +583,10 @@ Quy tắc quan trọng:
     return [
       for (final photo in gallery)
         photo.imageUrl.isEmpty
-            ? DestinationLandmarkPhoto(title: photo.title, imageUrl: mainImageUrl)
+            ? DestinationLandmarkPhoto(
+                title: photo.title,
+                imageUrl: mainImageUrl,
+              )
             : photo,
     ];
   }
