@@ -62,7 +62,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           limit: 10,
           forceRefresh: forceRefresh,
         );
-      } catch (_) {
+      } catch (e) {
+        debugPrint('ExploreScreen: repository failed, falling back to Gemini: $e');
         results = const [];
       }
 
