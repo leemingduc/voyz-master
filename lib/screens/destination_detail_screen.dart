@@ -64,10 +64,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
     try {
       final trip = SavedTripsProvider.of(context).currentTrip;
-      final dbDetail = await DestinationRepository.instance.getDestinationDetail(
-        widget.destinationName,
-      );
-      final detail = dbDetail ??
+      final dbDetail = await DestinationRepository.instance
+          .getDestinationDetail(widget.destinationName);
+      final detail =
+          dbDetail ??
           await GeminiService.instance.getDestinationDetail(
             widget.destinationName,
             trip,
@@ -101,8 +101,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         if (mounted) setState(() => _isLoadingReviews = false);
         return;
       }
-      final reviews = await CommunityReviewService.instance
-          .listForDestination(destinationId);
+      final reviews = await CommunityReviewService.instance.listForDestination(
+        destinationId,
+      );
       if (!mounted) return;
       setState(() {
         _destinationId = destinationId;
@@ -128,19 +129,20 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       _reviewController.clear();
       await _loadReviews();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Review saved')));
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     } finally {
       if (mounted) setState(() => _isSavingReview = false);
     }
   }
+
   Future<void> _prefetchItinerary() async {
     try {
       final trip = SavedTripsProvider.of(context).currentTrip;
@@ -356,56 +358,66 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _LocationSubtitle(theme: theme, location: d.location),
-                      const SizedBox(height: 8),
-                      Text(
-                        d.name,
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.sizeOf(context).width >= 900
+                        ? 40
+                        : 24,
+                  ),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1100),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _LocationSubtitle(theme: theme, location: d.location),
+                          const SizedBox(height: 8),
+                          Text(
+                            d.name,
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _TagsRow(tags: d.tags),
+                          if (d.gallery.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _LandmarkGallerySection(
+                              gallery: d.gallery,
+                              fallbackUrl: d.imageUrl,
+                              onSelectPhoto: (url) {
+                                setState(() {
+                                  _activeHeroUrl = url;
+                                });
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          _WeatherCard(
+                            theme: theme,
+                            weather: d.weather,
+                            dateRange: d.dateRange,
+                          ),
+                          const SizedBox(height: 16),
+                          _BudgetCard(
+                            theme: theme,
+                            totalBudget: d.totalBudget,
+                            breakdown: d.budgetBreakdown,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildReviewsSection(theme),
+                          const SizedBox(height: 32),
+                          _ActionButtons(
+                            theme: theme,
+                            onSaveInfo: () => _onSaveInfo(context),
+                            destinationName: d.name,
+                            dateRange: d.dateRange,
+                          ),
+                          const SizedBox(height: 120),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _TagsRow(tags: d.tags),
-                      if (d.gallery.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        _LandmarkGallerySection(
-                          gallery: d.gallery,
-                          fallbackUrl: d.imageUrl,
-                          onSelectPhoto: (url) {
-                            setState(() {
-                              _activeHeroUrl = url;
-                            });
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      _WeatherCard(
-                        theme: theme,
-                        weather: d.weather,
-                        dateRange: d.dateRange,
-                      ),
-                      const SizedBox(height: 16),
-                      _BudgetCard(
-                        theme: theme,
-                        totalBudget: d.totalBudget,
-                        breakdown: d.budgetBreakdown,
-                      ),
-                      const SizedBox(height: 24),
-                      _buildReviewsSection(theme),
-                      const SizedBox(height: 32),
-                      _ActionButtons(
-                        theme: theme,
-                        onSaveInfo: () => _onSaveInfo(context),
-                        destinationName: d.name,
-                        dateRange: d.dateRange,
-                      ),
-                      const SizedBox(height: 120),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -425,7 +437,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   Widget _buildReviewsSection(ThemeData theme) {
     final average = _reviews.isEmpty
         ? null
-        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) / _reviews.length;
+        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+              _reviews.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -483,7 +496,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               fillColor: Colors.white.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
             ),
           ),
@@ -491,8 +506,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
-              onPressed: _destinationId == null || _isSavingReview ? null : _submitReview,
-              icon: Icon(_isSavingReview ? Icons.hourglass_empty : Icons.send, size: 16),
+              onPressed: _destinationId == null || _isSavingReview
+                  ? null
+                  : _submitReview,
+              icon: Icon(
+                _isSavingReview ? Icons.hourglass_empty : Icons.send,
+                size: 16,
+              ),
               label: Text(_isSavingReview ? 'Saving' : 'Post review'),
             ),
           ),
@@ -562,6 +582,7 @@ class _ReviewTile extends StatelessWidget {
     );
   }
 }
+
 class _HeroSection extends StatelessWidget {
   const _HeroSection({
     required this.theme,
@@ -1159,7 +1180,9 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: const Color(0xFFE91E63).withValues(alpha: 0.35),
+                              color: const Color(
+                                0xFFE91E63,
+                              ).withValues(alpha: 0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 3),
                             ),
@@ -1182,7 +1205,10 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
                           ),
                           errorWidget: (_, _, _) => Container(
                             color: const Color(0xFF1E1B2E),
-                            child: const Icon(Icons.landscape, color: Colors.white24),
+                            child: const Icon(
+                              Icons.landscape,
+                              color: Colors.white24,
+                            ),
                           ),
                         ),
                         Positioned.fill(

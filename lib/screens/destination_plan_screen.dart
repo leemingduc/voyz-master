@@ -244,6 +244,9 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     final currentDay = _selectedDay < plan.days.length
         ? plan.days[_selectedDay]
         : null;
+    final contentHorizontalPadding = MediaQuery.sizeOf(context).width >= 900
+        ? 40.0
+        : 24.0;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -264,41 +267,53 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                   children: [
                     if (currentDay != null)
                       SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 140),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              currentDay.title,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
+                        padding: EdgeInsets.fromLTRB(
+                          contentHorizontalPadding,
+                          16,
+                          contentHorizontalPadding,
+                          140,
+                        ),
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1000),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  currentDay.title,
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  currentDay.subtitle,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                _Timeline(items: currentDay.items),
+                                const SizedBox(height: 8),
+                                _RefinementActions(
+                                  isLoading: _isRefining,
+                                  onBudget: () => _refinePlan(
+                                    'Ưu tiên giảm tổng chi phí và giữ các lựa chọn có giá trị tốt.',
+                                  ),
+                                  onFamily: () => _refinePlan(
+                                    'Ưu tiên lịch trình phù hợp cho trẻ em hoặc người lớn tuổi, với nhịp độ thoải mái.',
+                                  ),
+                                  onLessTravel: () => _refinePlan(
+                                    'Ưu tiên các điểm gần nhau để giảm thời gian và quãng đường di chuyển.',
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              currentDay.subtitle,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            _Timeline(items: currentDay.items),
-                            const SizedBox(height: 8),
-                            _RefinementActions(
-                              isLoading: _isRefining,
-                              onBudget: () => _refinePlan(
-                                'Ưu tiên giảm tổng chi phí và giữ các lựa chọn có giá trị tốt.',
-                              ),
-                              onFamily: () => _refinePlan(
-                                'Ưu tiên lịch trình phù hợp cho trẻ em hoặc người lớn tuổi, với nhịp độ thoải mái.',
-                              ),
-                              onLessTravel: () => _refinePlan(
-                                'Ưu tiên các điểm gần nhau để giảm thời gian và quãng đường di chuyển.',
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     // Pro tip card

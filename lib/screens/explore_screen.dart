@@ -387,22 +387,48 @@ class _ExploreScreenState extends State<ExploreScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      itemCount: _destinations.length,
-      itemBuilder: (context, index) {
-        final dest = _destinations[index];
-        return _DestinationCard(
-          destination: dest,
-          isTopMatch: dest.isTopMatch,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    DestinationDetailScreen(destinationName: dest.name),
-              ),
-            );
-          },
+    Widget buildCard(int index) {
+      final dest = _destinations[index];
+      return _DestinationCard(
+        destination: dest,
+        isTopMatch: dest.isTopMatch,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  DestinationDetailScreen(destinationName: dest.name),
+            ),
+          );
+        },
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 760;
+        final padding = EdgeInsets.fromLTRB(
+          isWide ? 32 : 16,
+          8,
+          isWide ? 32 : 16,
+          100,
+        );
+        if (!isWide) {
+          return ListView.builder(
+            padding: padding,
+            itemCount: _destinations.length,
+            itemBuilder: (_, index) => buildCard(index),
+          );
+        }
+        return GridView.builder(
+          padding: padding,
+          itemCount: _destinations.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 420,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 20,
+            childAspectRatio: 0.82,
+          ),
+          itemBuilder: (_, index) => buildCard(index),
         );
       },
     );

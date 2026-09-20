@@ -270,260 +270,271 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTheme.spacingLg,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      ShaderMask(
-                        blendMode: BlendMode.srcIn,
-                        shaderCallback: AppTheme.brandGradient.createShader,
-                        child: Text(
-                          l10n.plannerGreeting,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.8,
-                            height: 1.15,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _AiPromptBox(controller: _promptController),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.edit_note,
-                              color: theme.colorScheme.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.requiredInfo,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: theme.colorScheme.primary,
-                                letterSpacing: 1,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 820),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          ShaderMask(
+                            blendMode: BlendMode.srcIn,
+                            shaderCallback: AppTheme.brandGradient.createShader,
+                            child: Text(
+                              l10n.plannerGreeting,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.8,
+                                height: 1.15,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      _buildTextField(
-                        icon: Icons.public,
-                        label: l10n.destination,
-                        hint: l10n.destinationHint,
-                        controller: _destinationController,
-                        keyboardType: TextInputType.text,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDateField(
-                              icon: Icons.calendar_today,
-                              label: l10n.departDate,
-                              value: _formatDate(_departDate, l10n),
-                              onTap: () => _pickDate(isDepart: true),
-                            ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDateField(
-                              icon: Icons.calendar_month,
-                              label: l10n.returnDate,
-                              value: _formatDate(_returnDate, l10n),
-                              onTap: () => _pickDate(isDepart: false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildBudgetTierSelector(l10n),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              icon: Icons.group,
-                              label: l10n.participants,
-                              hint: l10n.participantsHint,
-                              controller: _participantsController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
+                          const SizedBox(height: 24),
+                          _AiPromptBox(controller: _promptController),
+                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_note,
+                                  color: theme.colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  l10n.requiredInfo,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.primary,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              icon: Icons.cake,
-                              label: l10n.ageRange,
-                              hint: l10n.ageRangeHint,
-                              controller: _ageRangeController,
-                              keyboardType: TextInputType.number,
-                            ),
+                          _buildTextField(
+                            icon: Icons.public,
+                            label: l10n.destination,
+                            hint: l10n.destinationHint,
+                            controller: _destinationController,
+                            keyboardType: TextInputType.text,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInterests(l10n),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              color: Colors.white.withValues(alpha: 0.5),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.optionalInfo,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                l10n.optional.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  letterSpacing: 1,
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDateField(
+                                  icon: Icons.calendar_today,
+                                  label: l10n.departDate,
+                                  value: _formatDate(_departDate, l10n),
+                                  onTap: () => _pickDate(isDepart: true),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GlassCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF1E293B,
-                                ).withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildDateField(
+                                  icon: Icons.calendar_month,
+                                  label: l10n.returnDate,
+                                  value: _formatDate(_returnDate, l10n),
+                                  onTap: () => _pickDate(isDepart: false),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.sticky_note_2,
-                                color: Color(0xFF94A3B8),
-                                size: 20,
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildBudgetTierSelector(l10n),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  icon: Icons.group,
+                                  label: l10n.participants,
+                                  hint: l10n.participantsHint,
+                                  controller: _participantsController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.additionalNotes.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF64748B),
-                                      letterSpacing: 0.5,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTextField(
+                                  icon: Icons.cake,
+                                  label: l10n.ageRange,
+                                  hint: l10n.ageRangeHint,
+                                  controller: _ageRangeController,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInterests(l10n),
+                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  l10n.optionalInfo,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    l10n.optional.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      letterSpacing: 1,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _notesController,
-                                    maxLines: 3,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: l10n.notesHint,
-                                      hintStyle: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.25,
+                                ),
+                              ],
+                            ),
+                          ),
+                          GlassCard(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF1E293B,
+                                    ).withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.sticky_note_2,
+                                    color: Color(0xFF94A3B8),
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.additionalNotes.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF64748B),
+                                          letterSpacing: 0.5,
                                         ),
                                       ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.zero,
+                                      const SizedBox(height: 4),
+                                      TextField(
+                                        controller: _notesController,
+                                        maxLines: 3,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: l10n.notesHint,
+                                          hintStyle: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                          ),
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const ExploreScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    side: BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusMd,
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const ExploreScreen(),
-                                  ),
-                                );
-                              },
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMd,
+                                  child: Text(
+                                    l10n.explore,
+                                    style: const TextStyle(
+                                      color: Color(0xFFCBD5E1),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               ),
-                              child: Text(
-                                l10n.explore,
-                                style: const TextStyle(
-                                  color: Color(0xFFCBD5E1),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: GradientButton(
+                                  label: l10n.getAiSuggestions,
+                                  icon: Icons.arrow_forward,
+                                  height: 52,
+                                  onPressed: _onGetSuggestions,
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: GradientButton(
-                              label: l10n.getAiSuggestions,
-                              icon: Icons.arrow_forward,
-                              height: 52,
-                              onPressed: _onGetSuggestions,
-                            ),
-                          ),
+                          const SizedBox(height: 100),
                         ],
                       ),
-                      const SizedBox(height: 100),
-                    ],
+                    ),
                   ),
                 ),
               ),
