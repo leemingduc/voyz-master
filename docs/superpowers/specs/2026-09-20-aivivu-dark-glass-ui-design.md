@@ -25,6 +25,17 @@ screen flow.
 - Layouts must adapt cleanly from narrow mobile screens to tablets and desktop
   widths without changing interaction behavior.
 
+## Visual reference
+
+The supplied Stitch archive, `stitch_remix_of_remix_of_remix_of_responsive_ui_replication_design (1).zip`, is the visual reference for this work. Its screen mocks cover the existing app's splash, auth, planner, explore, suggestions, destination detail, itinerary, saved, chat, tools, compare, cultural, best-time, friends, and profile experiences.
+
+Adopt its visual cues: sparse star-like ambient texture, deep navy surfaces
+(`#10131A`), high-contrast editorial headings, cyan metadata markers,
+image-forward travel cards, and a restrained magenta CTA. Do not copy its
+sample content, placeholder data, desktop-only header navigation, or extra
+actions. Flutter's existing routes, localized copy, callbacks, and the
+three-destination bottom navigation remain authoritative.
+
 ## Visual architecture
 
 `AppTheme` becomes the source of truth for color tokens, radii, gradients,
