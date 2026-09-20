@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 
@@ -99,19 +99,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 48), // balance placeholder
           Column(
             children: [
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppTheme.brandGradient.createShader(bounds),
-                child: Text(
-                  MockData.appName,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 3,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              const AivivuWordmark(fontSize: 11, alignment: Alignment.center),
               const SizedBox(height: 2),
               const Text(
                 'Trip Workspace',

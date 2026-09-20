@@ -4,7 +4,9 @@ import 'package:hive/hive.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
+import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/splash_screen.dart';
+import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
@@ -53,6 +55,21 @@ void main() {
     expect(find.text('AIVIVU'), findsOneWidget);
   });
 
+  testWidgets('splash renders the shared AIVIVU wordmark', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SplashScreen(nextScreen: const SizedBox()),
+      ),
+    );
+
+    expect(find.byType(AivivuWordmark), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets(
     'bottom navigation has three equal destinations and an active indicator',
     (WidgetTester tester) async {
@@ -73,6 +90,20 @@ void main() {
       );
     },
   );
+
+  testWidgets('AI tools uses the shared AIVIVU header', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const AIToolsScreen(),
+      ),
+    );
+
+    expect(find.byType(AivivuHeader), findsOneWidget);
+  });
 
   testWidgets('generated localization supplies Vietnamese copy', (
     tester,

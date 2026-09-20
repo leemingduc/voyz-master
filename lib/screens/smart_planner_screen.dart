@@ -12,6 +12,7 @@ import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
@@ -68,7 +69,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       } catch (_) {}
       if (!mounted) return;
 
-      final preferredStyles = profile?.travelStyles
+      final preferredStyles =
+          profile?.travelStyles
               .map((style) => style.toLowerCase().replaceAll(' ', '_'))
               .toSet() ??
           const <String>{};
@@ -118,11 +120,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              surface: const Color(0xFF1A1C2E),
+              surface: AppTheme.surfaceDark,
               onSurface: Colors.white,
             ),
             dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF1A1C2E),
+              backgroundColor: AppTheme.surfaceDark,
             ),
           ),
           child: child!,
@@ -232,7 +234,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.5,
-            colors: [const Color(0xFF1A1C2E), AppTheme.backgroundDark],
+            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(
@@ -249,15 +251,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          l10n.appName,
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
+                        const AivivuWordmark(fontSize: 20),
                         Text(
                           l10n.smartPlanner,
                           style: TextStyle(
@@ -651,26 +645,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
   Widget _buildBudgetTierSelector(AppLocalizations l10n) {
     final tiers = [
-      (
-        key: 'economy',
-        label: l10n.budgetTierEconomy,
-        badge: '🪙',
-      ),
-      (
-        key: 'moderate',
-        label: l10n.budgetTierModerate,
-        badge: '☕',
-      ),
-      (
-        key: 'premium',
-        label: l10n.budgetTierPremium,
-        badge: '💎',
-      ),
-      (
-        key: 'luxury',
-        label: l10n.budgetTierLuxury,
-        badge: '👑',
-      ),
+      (key: 'economy', label: l10n.budgetTierEconomy, badge: '🪙'),
+      (key: 'moderate', label: l10n.budgetTierModerate, badge: '☕'),
+      (key: 'premium', label: l10n.budgetTierPremium, badge: '💎'),
+      (key: 'luxury', label: l10n.budgetTierLuxury, badge: '👑'),
     ];
 
     return GlassCard(
@@ -711,7 +689,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: tiers.map((tier) {
-                  final isSelected = _selectedBudgetTier.toLowerCase() == tier.key;
+                  final isSelected =
+                      _selectedBudgetTier.toLowerCase() == tier.key;
                   return InkWell(
                     borderRadius: BorderRadius.circular(10),
                     onTap: () {
@@ -729,10 +708,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                       decoration: BoxDecoration(
                         gradient: isSelected
                             ? const LinearGradient(
-                                colors: [
-                                  Color(0xFFE91E63),
-                                  Color(0xFFFF4081),
-                                ],
+                                colors: [Color(0xFFE91E63), Color(0xFFFF4081)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               )
@@ -750,9 +726,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFE91E63).withValues(
-                                    alpha: 0.35,
-                                  ),
+                                  color: const Color(
+                                    0xFFE91E63,
+                                  ).withValues(alpha: 0.35),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),

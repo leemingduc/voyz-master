@@ -252,7 +252,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.5,
-            colors: [const Color(0xFF0A1628), AppTheme.backgroundDark],
+            colors: [AppTheme.navyAccent, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(

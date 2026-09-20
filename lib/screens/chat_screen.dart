@@ -10,6 +10,7 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/chat_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 /// AI Travel Chatbot screen — chat directly with the AI travel assistant.
@@ -35,7 +36,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await ChatHistoryService.instance.load(destinationName: widget.destinationName);
+    final history = await ChatHistoryService.instance.load(
+      destinationName: widget.destinationName,
+    );
     if (!mounted) return;
     setState(() {
       _messages
@@ -50,8 +53,10 @@ class _ChatScreenState extends State<ChatScreen> {
     unawaited(_persistMessages());
   }
 
-  Future<void> _persistMessages() =>
-      ChatHistoryService.instance.save(_messages, destinationName: widget.destinationName);
+  Future<void> _persistMessages() => ChatHistoryService.instance.save(
+    _messages,
+    destinationName: widget.destinationName,
+  );
 
   @override
   void dispose() {
@@ -145,8 +150,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.chatTitle),
+      appBar: AivivuHeader(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

@@ -8,8 +8,8 @@ import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/utils/error_localizer.dart';
@@ -56,7 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-
   Future<void> _loadCloudProfile() async {
     final profile = await ProfileService.instance.loadCurrentProfile();
     if (!mounted) return;
@@ -66,7 +65,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _preferredCurrency = profile.preferredCurrency;
       _travelStyles = profile.travelStyles.toSet();
     });
-    await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+    await CurrencyProvider.of(
+      context,
+    ).setDisplayCurrency(profile.preferredCurrency);
   }
 
   Future<void> _savePreferences() async {
@@ -76,7 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         travelStyles: _travelStyles.toList(),
         preferredCurrency: _preferredCurrency,
       );
-      await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+      await CurrencyProvider.of(
+        context,
+      ).setDisplayCurrency(profile.preferredCurrency);
       if (!mounted) return;
       setState(() => _profile = profile);
       _showMessage('Travel preferences saved');
@@ -86,6 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _isSavingPreferences = false);
     }
   }
+
   Future<void> _pickImage() async {
     try {
       final image = await pickAvatarImage();
@@ -279,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.4,
-            colors: [Color(0xFF1A1C2E), AppTheme.backgroundDark],
+            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(
@@ -588,7 +592,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   Widget _buildPreferencesCard(ThemeData theme) {
     const styles = [
       'Beach',
@@ -693,6 +696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildPasswordCard(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     return GlassCard(
@@ -755,19 +759,7 @@ class _Header extends StatelessWidget {
             tooltip: l10n.back,
           ),
           const SizedBox(width: 4),
-          ShaderMask(
-            shaderCallback: (bounds) =>
-                AppTheme.brandGradient.createShader(bounds),
-            child: Text(
-              MockData.appName,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
+          const AivivuWordmark(fontSize: 18),
           const Spacer(),
           Text(
             l10n.profile,
