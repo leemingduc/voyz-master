@@ -195,6 +195,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 const AivivuWordmark(fontSize: 14),
                 const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cyan.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: AppTheme.cyan.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Text(
+                    '• AI TRAVEL INTELLIGENCE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppTheme.cyan,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   AppLocalizations.of(context)!.exploreTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(

@@ -274,12 +274,17 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      Text(
-                        l10n.plannerGreeting,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
+                      ShaderMask(
+                        blendMode: BlendMode.srcIn,
+                        shaderCallback: AppTheme.brandGradient.createShader,
+                        child: Text(
+                          l10n.plannerGreeting,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.8,
+                            height: 1.15,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
