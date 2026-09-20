@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
@@ -19,8 +18,9 @@ import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
-import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
+import 'package:voyz/widgets/shared/gradient_button.dart';
 
 /// Destination Detail screen - hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
@@ -426,6 +426,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 child: _HeroSection(
                   theme: theme,
                   imageUrl: _activeHeroUrl ?? d.imageUrl,
+                  destinationName: d.name,
                   onShare: () => _onShare(context),
                 ),
               ),
@@ -650,10 +651,12 @@ class _HeroSection extends StatelessWidget {
   const _HeroSection({
     required this.theme,
     required this.imageUrl,
+    required this.destinationName,
     required this.onShare,
   });
   final ThemeData theme;
   final String imageUrl;
+  final String destinationName;
   final VoidCallback onShare;
 
   @override
@@ -663,11 +666,9 @@ class _HeroSection extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CachedNetworkImage(
+          DestinationImage(
             imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            errorWidget: (ctx, url, err) =>
-                Container(color: const Color(0xFF1E293B)),
+            destinationName: destinationName,
           ),
           Container(
             decoration: BoxDecoration(
@@ -1250,22 +1251,9 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        CachedNetworkImage(
+                        DestinationImage(
                           imageUrl: photo.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(
-                            color: const Color(0xFF1E1B2E),
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => Container(
-                            color: const Color(0xFF1E1B2E),
-                            child: const Icon(
-                              Icons.landscape,
-                              color: Colors.white24,
-                            ),
-                          ),
+                          destinationName: photo.title,
                         ),
                         Positioned.fill(
                           child: DecoratedBox(

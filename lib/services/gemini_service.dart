@@ -571,6 +571,26 @@ Quy tắc quan trọng:
     return _parseDetail(text, destinationName);
   }
 
+  /// Landmark AI đặt tên thường không có trang Wikipedia riêng. Ô nào rỗng
+  /// thì dùng ảnh chính của điểm đến để gallery không có ô trống. Ảnh chính
+  /// cũng rỗng thì giữ nguyên, widget chung sẽ vẽ fallback.
+  @visibleForTesting
+  static List<DestinationLandmarkPhoto> fillEmptyLandmarkImages(
+    List<DestinationLandmarkPhoto> gallery,
+    String mainImageUrl,
+  ) {
+    if (mainImageUrl.isEmpty) return gallery;
+    return [
+      for (final photo in gallery)
+        photo.imageUrl.isEmpty
+            ? DestinationLandmarkPhoto(
+                title: photo.title,
+                imageUrl: mainImageUrl,
+              )
+            : photo,
+    ];
+  }
+
   /// Parse raw JSON text into a DestinationDetail with image and photo gallery.
   Future<DestinationDetail> _parseDetail(
     String text,
@@ -594,7 +614,11 @@ Quy tắc quan trọng:
           : [name, '$name beach', '$name city', '$name mountain'],
     );
 
-    return DestinationDetail.fromJson(json, imageUrl, gallery: gallery);
+    return DestinationDetail.fromJson(
+      json,
+      imageUrl,
+      gallery: fillEmptyLandmarkImages(gallery, imageUrl),
+    );
   }
 
   /// Builds the destination detail prompt. Public for testing only.

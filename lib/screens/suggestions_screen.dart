@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/mock_data.dart';
@@ -14,6 +13,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 
 /// AI Travel Suggestions screen — scrollable list of AI-recommended destinations.
 class SuggestionsScreen extends StatefulWidget {
@@ -396,13 +396,9 @@ class _CardImage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CachedNetworkImage(
+          DestinationImage(
             imageUrl: data['imageUrl'] as String,
-            fit: BoxFit.cover,
-            errorWidget: (_, e, s) => Container(
-              color: const Color(0xFF1E293B),
-              child: const Icon(Icons.image, color: Colors.white24, size: 48),
-            ),
+            destinationName: data['name'] as String,
           ),
           // Match badge
           Positioned(

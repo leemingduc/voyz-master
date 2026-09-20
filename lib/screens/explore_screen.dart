@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
@@ -12,6 +11,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 
 /// Explore screen — independent from AI Planner.
 ///
@@ -53,11 +53,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
-      var results = await DestinationRepository.instance.getFeaturedDestinations(
-        categoryKey: _selectedCategoryKey,
-        limit: 10,
-        forceRefresh: forceRefresh,
-      );
+      // Repository lỗi (mạng, Supabase) coi như rỗng để rơi xuống Gemini,
+      // thay vì hiện màn lỗi khi vẫn còn nguồn thứ hai.
+      List<DestinationSuggestion> results;
+      try {
+        results = await DestinationRepository.instance.getFeaturedDestinations(
+          categoryKey: _selectedCategoryKey,
+          limit: 10,
+          forceRefresh: forceRefresh,
+        );
+      } catch (e) {
+        debugPrint(
+          'ExploreScreen: repository failed, falling back to Gemini: $e',
+        );
+        results = const [];
+      }
 
       if (results.isEmpty) {
         results = await GeminiService.instance.getExploreTrending(
@@ -398,23 +408,9 @@ class _DestinationCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
+                    DestinationImage(
                       imageUrl: destination.imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(
-                        color: const Color(0xFF1E1B2E),
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Container(
-                        color: const Color(0xFF1E1B2E),
-                        child: const Icon(
-                          Icons.landscape,
-                          color: Colors.white24,
-                          size: 48,
-                        ),
-                      ),
+                      destinationName: destination.name,
                     ),
 
                     // Gradient overlay
