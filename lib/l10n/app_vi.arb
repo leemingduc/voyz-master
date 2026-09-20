@@ -254,5 +254,8 @@
   "currencyBritishPound": "Bảng Anh",
   "currencyAustralianDollar": "Đô la Úc",
   "currencySingaporeDollar": "Đô la Singapore",
-  "currencyCanadianDollar": "Đô la Canada"
+  "currencyCanadianDollar": "Đô la Canada",
+  "aiModel": "Mô hình AI",
+  "aiModelDescription": "Mô hình Gemini trả lời các câu hỏi du lịch của bạn. Mô hình lớn hơn suy nghĩ lâu hơn và có thể hết hạn mức miễn phí sớm hơn.",
+  "aiModelSaved": "Đã lưu mô hình AI"
 }

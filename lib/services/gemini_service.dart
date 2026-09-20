@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:intl/intl.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/best_time_travel.dart';
@@ -49,10 +50,11 @@ class GeminiService {
     };
   }
 
-  /// The single Gemini model used by every AI feature in the app.
-  static const modelName = 'gemini-3.1-flash-lite';
+  /// The Gemini model used by every AI feature, as picked in Profile.
+  String get modelName => AiModelSettings.instance.current;
 
   GenerativeModel? _model;
+  String? _modelNameInUse;
 
   /// Returns a configured Gemini API key or throws the app-level config error.
   ///
@@ -76,13 +78,16 @@ class GeminiService {
   }
 
   GenerativeModel get _gemini {
-    if (_model != null) return _model!;
+    // Rebuild when the user switched model in Profile since the last call.
+    if (_model != null && _modelNameInUse == modelName) return _model!;
+    _modelNameInUse = modelName;
     _model = _createModel(
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.7,
-        maxOutputTokens:
-            4096, // Sufficient for all features; reduces latency significantly
+        // Thinking models count their thinking tokens against this limit,
+        // so it is well above what the JSON itself needs.
+        maxOutputTokens: 12288,
       ),
     );
     return _model!;
@@ -125,7 +130,11 @@ class GeminiService {
   }
 
   @visibleForTesting
-  String buildExtractPrompt(String prompt, String languageCode, DateTime today) {
+  String buildExtractPrompt(
+    String prompt,
+    String languageCode,
+    DateTime today,
+  ) {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     return '''
 Bạn là trợ lý du lịch. Hôm nay là $todayStr. Đọc mô tả chuyến đi của người dùng và bóc tách thông tin.
@@ -157,7 +166,9 @@ Quy tắc:
   @visibleForTesting
   TripData parseExtractedTripData(String text, {String originalPrompt = ''}) {
     final decoded = safeJsonDecode(text);
-    final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+    final map = decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : <String, dynamic>{};
 
     DateTime? depart = DateTime.tryParse(map['departDate']?.toString() ?? '');
     DateTime? ret = DateTime.tryParse(map['returnDate']?.toString() ?? '');
@@ -170,7 +181,8 @@ Quy tắc:
     // Chỉ có ngày về mà không có ngày đi thì bỏ, form không dùng được.
     if (depart == null) ret = null;
 
-    DateTime? dateOnly(DateTime? d) => d == null ? null : DateTime(d.year, d.month, d.day);
+    DateTime? dateOnly(DateTime? d) =>
+        d == null ? null : DateTime(d.year, d.month, d.day);
     depart = dateOnly(depart);
     ret = dateOnly(ret);
 
@@ -226,7 +238,8 @@ Quy tắc:
     String languageCode = 'vi',
   }) async {
     final randomSeed = DateTime.now().millisecondsSinceEpoch % 100000;
-    final theme = category ??
+    final theme =
+        category ??
         _randomExploreThemes[randomSeed % _randomExploreThemes.length];
 
     final cacheKey = _aiCache.buildKey('explore_trending', {
@@ -243,7 +256,8 @@ Quy tắc:
     }
 
     final langInst = languageInstruction(languageCode);
-    final prompt = '''
+    final prompt =
+        '''
 Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý một danh sách $limit điểm đến du lịch ĐỘC ĐÁO, MỚI LẠ và NGẪU NHIÊN theo chủ đề:
 👉 "$theme"
 
@@ -352,7 +366,9 @@ Quy tắc:
     return suggestions.map((s) {
       return DestinationSuggestion(
         name: s.name,
-        imageUrl: (s.imageUrl.isNotEmpty) ? s.imageUrl : (imageUrls[s.name] ?? ''),
+        imageUrl: (s.imageUrl.isNotEmpty)
+            ? s.imageUrl
+            : (imageUrls[s.name] ?? ''),
         matchPercent: s.matchPercent,
         rating: s.rating,
         reviewCount: s.reviewCount,
@@ -430,19 +446,25 @@ Quy tắc:
   /// Formats the budget tier into clear, realistic guidance for the AI model.
   static String _describeBudgetTier(String tier, String currency) {
     final lower = tier.toLowerCase();
-    if (lower == 'economy' || lower.contains('bình dân') || lower.contains('알뜰')) {
+    if (lower == 'economy' ||
+        lower.contains('bình dân') ||
+        lower.contains('알뜰')) {
       return 'Phân khúc Bình dân / Tiết kiệm: '
           'Lựa chọn homestay/khách sạn bình dân 1-2 sao, quán ăn địa phương/đường phố, '
           'di chuyển bằng xe máy/xe buýt/tàu. Ước tính chi phí thực tế: ~1.5M - 3.5M $currency cho chuyến 3 ngày trong nước, '
           'hoặc tương đương \$150-\$350 $currency cho chuyến quốc tế.';
     }
-    if (lower == 'premium' || lower.contains('cao cấp') || lower.contains('고급')) {
+    if (lower == 'premium' ||
+        lower.contains('cao cấp') ||
+        lower.contains('고급')) {
       return 'Phân khúc Cao cấp: '
           'Lựa chọn khách sạn 4-5 sao / resort cao cấp, nhà hàng chất lượng, '
           'xe đưa đón riêng / chuyến bay giờ đẹp, tour trải nghiệm chất lượng cao. Ước tính chi phí thực tế: ~9M - 18M $currency cho chuyến 3 ngày trong nước, '
           'hoặc tương đương \$900-\$2200 $currency cho chuyến quốc tế.';
     }
-    if (lower == 'luxury' || lower.contains('hạng sang') || lower.contains('럭셔리')) {
+    if (lower == 'luxury' ||
+        lower.contains('hạng sang') ||
+        lower.contains('럭셔리')) {
       return 'Phân khúc Hạng sang / Siêu sang: '
           'Lựa chọn resort 5 sao quốc tế / villa riêng tư sang trọng bậc nhất, ẩm thực fine dining / Michelin, '
           'dịch vụ VIP / du thuyền / trải nghiệm độc quyền. Ước tính chi phí thực tế: ~22M - 60M+ $currency cho chuyến 3 ngày trong nước, '
@@ -457,11 +479,7 @@ Quy tắc:
 
   /// Builds the suggestions prompt. Public for testing only.
   @visibleForTesting
-  String buildSuggestionsPrompt(
-    TripData trip,
-    int limit,
-    String languageCode,
-  ) {
+  String buildSuggestionsPrompt(TripData trip, int limit, String languageCode) {
     final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
 
     final interests = trip.selectedInterests.isNotEmpty
@@ -601,7 +619,8 @@ Quy tắc quan trọng:
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
 
-    final rawLandmarks = (json['galleryLandmarks'] as List<dynamic>?)
+    final rawLandmarks =
+        (json['galleryLandmarks'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .where((e) => e.isNotEmpty)
             .toList() ??
@@ -872,7 +891,7 @@ Trả về JSON object với cấu trúc:
       generationConfig: GenerationConfig(
         responseMimeType: 'text/plain',
         temperature: 0.8,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 3072,
       ),
     );
 

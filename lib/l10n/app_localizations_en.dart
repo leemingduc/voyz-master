@@ -748,4 +748,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currencyCanadianDollar => 'Canadian dollar';
+
+  @override
+  String get aiModel => 'AI model';
+
+  @override
+  String get aiModelDescription =>
+      'Which Gemini model answers your travel questions. Larger models think longer and may reach the free quota sooner.';
+
+  @override
+  String get aiModelSaved => 'AI model saved';
 }

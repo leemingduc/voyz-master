@@ -728,4 +728,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get currencyCanadianDollar => '캐나다 달러';
+
+  @override
+  String get aiModel => 'AI 모델';
+
+  @override
+  String get aiModelDescription =>
+      '여행 질문에 답하는 Gemini 모델입니다. 큰 모델은 더 오래 생각하며 무료 한도에 더 빨리 도달할 수 있습니다.';
+
+  @override
+  String get aiModelSaved => 'AI 모델이 저장되었습니다';
 }

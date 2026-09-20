@@ -1521,6 +1521,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Canadian dollar'**
   String get currencyCanadianDollar;
+
+  /// Profile section heading for the Gemini model picker
+  ///
+  /// In en, this message translates to:
+  /// **'AI model'**
+  String get aiModel;
+
+  /// Helper text under the AI model picker
+  ///
+  /// In en, this message translates to:
+  /// **'Which Gemini model answers your travel questions. Larger models think longer and may reach the free quota sooner.'**
+  String get aiModelDescription;
+
+  /// Snackbar after the AI model is changed
+  ///
+  /// In en, this message translates to:
+  /// **'AI model saved'**
+  String get aiModelSaved;
 }
 
 class _AppLocalizationsDelegate

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/services/supabase_service.dart';
 
 /// Cache một tầng cho phản hồi AI. Chỉ là cache: mất là được phép.
@@ -37,7 +38,8 @@ class AiCacheService {
     }
   }
 
-  /// Key md5 từ prefix + mọi input ảnh hưởng đến kết quả + userId hiện tại.
+  /// Key md5 từ prefix + mọi input ảnh hưởng đến kết quả + model đang chọn
+  /// + userId hiện tại. Đổi model là đổi key, không trả kết quả của model khác.
   String buildKey(String prefix, Map<String, dynamic> parts) {
     final sorted = parts.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -51,6 +53,7 @@ class AiCacheService {
         buffer.write(entry.value.toString().trim().toLowerCase());
       }
     }
+    buffer.write('|model=${AiModelSettings.instance.current}');
     buffer.write('|user=$_userId');
     return md5.convert(utf8.encode(buffer.toString())).toString();
   }

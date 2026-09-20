@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
@@ -56,7 +57,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-
   Future<void> _loadCloudProfile() async {
     final profile = await ProfileService.instance.loadCurrentProfile();
     if (!mounted) return;
@@ -66,7 +66,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _preferredCurrency = profile.preferredCurrency;
       _travelStyles = profile.travelStyles.toSet();
     });
-    await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+    await CurrencyProvider.of(
+      context,
+    ).setDisplayCurrency(profile.preferredCurrency);
   }
 
   Future<void> _savePreferences() async {
@@ -76,7 +78,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         travelStyles: _travelStyles.toList(),
         preferredCurrency: _preferredCurrency,
       );
-      await CurrencyProvider.of(context).setDisplayCurrency(profile.preferredCurrency);
+      await CurrencyProvider.of(
+        context,
+      ).setDisplayCurrency(profile.preferredCurrency);
       if (!mounted) return;
       setState(() => _profile = profile);
       _showMessage('Travel preferences saved');
@@ -86,6 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _isSavingPreferences = false);
     }
   }
+
   Future<void> _pickImage() async {
     try {
       final image = await pickAvatarImage();
@@ -298,6 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildAccountCard(theme),
                           const SizedBox(height: 16),
                           _buildLanguageCard(theme),
+                          const SizedBox(height: 16),
+                          _buildAiModelCard(),
                           const SizedBox(height: 16),
                           _buildPreferencesCard(theme),
                           const SizedBox(height: 16),
@@ -588,6 +595,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ── AI model card ─────────────────────────────────────────────────────
+
+  Widget _buildAiModelCard() {
+    final l10n = AppLocalizations.of(context)!;
+    final current = AiModelSettings.instance.current;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white70, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.aiModel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.aiModelDescription,
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          for (final option in supportedAiModels)
+            RadioListTile<String>(
+              contentPadding: EdgeInsets.zero,
+              value: option.id,
+              groupValue: current,
+              onChanged: (id) async {
+                if (id == null) return;
+                await AiModelSettings.instance.save(id);
+                if (mounted) {
+                  setState(() {});
+                  _showMessage(l10n.aiModelSaved);
+                }
+              },
+              title: Text(
+                option.label,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              subtitle: Text(
+                option.id,
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildPreferencesCard(ThemeData theme) {
     const styles = [
@@ -693,6 +757,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildPasswordCard(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     return GlassCard(

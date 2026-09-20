@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/services/ai_cache_service.dart';
 
 void main() {
@@ -36,9 +37,25 @@ void main() {
     });
 
     test('khac participants cho key khac', () {
-      final a = cache.buildKey('suggestions', {'budget': 'moderate', 'participants': '2'});
-      final b = cache.buildKey('suggestions', {'budget': 'moderate', 'participants': '4'});
+      final a = cache.buildKey('suggestions', {
+        'budget': 'moderate',
+        'participants': '2',
+      });
+      final b = cache.buildKey('suggestions', {
+        'budget': 'moderate',
+        'participants': '4',
+      });
       expect(a, isNot(equals(b)));
+    });
+
+    test('khac model cho key khac', () {
+      final before = AiModelSettings.instance.current;
+      AiModelSettings.instance.current = 'gemini-3.1-flash-lite';
+      final a = cache.buildKey('detail', {'name': 'Hue'});
+      AiModelSettings.instance.current = 'gemini-3.8-flash';
+      final b = cache.buildKey('detail', {'name': 'Hue'});
+      AiModelSettings.instance.current = before;
+      expect(a, isNot(b));
     });
 
     test('khac prefix cho key khac', () {
@@ -68,10 +85,15 @@ void main() {
 
     test('entry het han tra null va bi xoa khoi box', () async {
       final box = Hive.box<String>(AiCacheService.boxName);
-      await box.put('k3', jsonEncode({
-        'payload': 'cu',
-        'expiresAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-      }));
+      await box.put(
+        'k3',
+        jsonEncode({
+          'payload': 'cu',
+          'expiresAt': DateTime.now()
+              .subtract(const Duration(days: 1))
+              .toIso8601String(),
+        }),
+      );
       expect(cache.get('k3'), isNull);
       expect(box.containsKey('k3'), isFalse);
     });
