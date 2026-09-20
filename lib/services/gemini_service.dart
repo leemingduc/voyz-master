@@ -814,6 +814,69 @@ Trả về JSON object với cấu trúc:
     return text.trim();
   }
 
+  /// Interactive consultation before generating suggestions.
+  /// Refines user prompt, preferences, and details in a conversational flow.
+  Future<String> consultTrip({
+    required String message,
+    required List<ChatMessage> history,
+    required TripData currentTrip,
+    String languageCode = 'vi',
+  }) async {
+    final langInst = chatLanguageInstruction(languageCode);
+    final budgetDesc = _describeBudgetTier(currentTrip.budget, currentTrip.currency);
+    final interestsDesc = currentTrip.selectedInterests.join(', ');
+    final dateInfo = currentTrip.departDate != null && currentTrip.returnDate != null
+        ? '${_formatDateShort(currentTrip.departDate!)} - ${_formatDateShort(currentTrip.returnDate!)}'
+        : 'Linh hoạt';
+
+    final contents = <Content>[];
+
+    // System context as first turn
+    contents.add(
+      Content.text(
+        'You are an expert AI Travel Planner for Aivivu. '
+        'You are actively discussing and fine-tuning an upcoming trip with the user. '
+        'Initial trip prompt: "${currentTrip.aiPrompt}". '
+        'Current budget tier: $budgetDesc. '
+        'Travel dates/period: $dateInfo. '
+        'Interests/Preferences: $interestsDesc. '
+        'Your goal is to help the user clarify and decide destinations, travel pace, activities, and must-haves. '
+        'Be conversational, concise (2-4 sentences or short bullet points), encouraging, and helpful. '
+        'If the user updates preferences or mentions new ideas, acknowledge them enthusiastically. '
+        'When the user seems satisfied or says ok/ready, encourage them to click "Confirm & See Suggestions" ("Xác nhận & Xem gợi ý") to view curated destinations and detailed itineraries. '
+        'Reply only in natural, clean text. Do NOT use code fences or JSON. '
+        '$langInst',
+      ),
+    );
+
+    // Add history
+    for (final msg in history) {
+      if (msg.isUser) {
+        contents.add(Content.text(msg.text));
+      } else {
+        contents.add(Content('model', [TextPart(msg.text)]));
+      }
+    }
+
+    // Current message
+    contents.add(Content.text(message));
+
+    final model = _createModel(
+      generationConfig: GenerationConfig(
+        responseMimeType: 'text/plain',
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      ),
+    );
+
+    final response = await model.generateContent(contents);
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('noAiResponse');
+    }
+    return text.trim();
+  }
+
   // ── Compare Destinations ──────────────────────────────────────────────────
 
   /// Compare 2-3 travel destinations side by side using AI.
