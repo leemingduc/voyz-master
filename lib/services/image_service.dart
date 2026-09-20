@@ -12,7 +12,7 @@ import 'package:voyz/models/destination_detail.dart';
 ///      hợp lệ nên không bao giờ dính 400/404 do tự đoán hash path hay
 ///      kích thước thumb.
 ///   2. Wikimedia Commons full-text search.
-///   3. Chuỗi rỗng — UI đã có errorWidget placeholder ở mọi call site.
+///   3. Chuỗi rỗng, widget `DestinationImage` dùng chung sẽ vẽ fallback.
 ///
 /// KHÔNG có URL viết tay trong code: mọi URL curated thuộc về bảng
 /// `destinations` và phải qua `tool/verify_image_urls.dart` trước khi vào seed.
@@ -51,8 +51,8 @@ class ImageService {
       _vietnameseDiacritics.hasMatch(s);
 
   /// Gets the single most iconic photo for a destination.
-  /// Returns an empty string when no verifiable image is found;
-  /// the UI's errorWidget renders the placeholder in that case.
+  /// Returns an empty string when no verifiable image is found; the shared
+  /// `DestinationImage` widget draws the fallback in that case.
   Future<String> getImageUrl(String destinationName) async {
     final hit = _cache[destinationName];
     if (hit != null) {

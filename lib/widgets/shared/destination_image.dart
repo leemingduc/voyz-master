@@ -17,13 +17,11 @@ class DestinationImage extends StatelessWidget {
     required this.imageUrl,
     required this.destinationName,
     this.fit = BoxFit.cover,
-    this.borderRadius,
   });
 
   final String imageUrl;
   final String destinationName;
   final BoxFit fit;
-  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +30,11 @@ class DestinationImage extends StatelessWidget {
         : CachedNetworkImage(
             imageUrl: imageUrl,
             fit: fit,
+            // name null: đang tải, chỉ nền gradient, không icon, không chữ.
             placeholder: (_, _) => const _Fallback(name: null),
             errorWidget: (_, _, _) => _Fallback(name: destinationName),
           );
-    final radius = borderRadius;
-    if (radius == null) return image;
-    return ClipRRect(borderRadius: radius, child: image);
+    return image;
   }
 }
 

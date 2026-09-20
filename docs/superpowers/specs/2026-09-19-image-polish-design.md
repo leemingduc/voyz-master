@@ -25,7 +25,6 @@ class DestinationImage extends StatelessWidget {
     required this.imageUrl,
     required this.destinationName,
     this.fit = BoxFit.cover,
-    this.borderRadius,
   });
 }
 ```
@@ -35,10 +34,10 @@ Ba trạng thái, một kiểu nhìn:
 | Trạng thái | Hiển thị |
 |---|---|
 | `imageUrl` rỗng | Vẽ fallback ngay, không tạo request mạng |
-| Đang tải | Nền gradient tối (hai sắc của `AppTheme.backgroundDark`), không spinner |
+| Đang tải | Nền gradient từ `AppTheme.surfaceDark` sang `AppTheme.backgroundDark`, không spinner |
 | Lỗi tải | Cùng gradient, thêm `Icons.landscape` mờ và `destinationName` chữ nhỏ mờ ở giữa |
 
-Widget chỉ lo phần ảnh. Overlay gradient, badge, tiêu đề vẫn nằm trong `Stack` của màn hình gọi như hiện tại. `borderRadius` có thì bọc `ClipRRect`, không có thì không bọc.
+Widget chỉ lo phần ảnh. Overlay gradient, badge, tiêu đề vẫn nằm trong `Stack` của màn hình gọi như hiện tại.
 
 Thay ở đúng sáu chỗ:
 
