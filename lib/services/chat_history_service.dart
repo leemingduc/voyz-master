@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/services/supabase_service.dart';
 

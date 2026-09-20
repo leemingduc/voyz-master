@@ -77,6 +77,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
     final prompt = _promptController.text.trim();
     final languageCode = LocaleProvider.of(context).value.languageCode;
+    // Cache context-dependent values before any await to avoid
+    // use_build_context_synchronously warnings.
+    final currency = CurrencyProvider.of(context).value;
     setState(() => _isAnalyzing = true);
 
     TripData tripToSave;
@@ -86,7 +89,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         languageCode: languageCode,
       );
 
-      final currency = CurrencyProvider.of(context).value;
       final defaultInterests = _profile?.travelStyles
               .map((s) => s.toLowerCase().replaceAll(' ', '_'))
               .toList() ??
@@ -101,7 +103,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       );
     } catch (e) {
       debugPrint('AI extraction fallback: $e');
-      final currency = CurrencyProvider.of(context).value;
       tripToSave = TripData(
         aiPrompt: prompt,
         currency: currency,
