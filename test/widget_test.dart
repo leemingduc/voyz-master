@@ -7,6 +7,7 @@ import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/ai_tools_screen.dart';
 import 'package:voyz/screens/splash_screen.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
+import 'package:voyz/widgets/shared/aivivu_page_background.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
@@ -53,6 +54,16 @@ void main() {
     );
 
     expect(find.text('AIVIVU'), findsOneWidget);
+  });
+
+  testWidgets('cosmic page background paints the reference star field', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AivivuPageBackground(child: SizedBox.expand())),
+    );
+
+    expect(find.byKey(const ValueKey('cosmic_star_field')), findsOneWidget);
   });
 
   testWidgets('splash renders the shared AIVIVU wordmark', (
