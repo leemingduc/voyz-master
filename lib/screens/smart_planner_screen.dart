@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:voyz/l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/currency_provider.dart';
+import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/suggestions_screen.dart';
-import 'package:voyz/screens/explore_screen.dart';
-import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
-import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
-import 'package:voyz/widgets/shared/interest_chip.dart';
 
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
@@ -29,149 +24,38 @@ class SmartPlannerScreen extends StatefulWidget {
 
 class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   final _promptController = TextEditingController();
-  final _destinationController = TextEditingController();
-  final _participantsController = TextEditingController();
-  final _ageRangeController = TextEditingController();
-  final _notesController = TextEditingController();
-
-  String _selectedBudgetTier = 'moderate';
-  DateTime? _departDate;
-  DateTime? _returnDate;
-  late List<bool> _selectedInterests;
-
-  /// Đã phân tích mô tả hiện tại chưa. Sửa mô tả thì về false.
-  bool _analyzed = false;
   bool _isAnalyzing = false;
+  UserProfile? _profile;
 
-  /// Mô tả đã dùng cho lần phân tích thành công gần nhất.
-  String _analyzedPrompt = '';
-
-  /// Người dùng đã tự chọn trong phiên này thì AI không ghi đè.
-  bool _tierTouched = false;
-  bool _interestsTouched = false;
-
-  /// Giá trị AI đã ghi vào từng trường, để lần phân tích sau nhận ra
-  /// người dùng chưa sửa và có thể ghi đè lại.
-  final Map<String, String> _aiFilled = {};
-
-  String _getLocalizedInterest(String interestKey, AppLocalizations l10n) {
-    switch (interestKey) {
-      case 'beach':
-        return l10n.beach;
-      case 'adventure':
-        return l10n.adventure;
-      case 'culture':
-        return l10n.culture;
-      case 'food':
-        return l10n.food;
-      case 'wellness':
-        return l10n.wellness;
-      default:
-        return interestKey;
-    }
-  }
+  final List<String> _inspirationPrompts = const [
+    'Đi Đà Lạt 3 ngày với gia đình, tiết kiệm',
+    'Nghỉ dưỡng biển Phú Quốc 4 ngày cao cấp',
+    'Khám phá ẩm thực và văn hóa Hà Nội cuối tuần',
+    'Tour trekking Sapa săn mây khám phá thiên nhiên',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _promptController.addListener(() {
-      if (!mounted) return;
-      final matches = _analyzedPrompt.isNotEmpty &&
-          _promptController.text.trim() == _analyzedPrompt;
-      if (matches != _analyzed) setState(() => _analyzed = matches);
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
-      UserProfile? profile;
+      _promptController.text = trip.aiPrompt;
+
       try {
-        profile = await ProfileService.instance.loadCurrentProfile();
-        await CurrencyProvider.of(context).setDisplayCurrency(
-          trip.currency.isNotEmpty ? trip.currency : profile.preferredCurrency,
-        );
-      } catch (_) {}
-      if (!mounted) return;
-
-      final preferredStyles = profile?.travelStyles
-              .map((style) => style.toLowerCase().replaceAll(' ', '_'))
-              .toSet() ??
-          const <String>{};
-      final selectedInterestKeys = trip.selectedInterests.isNotEmpty
-          ? trip.selectedInterests.toSet()
-          : preferredStyles;
-
-      setState(() {
-        _destinationController.text = trip.destination;
-        _departDate = trip.departDate;
-        _returnDate = trip.returnDate;
-        _selectedBudgetTier = trip.budget.isNotEmpty ? trip.budget : 'moderate';
-        _participantsController.text = trip.participants;
-        _ageRangeController.text = trip.ageRange;
-        _notesController.text = trip.additionalNotes;
-        _promptController.text = trip.aiPrompt;
-
-        _selectedInterests = List.filled(MockData.interests.length, false);
-        for (int i = 0; i < MockData.interests.length; i++) {
-          if (selectedInterestKeys.contains(MockData.interests[i])) {
-            _selectedInterests[i] = true;
-          }
+        _profile = await ProfileService.instance.loadCurrentProfile();
+        if (_profile != null && mounted) {
+          await CurrencyProvider.of(context).setDisplayCurrency(
+            trip.currency.isNotEmpty ? trip.currency : _profile!.preferredCurrency,
+          );
         }
-      });
+      } catch (_) {}
     });
-    _selectedInterests = List.from(MockData.interestsSelected);
   }
 
   @override
   void dispose() {
     _promptController.dispose();
-    _destinationController.dispose();
-    _participantsController.dispose();
-    _ageRangeController.dispose();
-    _notesController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickDate({required bool isDepart}) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: () {
-        final current = isDepart ? _departDate : _returnDate;
-        return (current != null && !current.isBefore(now)) ? current : now;
-      }(),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 2)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              surface: const Color(0xFF1A1C2E),
-              onSurface: Colors.white,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF1A1C2E),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() {
-        if (isDepart) {
-          _departDate = picked;
-          if (_returnDate != null && _returnDate!.isBefore(picked)) {
-            _returnDate = null;
-          }
-        } else {
-          _returnDate = picked;
-        }
-      });
-    }
-  }
-
-  String _formatDate(DateTime? date, AppLocalizations l10n) {
-    if (date == null) return l10n.addDate;
-    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   bool _validateInput() {
@@ -188,118 +72,61 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     return true;
   }
 
-  /// Trường (đã trim) có thể ghi đè: đang trống, hoặc đúng giá trị AI
-  /// đã ghi lần trước (nghĩa là người dùng chưa tự sửa).
-  bool _canFill(String key, String current) {
-    return current.isEmpty || current == _aiFilled[key];
-  }
-
-  /// Đổ kết quả AI vào form. Chỉ điền chỗ người dùng chưa đụng, hoặc chỗ
-  /// vẫn còn nguyên giá trị AI đã ghi ở lần phân tích trước.
-  /// Trả về số trường đã điền.
-  int _applyExtracted(TripData ai) {
-    var filled = 0;
-
-    final destination = _destinationController.text.trim();
-    if (_canFill('destination', destination) && ai.destination.isNotEmpty) {
-      _destinationController.text = ai.destination;
-      _aiFilled['destination'] = ai.destination;
-      filled++;
-    }
-
-    final datesKey = '${_departDate?.toIso8601String() ?? ''}'
-        '|${_returnDate?.toIso8601String() ?? ''}';
-    final datesFillable = (_departDate == null && _returnDate == null) ||
-        datesKey == _aiFilled['dates'];
-    if (datesFillable && ai.departDate != null) {
-      _departDate = ai.departDate;
-      _returnDate = ai.returnDate;
-      _aiFilled['dates'] = '${ai.departDate?.toIso8601String() ?? ''}'
-          '|${ai.returnDate?.toIso8601String() ?? ''}';
-      filled++;
-    }
-
-    final participants = _participantsController.text.trim();
-    if (_canFill('participants', participants) &&
-        ai.participants.isNotEmpty) {
-      _participantsController.text = ai.participants;
-      _aiFilled['participants'] = ai.participants;
-      filled++;
-    }
-
-    final ageRange = _ageRangeController.text.trim();
-    if (_canFill('ageRange', ageRange) && ai.ageRange.isNotEmpty) {
-      _ageRangeController.text = ai.ageRange;
-      _aiFilled['ageRange'] = ai.ageRange;
-      filled++;
-    }
-
-    if (!_tierTouched && ai.budget.isNotEmpty) {
-      _selectedBudgetTier = ai.budget;
-      _aiFilled['tier'] = ai.budget;
-      filled++;
-    }
-
-    if (!_interestsTouched && ai.selectedInterests.isNotEmpty) {
-      for (int i = 0; i < MockData.interests.length; i++) {
-        _selectedInterests[i] =
-            ai.selectedInterests.contains(MockData.interests[i]);
-      }
-      _aiFilled['interests'] = ai.selectedInterests.join(',');
-      filled++;
-    }
-
-    return filled;
-  }
-
-  Future<void> _onAnalyze() async {
+  Future<void> _onGetSuggestions() async {
     if (!_validateInput() || _isAnalyzing) return;
-    final l10n = AppLocalizations.of(context)!;
-    final languageCode = LocaleProvider.of(context).value.languageCode;
+
     final prompt = _promptController.text.trim();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
     setState(() => _isAnalyzing = true);
+
+    TripData tripToSave;
     try {
-      final ai = await GeminiService.instance.extractTripData(
+      final extracted = await GeminiService.instance.extractTripData(
         prompt,
         languageCode: languageCode,
       );
-      if (!mounted) return;
-      // Nếu người dùng đã gõ tiếp trong lúc chờ, kết quả này đã cũ:
-      // vẫn điền form nhưng không đánh dấu đã phân tích mô tả hiện tại.
-      final stillCurrent = _promptController.text.trim() == prompt;
-      int filled = 0;
-      setState(() {
-        filled = _applyExtracted(ai);
-        if (stillCurrent) {
-          _analyzed = true;
-          _analyzedPrompt = prompt;
-        }
-        _isAnalyzing = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            filled > 0 ? l10n.aiFilledFields(filled) : l10n.aiFilledNothing,
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+
+      final currency = CurrencyProvider.of(context).value;
+      final defaultInterests = _profile?.travelStyles
+              .map((s) => s.toLowerCase().replaceAll(' ', '_'))
+              .toList() ??
+          <String>[];
+
+      tripToSave = extracted.copyWith(
+        aiPrompt: prompt,
+        currency: currency,
+        selectedInterests: extracted.selectedInterests.isNotEmpty
+            ? extracted.selectedInterests
+            : defaultInterests,
       );
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _isAnalyzing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
+      debugPrint('AI extraction fallback: $e');
+      final currency = CurrencyProvider.of(context).value;
+      tripToSave = TripData(
+        aiPrompt: prompt,
+        currency: currency,
+        budget: 'moderate',
       );
     }
+
+    if (!mounted) return;
+    setState(() => _isAnalyzing = false);
+
+    SavedTripsProvider.of(context).updateTrip(tripToSave);
+    try {
+      await SearchHistoryService.instance.recordTripSearch(tripToSave);
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
+    );
   }
 
   void _onNavTap(int index) {
     switch (index) {
       case 0:
+        // Already on Planner
         break;
       case 1:
         Navigator.of(context).pushAndRemoveUntil(
@@ -308,47 +135,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         );
         break;
       case 2:
-        _saveCurrentState();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
           (route) => false,
         );
         break;
     }
-  }
-
-  void _saveCurrentState() {
-    final selected = <String>[];
-    for (int i = 0; i < MockData.interests.length; i++) {
-      if (_selectedInterests[i]) selected.add(MockData.interests[i]);
-    }
-    SavedTripsProvider.of(context).updateTrip(
-      TripData(
-        destination: _destinationController.text,
-        departDate: _departDate,
-        returnDate: _returnDate,
-        budget: _selectedBudgetTier,
-        currency: CurrencyProvider.of(context).value,
-        participants: _participantsController.text,
-        ageRange: _ageRangeController.text,
-        additionalNotes: _notesController.text,
-        aiPrompt: _promptController.text,
-        selectedInterests: selected,
-      ),
-    );
-  }
-
-  Future<void> _onGetSuggestions() async {
-    if (!_validateInput()) return;
-    _saveCurrentState();
-    await SearchHistoryService.instance.recordTripSearch(
-      SavedTripsProvider.of(context).currentTrip,
-    );
-
-    if (!mounted) return;
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SuggestionsScreen()));
   }
 
   @override
@@ -373,32 +165,36 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                   horizontal: AppTheme.spacingLg,
                   vertical: AppTheme.spacingMd,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.appName,
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.italic,
+                child: SizedBox(
+                  height: 48,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.appName,
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
-                        Text(
-                          l10n.smartPlanner,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.7),
+                          Text(
+                            l10n.smartPlanner,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const AccountMenuButton(),
-                  ],
+                        ],
+                      ),
+                      const AccountMenuButton(),
+                    ],
+                  ),
                 ),
               ),
               Expanded(
@@ -420,193 +216,53 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                       ),
                       const SizedBox(height: 24),
                       _AiPromptBox(controller: _promptController),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.edit_note,
-                              color: theme.colorScheme.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.requiredInfo,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: theme.colorScheme.primary,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 20),
+
+                      // Gợi ý mẫu (Inspiration Chips)
+                      Text(
+                        'Gợi ý cho bạn',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      _buildTextField(
-                        icon: Icons.public,
-                        label: l10n.destination,
-                        hint: l10n.destinationHint,
-                        controller: _destinationController,
-                        keyboardType: TextInputType.text,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDateField(
-                              icon: Icons.calendar_today,
-                              label: l10n.departDate,
-                              value: _formatDate(_departDate, l10n),
-                              onTap: () => _pickDate(isDepart: true),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDateField(
-                              icon: Icons.calendar_month,
-                              label: l10n.returnDate,
-                              value: _formatDate(_returnDate, l10n),
-                              onTap: () => _pickDate(isDepart: false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildBudgetTierSelector(l10n),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              icon: Icons.group,
-                              label: l10n.participants,
-                              hint: l10n.participantsHint,
-                              controller: _participantsController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              icon: Icons.cake,
-                              label: l10n.ageRange,
-                              hint: l10n.ageRangeHint,
-                              controller: _ageRangeController,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInterests(l10n),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _inspirationPrompts.map((promptText) {
+                          return ActionChip(
+                            avatar: const Icon(
                               Icons.auto_awesome,
-                              color: Colors.white.withValues(alpha: 0.5),
-                              size: 18,
+                              size: 14,
+                              color: Color(0xFF818CF8),
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.optionalInfo,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 1,
+                            label: Text(
+                              promptText,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
                               ),
                             ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                l10n.optional.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                            backgroundColor: Colors.white.withValues(alpha: 0.05),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.12),
                             ),
-                          ],
-                        ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _promptController.text = promptText;
+                              });
+                            },
+                          );
+                        }).toList(),
                       ),
-                      GlassCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF1E293B,
-                                ).withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.sticky_note_2,
-                                color: Color(0xFF94A3B8),
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.additionalNotes.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF64748B),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _notesController,
-                                    maxLines: 3,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: l10n.notesHint,
-                                      hintStyle: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.25,
-                                        ),
-                                      ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
+
+                      const SizedBox(height: 36),
                       Row(
                         children: [
                           Expanded(
@@ -647,12 +303,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                             child: GradientButton(
                               label: _isAnalyzing
                                   ? l10n.analyzingTrip
-                                  : (_analyzed ? l10n.getAiSuggestions : l10n.analyzeTrip),
-                              icon: _analyzed ? Icons.arrow_forward : Icons.auto_awesome,
+                                  : 'Gợi ý chuyến đi',
+                              icon: _isAnalyzing
+                                  ? Icons.hourglass_top
+                                  : Icons.auto_awesome,
                               height: 52,
-                              onPressed: _isAnalyzing
-                                  ? null
-                                  : (_analyzed ? _onGetSuggestions : _onAnalyze),
+                              onPressed: _isAnalyzing ? null : _onGetSuggestions,
                             ),
                           ),
                         ],
@@ -666,322 +322,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           ),
         ),
       ),
-      bottomSheet: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
-    );
-  }
-
-  Widget _buildTextField({
-    required IconData icon,
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  inputFormatters: inputFormatters,
-                  style: const TextStyle(fontSize: 14, color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateField({
-    required IconData icon,
-    required String label,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    final hasValue = value != AppLocalizations.of(context)!.addDate;
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF64748B),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: hasValue
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBudgetTierSelector(AppLocalizations l10n) {
-    final tiers = [
-      (
-        key: 'economy',
-        label: l10n.budgetTierEconomy,
-        badge: '🪙',
-      ),
-      (
-        key: 'moderate',
-        label: l10n.budgetTierModerate,
-        badge: '☕',
-      ),
-      (
-        key: 'premium',
-        label: l10n.budgetTierPremium,
-        badge: '💎',
-      ),
-      (
-        key: 'luxury',
-        label: l10n.budgetTierLuxury,
-        badge: '👑',
-      ),
-    ];
-
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.account_balance_wallet_outlined,
-                  color: Color(0xFF94A3B8),
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                l10n.budgetTier.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final itemWidth = (constraints.maxWidth - 24) / 4;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: tiers.map((tier) {
-                  final isSelected = _selectedBudgetTier.toLowerCase() == tier.key;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () {
-                      setState(() {
-                        _tierTouched = true;
-                        _selectedBudgetTier = tier.key;
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: itemWidth,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? const LinearGradient(
-                                colors: [
-                                  Color(0xFFE91E63),
-                                  Color(0xFFFF4081),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        color: isSelected
-                            ? null
-                            : const Color(0xFF1E293B).withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFFFF80AB)
-                              : Colors.white.withValues(alpha: 0.08),
-                          width: isSelected ? 1.5 : 1,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFE91E63).withValues(
-                                    alpha: 0.35,
-                                  ),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            tier.badge,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            tier.label,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFFCBD5E1),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInterests(AppLocalizations l10n) {
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.sell,
-                  color: Color(0xFF94A3B8),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                l10n.interests.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(MockData.interests.length, (i) {
-              final interestKey = MockData.interests[i];
-              final localizedLabel = _getLocalizedInterest(interestKey, l10n);
-              return InterestChip(
-                label: localizedLabel,
-                isSelected: _selectedInterests[i],
-                onTap: () {
-                  setState(() {
-                    _interestsTouched = true;
-                    _selectedInterests[i] = !_selectedInterests[i];
-                  });
-                },
-              );
-            }),
-          ),
-        ],
-      ),
+      bottomNavigationBar: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
     );
   }
 }
@@ -1011,7 +352,7 @@ class _AiPromptBox extends StatelessWidget {
         children: [
           TextField(
             controller: controller,
-            maxLines: 3,
+            maxLines: 4,
             style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
               hintText: l10n.aiPromptHint,
