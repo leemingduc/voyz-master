@@ -592,6 +592,30 @@ abstract class AppLocalizations {
   /// **'Please fill in all required info'**
   String get fillAllRequired;
 
+  /// Validation error when the AI planner request is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Tell AI what kind of trip you would like.'**
+  String get plannerPromptRequired;
+
+  /// Profile setting label for background music
+  ///
+  /// In en, this message translates to:
+  /// **'Background music'**
+  String get backgroundMusic;
+
+  /// Profile status when background music is on
+  ///
+  /// In en, this message translates to:
+  /// **'On — ambient music is playing'**
+  String get backgroundMusicOn;
+
+  /// Profile status when background music is off
+  ///
+  /// In en, this message translates to:
+  /// **'Off — ambient music is paused'**
+  String get backgroundMusicOff;
+
   /// Explore screen section heading
   ///
   /// In en, this message translates to:
@@ -1384,6 +1408,114 @@ abstract class AppLocalizations {
   /// **'Find the ideal months to visit any destination based on weather, crowds, and local events.'**
   String get aiBestTimeDesc;
 
+  /// Cultural tips tool card title
+  ///
+  /// In en, this message translates to:
+  /// **'Cultural Tips'**
+  String get aiCulturalTipsTitle;
+
+  /// Cultural tips tool card subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Local culture'**
+  String get aiCulturalTipsSubtitle;
+
+  /// Cultural tips tool card description
+  ///
+  /// In en, this message translates to:
+  /// **'Learn local etiquette, customs, and useful phrases before your trip.'**
+  String get aiCulturalTipsDesc;
+
+  /// Heading for AI chat quick prompts
+  ///
+  /// In en, this message translates to:
+  /// **'Smart question suggestions'**
+  String get chatQuickPrompts;
+
+  /// Quick AI chat weather prompt
+  ///
+  /// In en, this message translates to:
+  /// **'What should I do today to avoid the heat?'**
+  String get chatQuickPromptWeather;
+
+  /// Quick AI chat café prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend a beautiful sunset café.'**
+  String get chatQuickPromptCafe;
+
+  /// Quick AI chat budget prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Estimate a budget for a 3-day trip for two.'**
+  String get chatQuickPromptBudget;
+
+  /// Saved trips filter: all items
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get savedFilterAll;
+
+  /// Saved trips filter: workspaces
+  ///
+  /// In en, this message translates to:
+  /// **'Trip plans'**
+  String get savedFilterTrips;
+
+  /// Saved trips filter: wishlist
+  ///
+  /// In en, this message translates to:
+  /// **'Saved places'**
+  String get savedFilterPlaces;
+
+  /// Friends screen group trips heading
+  ///
+  /// In en, this message translates to:
+  /// **'Group trips in planning'**
+  String get groupTripsTitle;
+
+  /// Friends screen empty group trips title
+  ///
+  /// In en, this message translates to:
+  /// **'No group trip yet'**
+  String get groupTripsEmptyTitle;
+
+  /// Friends screen empty group trips description
+  ///
+  /// In en, this message translates to:
+  /// **'Save a trip plan, then invite friends to plan it together.'**
+  String get groupTripsEmptyHint;
+
+  /// Number of members in a group trip
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String groupTripMembers(int count);
+
+  /// Action to invite a friend into a trip
+  ///
+  /// In en, this message translates to:
+  /// **'Invite a friend'**
+  String get inviteFriendToTrip;
+
+  /// Friend picker title for a trip
+  ///
+  /// In en, this message translates to:
+  /// **'Invite to {trip}'**
+  String inviteFriendToTripTitle(String trip);
+
+  /// Message when no accepted friend can be invited
+  ///
+  /// In en, this message translates to:
+  /// **'Add an accepted friend before inviting someone to a trip.'**
+  String get inviteFriendNone;
+
+  /// Confirmation when a friend is invited to a trip
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation added to the trip workspace.'**
+  String get inviteFriendSuccess;
+
   /// Action to compare the current destination suggestions
   ///
   /// In en, this message translates to:
@@ -1491,6 +1623,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Canadian dollar'**
   String get currencyCanadianDollar;
+
+  /// No description provided for @editDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Display Name'**
+  String get editDisplayName;
+
+  /// No description provided for @saveDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Name'**
+  String get saveDisplayName;
+
+  /// No description provided for @displayNameSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name updated successfully'**
+  String get displayNameSaved;
+
+  /// No description provided for @presetAvatars.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset Avatars'**
+  String get presetAvatars;
+
+  /// No description provided for @choosePresetAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Preset Avatar'**
+  String get choosePresetAvatar;
+
+  /// No description provided for @avatarSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar selected successfully'**
+  String get avatarSelected;
+
+  /// No description provided for @enterDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your display name'**
+  String get enterDisplayName;
+
+  /// No description provided for @tripConsultationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Trip Consultation'**
+  String get tripConsultationTitle;
+
+  /// No description provided for @confirmAndSeeSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm & See Suggestions'**
+  String get confirmAndSeeSuggestions;
+
+  /// No description provided for @tripInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Information'**
+  String get tripInfo;
+
+  /// No description provided for @tripInfoUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip details updated'**
+  String get tripInfoUpdated;
+
+  /// Greeting message from AI consultant
+  ///
+  /// In en, this message translates to:
+  /// **'Hello! I see you are planning: \"{prompt}\". Would you like to refine your preferred pace, transport, or any must-see activities?'**
+  String consultationInitialPrompt(String prompt);
+
+  /// No description provided for @quickChipRelaxed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed & leisurely pace'**
+  String get quickChipRelaxed;
+
+  /// No description provided for @quickChipFoodie.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus on local food & cuisine'**
+  String get quickChipFoodie;
+
+  /// No description provided for @quickChipBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget-friendly options'**
+  String get quickChipBudget;
+
+  /// No description provided for @quickChipReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks great, let\'s finalize!'**
+  String get quickChipReady;
 }
 
 class _AppLocalizationsDelegate

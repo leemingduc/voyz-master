@@ -247,6 +247,18 @@
   "fillAllRequired": "Please fill in all required info",
   "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
 
+  "plannerPromptRequired": "Tell AI what kind of trip you would like.",
+  "@plannerPromptRequired": {"description": "Validation error when the AI planner request is empty"},
+
+  "backgroundMusic": "Background music",
+  "@backgroundMusic": {"description": "Profile setting label for background music"},
+
+  "backgroundMusicOn": "On — ambient music is playing",
+  "@backgroundMusicOn": {"description": "Profile status when background music is on"},
+
+  "backgroundMusicOff": "Off — ambient music is paused",
+  "@backgroundMusicOff": {"description": "Profile status when background music is off"},
+
   "trendingDestinations": "Trending Destinations",
   "@trendingDestinations": {"description": "Explore screen section heading"},
 
@@ -838,7 +850,86 @@
   "aiBestTimeDesc": "Find the ideal months to visit any destination based on weather, crowds, and local events.",
   "@aiBestTimeDesc": {"description": "Best time tool card description"},
 
+  "aiCulturalTipsTitle": "Cultural Tips",
+  "@aiCulturalTipsTitle": {"description": "Cultural tips tool card title"},
+
+  "aiCulturalTipsSubtitle": "Local culture",
+  "@aiCulturalTipsSubtitle": {"description": "Cultural tips tool card subtitle"},
+
+  "aiCulturalTipsDesc": "Learn local etiquette, customs, and useful phrases before your trip.",
+  "@aiCulturalTipsDesc": {"description": "Cultural tips tool card description"},
+
+  "chatQuickPrompts": "Smart question suggestions",
+  "@chatQuickPrompts": {"description": "Heading for AI chat quick prompts"},
+
+  "chatQuickPromptWeather": "What should I do today to avoid the heat?",
+  "@chatQuickPromptWeather": {"description": "Quick AI chat weather prompt"},
+
+  "chatQuickPromptCafe": "Recommend a beautiful sunset café.",
+  "@chatQuickPromptCafe": {"description": "Quick AI chat café prompt"},
+
+  "chatQuickPromptBudget": "Estimate a budget for a 3-day trip for two.",
+  "@chatQuickPromptBudget": {"description": "Quick AI chat budget prompt"},
+
+  "savedFilterAll": "All",
+  "@savedFilterAll": {"description": "Saved trips filter: all items"},
+
+  "savedFilterTrips": "Trip plans",
+  "@savedFilterTrips": {"description": "Saved trips filter: workspaces"},
+
+  "savedFilterPlaces": "Saved places",
+  "@savedFilterPlaces": {"description": "Saved trips filter: wishlist"},
+
+  "groupTripsTitle": "Group trips in planning",
+  "@groupTripsTitle": {"description": "Friends screen group trips heading"},
+
+  "groupTripsEmptyTitle": "No group trip yet",
+  "@groupTripsEmptyTitle": {"description": "Friends screen empty group trips title"},
+
+  "groupTripsEmptyHint": "Save a trip plan, then invite friends to plan it together.",
+  "@groupTripsEmptyHint": {"description": "Friends screen empty group trips description"},
+
+  "groupTripMembers": "{count} members",
+  "@groupTripMembers": {"description": "Number of members in a group trip", "placeholders": {"count": {"type": "int"}}},
+
+  "inviteFriendToTrip": "Invite a friend",
+  "@inviteFriendToTrip": {"description": "Action to invite a friend into a trip"},
+
+  "inviteFriendToTripTitle": "Invite to {trip}",
+  "@inviteFriendToTripTitle": {"description": "Friend picker title for a trip", "placeholders": {"trip": {"type": "String"}}},
+
+  "inviteFriendNone": "Add an accepted friend before inviting someone to a trip.",
+  "@inviteFriendNone": {"description": "Message when no accepted friend can be invited"},
+
+  "inviteFriendSuccess": "Invitation added to the trip workspace.",
+  "@inviteFriendSuccess": {"description": "Confirmation when a friend is invited to a trip"},
+
   "contextCompareSuggestions": "Compare these suggestions",
+  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
+
+  "contextBestTime": "When should I go?",
+  "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},
+
+  "contextAskAboutDestination": "Ask AI about this place",
+  "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
+
+  "refineForBudget": "Optimize for budget",
+  "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
+
+  "refineForFamily": "Better for children or seniors",
+  "@refineForFamily": {"description": "Action to make an itinerary more suitable for children or older adults"},
+
+  "refineLessTravel": "Less travel between stops",
+  "@refineLessTravel": {"description": "Action to reduce travel time between itinerary stops"},
+
+  "currencySelectorTitle": "Display currency",
+  "@currencySelectorTitle": {"description": "Title of the display currency picker"},
+  "currencySelectorDescription": "Prices throughout Voyz are converted using the latest available reference rate.",
+  "@currencySelectorDescription": {"description": "Description in the display currency picker"},
+  "currencyVietnameseDong": "Vietnamese đồng",
+  "currencyUsDollar": "US dollar",
+  "currencyEuro": "Euro",
+  "currencyKoreanWon": "South Korean won",
   "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
 
   "contextBestTime": "When should I go?",
@@ -869,5 +960,29 @@
   "currencyBritishPound": "British pound",
   "currencyAustralianDollar": "Australian dollar",
   "currencySingaporeDollar": "Singapore dollar",
-  "currencyCanadianDollar": "Canadian dollar"
+  "currencyCanadianDollar": "Canadian dollar",
+  "editDisplayName": "Edit Display Name",
+  "saveDisplayName": "Save Name",
+  "displayNameSaved": "Display name updated successfully",
+  "presetAvatars": "Preset Avatars",
+  "choosePresetAvatar": "Choose Preset Avatar",
+  "avatarSelected": "Avatar selected successfully",
+  "enterDisplayName": "Enter your display name",
+  "tripConsultationTitle": "AI Trip Consultation",
+  "confirmAndSeeSuggestions": "Confirm & See Suggestions",
+  "tripInfo": "Trip Information",
+  "tripInfoUpdated": "Trip details updated",
+  "consultationInitialPrompt": "Hello! I see you are planning: \"{prompt}\". Would you like to refine your preferred pace, transport, or any must-see activities?",
+  "@consultationInitialPrompt": {
+    "description": "Greeting message from AI consultant",
+    "placeholders": {
+      "prompt": {
+        "type": "String"
+      }
+    }
+  },
+  "quickChipRelaxed": "Relaxed & leisurely pace",
+  "quickChipFoodie": "Focus on local food & cuisine",
+  "quickChipBudget": "Budget-friendly options",
+  "quickChipReady": "Looks great, let's finalize!"
 }

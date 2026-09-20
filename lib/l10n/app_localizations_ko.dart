@@ -256,6 +256,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fillAllRequired => '필수 정보를 모두 입력해 주세요';
 
   @override
+  String get plannerPromptRequired => 'AI가 추천할 수 있도록 원하는 여행을 설명해 주세요.';
+
+  @override
+  String get backgroundMusic => '배경 음악';
+
+  @override
+  String get backgroundMusicOn => '켜짐 — 배경 음악 재생 중';
+
+  @override
+  String get backgroundMusicOff => '꺼짐 — 배경 음악 일시 정지';
+
+  @override
   String get trendingDestinations => '인기 여행지';
 
   @override
@@ -659,6 +671,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
 
   @override
+  String get aiCulturalTipsTitle => '문화 팁';
+
+  @override
+  String get aiCulturalTipsSubtitle => '현지 문화';
+
+  @override
+  String get aiCulturalTipsDesc => '여행 전에 현지 예절, 관습, 유용한 표현을 알아보세요.';
+
+  @override
+  String get chatQuickPrompts => '추천 질문';
+
+  @override
+  String get chatQuickPromptWeather => '오늘 더위를 피하려면 어디에 가면 좋을까요?';
+
+  @override
+  String get chatQuickPromptCafe => '아름다운 일몰 카페를 추천해 주세요.';
+
+  @override
+  String get chatQuickPromptBudget => '2인 3일 여행 예산을 예상해 주세요.';
+
+  @override
+  String get savedFilterAll => '전체';
+
+  @override
+  String get savedFilterTrips => '여행 일정';
+
+  @override
+  String get savedFilterPlaces => '저장한 장소';
+
+  @override
+  String get groupTripsTitle => '계획 중인 그룹 여행';
+
+  @override
+  String get groupTripsEmptyTitle => '아직 그룹 여행이 없습니다';
+
+  @override
+  String get groupTripsEmptyHint => '여행 계획을 저장한 뒤 친구를 초대하여 함께 계획해 보세요.';
+
+  @override
+  String groupTripMembers(int count) {
+    return '$count명';
+  }
+
+  @override
+  String get inviteFriendToTrip => '친구 초대';
+
+  @override
+  String inviteFriendToTripTitle(String trip) {
+    return '$trip에 초대';
+  }
+
+  @override
+  String get inviteFriendNone => '여행에 초대하려면 먼저 수락된 친구를 추가하세요.';
+
+  @override
+  String get inviteFriendSuccess => '여행 워크스페이스에 초대가 추가되었습니다.';
+
+  @override
   String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
@@ -711,4 +781,54 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get currencyCanadianDollar => '캐나다 달러';
+
+  @override
+  String get editDisplayName => '이름 변경';
+
+  @override
+  String get saveDisplayName => '이름 저장';
+
+  @override
+  String get displayNameSaved => '이름이 성공적으로 변경되었습니다';
+
+  @override
+  String get presetAvatars => '기본 아바타';
+
+  @override
+  String get choosePresetAvatar => '기본 아바타 선택';
+
+  @override
+  String get avatarSelected => '아바타가 선택되었습니다';
+
+  @override
+  String get enterDisplayName => '이름을 입력하세요';
+
+  @override
+  String get tripConsultationTitle => 'AI 여행 상담';
+
+  @override
+  String get confirmAndSeeSuggestions => '확인 및 추천 보기';
+
+  @override
+  String get tripInfo => '여행 정보';
+
+  @override
+  String get tripInfoUpdated => '여행 정보가 업데이트되었습니다';
+
+  @override
+  String consultationInitialPrompt(String prompt) {
+    return '안녕하세요! 계획 중이신 여행: \"$prompt\". 선호하는 여행 템포, 이동 수단 또는 꼭 가보고 싶은 활동이 있으신가요?';
+  }
+
+  @override
+  String get quickChipRelaxed => '여유롭고 편안한 일정';
+
+  @override
+  String get quickChipFoodie => '현지 맛집 및 미식 중심';
+
+  @override
+  String get quickChipBudget => '가성비 중심 알뜰 여행';
+
+  @override
+  String get quickChipReady => '좋습니다, 바로 확정해주세요!';
 }

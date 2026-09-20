@@ -82,6 +82,19 @@
   "aiPromptHint": "Hãy nói với AI về chuyến đi bạn muốn...",
   "getAiSuggestions": "Nhận gợi ý AI",
   "fillAllRequired": "Vui lòng điền đầy đủ thông tin bắt buộc",
+
+  "plannerPromptRequired": "Hãy mô tả chuyến đi bạn mong muốn để AI gợi ý.",
+  "@plannerPromptRequired": {"description": "Validation error when the AI planner request is empty"},
+
+  "backgroundMusic": "Nhạc nền",
+  "@backgroundMusic": {"description": "Profile setting label for background music"},
+
+  "backgroundMusicOn": "Đang bật — nhạc nền đang phát",
+  "@backgroundMusicOn": {"description": "Profile status when background music is on"},
+
+  "backgroundMusicOff": "Đang tắt — nhạc nền đang dừng",
+  "@backgroundMusicOff": {"description": "Profile status when background music is off"},
+
   "trendingDestinations": "Điểm đến thịnh hành",
   "aiInsight": "Nhận xét AI",
   "topMatch": "PHÙ HỢP NHẤT",
@@ -220,7 +233,84 @@
   "aiBestTimeSubtitle": "Phân tích theo mùa",
   "aiBestTimeDesc": "Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.",
 
+  "aiCulturalTipsTitle": "Mẹo văn hóa",
+  "@aiCulturalTipsTitle": {"description": "Cultural tips tool card title"},
+
+  "aiCulturalTipsSubtitle": "Văn hóa địa phương",
+  "@aiCulturalTipsSubtitle": {"description": "Cultural tips tool card subtitle"},
+
+  "aiCulturalTipsDesc": "Tìm hiểu cách ứng xử, phong tục và những cụm từ hữu ích trước chuyến đi.",
+  "@aiCulturalTipsDesc": {"description": "Cultural tips tool card description"},
+
+  "chatQuickPrompts": "Gợi ý câu hỏi thông minh",
+  "@chatQuickPrompts": {"description": "Heading for AI chat quick prompts"},
+
+  "chatQuickPromptWeather": "Hôm nay nên đi đâu để tránh nắng?",
+  "@chatQuickPromptWeather": {"description": "Quick AI chat weather prompt"},
+
+  "chatQuickPromptCafe": "Gợi ý quán cà phê ngắm hoàng hôn đẹp.",
+  "@chatQuickPromptCafe": {"description": "Quick AI chat café prompt"},
+
+  "chatQuickPromptBudget": "Dự trù ngân sách cho hai người đi 3 ngày.",
+  "@chatQuickPromptBudget": {"description": "Quick AI chat budget prompt"},
+
+  "savedFilterAll": "Tất cả",
+  "@savedFilterAll": {"description": "Saved trips filter: all items"},
+
+  "savedFilterTrips": "Lịch trình",
+  "@savedFilterTrips": {"description": "Saved trips filter: workspaces"},
+
+  "savedFilterPlaces": "Địa điểm đã lưu",
+  "@savedFilterPlaces": {"description": "Saved trips filter: wishlist"},
+
+  "groupTripsTitle": "Chuyến đi nhóm đang lên lịch",
+  "@groupTripsTitle": {"description": "Friends screen group trips heading"},
+
+  "groupTripsEmptyTitle": "Chưa có chuyến đi nhóm",
+  "@groupTripsEmptyTitle": {"description": "Friends screen empty group trips title"},
+
+  "groupTripsEmptyHint": "Lưu một kế hoạch rồi mời bạn bè cùng xây dựng lịch trình.",
+  "@groupTripsEmptyHint": {"description": "Friends screen empty group trips description"},
+
+  "groupTripMembers": "{count} thành viên",
+  "@groupTripMembers": {"description": "Number of members in a group trip", "placeholders": {"count": {"type": "int"}}},
+
+  "inviteFriendToTrip": "Mời bạn bè",
+  "@inviteFriendToTrip": {"description": "Action to invite a friend into a trip"},
+
+  "inviteFriendToTripTitle": "Mời vào {trip}",
+  "@inviteFriendToTripTitle": {"description": "Friend picker title for a trip", "placeholders": {"trip": {"type": "String"}}},
+
+  "inviteFriendNone": "Hãy kết bạn trước khi mời ai đó vào chuyến đi.",
+  "@inviteFriendNone": {"description": "Message when no accepted friend can be invited"},
+
+  "inviteFriendSuccess": "Đã thêm lời mời vào không gian chuyến đi.",
+  "@inviteFriendSuccess": {"description": "Confirmation when a friend is invited to a trip"},
+
   "contextCompareSuggestions": "So sánh các gợi ý này",
+  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
+
+  "contextBestTime": "Khi nào nên đi?",
+  "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},
+
+  "contextAskAboutDestination": "Hỏi AI về nơi này",
+  "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
+
+  "refineForBudget": "Tối ưu theo ngân sách",
+  "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
+
+  "refineForFamily": "Phù hợp trẻ em/người lớn tuổi",
+  "@refineForFamily": {"description": "Action to make an itinerary more suitable for children or older adults"},
+
+  "refineLessTravel": "Ít di chuyển hơn",
+  "@refineLessTravel": {"description": "Action to reduce travel time between itinerary stops"},
+
+  "currencySelectorTitle": "Tiền tệ hiển thị",
+  "currencySelectorDescription": "Giá trong Voyz được quy đổi theo tỉ giá tham chiếu mới nhất.",
+  "currencyVietnameseDong": "Đồng Việt Nam",
+  "currencyUsDollar": "Đô la Mỹ",
+  "currencyEuro": "Euro",
+  "currencyKoreanWon": "Won Hàn Quốc",
   "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
 
   "contextBestTime": "Khi nào nên đi?",
@@ -249,5 +339,21 @@
   "currencyBritishPound": "Bảng Anh",
   "currencyAustralianDollar": "Đô la Úc",
   "currencySingaporeDollar": "Đô la Singapore",
-  "currencyCanadianDollar": "Đô la Canada"
+  "currencyCanadianDollar": "Đô la Canada",
+  "editDisplayName": "Đổi tên hiển thị",
+  "saveDisplayName": "Lưu tên",
+  "displayNameSaved": "Đã lưu tên hiển thị thành công",
+  "presetAvatars": "Avatar sẵn có",
+  "choosePresetAvatar": "Chọn avatar sẵn có",
+  "avatarSelected": "Đã chọn avatar mới thành công",
+  "enterDisplayName": "Nhập tên hiển thị của bạn",
+  "tripConsultationTitle": "Thảo luận chuyến đi cùng AI",
+  "confirmAndSeeSuggestions": "Xác nhận & Xem gợi ý",
+  "tripInfo": "Thông tin chuyến đi",
+  "tripInfoUpdated": "Đã cập nhật thông tin chuyến đi",
+  "consultationInitialPrompt": "Chào bạn! Tôi thấy bạn đang lên kế hoạch: \"{prompt}\". Bạn có muốn điều chỉnh thêm về nhịp độ chuyến đi, phương tiện hay hoạt động đặc biệt nào không?",
+  "quickChipRelaxed": "Lịch trình thư thả, không vội",
+  "quickChipFoodie": "Ưu tiên ẩm thực & ăn uống",
+  "quickChipBudget": "Tối ưu chi phí tiết kiệm",
+  "quickChipReady": "Tôi thấy ổn rồi, chốt nhé!"
 }

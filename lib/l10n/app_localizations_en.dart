@@ -262,6 +262,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fillAllRequired => 'Please fill in all required info';
 
   @override
+  String get plannerPromptRequired =>
+      'Tell AI what kind of trip you would like.';
+
+  @override
+  String get backgroundMusic => 'Background music';
+
+  @override
+  String get backgroundMusicOn => 'On — ambient music is playing';
+
+  @override
+  String get backgroundMusicOff => 'Off — ambient music is paused';
+
+  @override
   String get trendingDestinations => 'Trending Destinations';
 
   @override
@@ -677,6 +690,69 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find the ideal months to visit any destination based on weather, crowds, and local events.';
 
   @override
+  String get aiCulturalTipsTitle => 'Cultural Tips';
+
+  @override
+  String get aiCulturalTipsSubtitle => 'Local culture';
+
+  @override
+  String get aiCulturalTipsDesc =>
+      'Learn local etiquette, customs, and useful phrases before your trip.';
+
+  @override
+  String get chatQuickPrompts => 'Smart question suggestions';
+
+  @override
+  String get chatQuickPromptWeather =>
+      'What should I do today to avoid the heat?';
+
+  @override
+  String get chatQuickPromptCafe => 'Recommend a beautiful sunset café.';
+
+  @override
+  String get chatQuickPromptBudget =>
+      'Estimate a budget for a 3-day trip for two.';
+
+  @override
+  String get savedFilterAll => 'All';
+
+  @override
+  String get savedFilterTrips => 'Trip plans';
+
+  @override
+  String get savedFilterPlaces => 'Saved places';
+
+  @override
+  String get groupTripsTitle => 'Group trips in planning';
+
+  @override
+  String get groupTripsEmptyTitle => 'No group trip yet';
+
+  @override
+  String get groupTripsEmptyHint =>
+      'Save a trip plan, then invite friends to plan it together.';
+
+  @override
+  String groupTripMembers(int count) {
+    return '$count members';
+  }
+
+  @override
+  String get inviteFriendToTrip => 'Invite a friend';
+
+  @override
+  String inviteFriendToTripTitle(String trip) {
+    return 'Invite to $trip';
+  }
+
+  @override
+  String get inviteFriendNone =>
+      'Add an accepted friend before inviting someone to a trip.';
+
+  @override
+  String get inviteFriendSuccess => 'Invitation added to the trip workspace.';
+
+  @override
   String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
@@ -730,4 +806,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currencyCanadianDollar => 'Canadian dollar';
+
+  @override
+  String get editDisplayName => 'Edit Display Name';
+
+  @override
+  String get saveDisplayName => 'Save Name';
+
+  @override
+  String get displayNameSaved => 'Display name updated successfully';
+
+  @override
+  String get presetAvatars => 'Preset Avatars';
+
+  @override
+  String get choosePresetAvatar => 'Choose Preset Avatar';
+
+  @override
+  String get avatarSelected => 'Avatar selected successfully';
+
+  @override
+  String get enterDisplayName => 'Enter your display name';
+
+  @override
+  String get tripConsultationTitle => 'AI Trip Consultation';
+
+  @override
+  String get confirmAndSeeSuggestions => 'Confirm & See Suggestions';
+
+  @override
+  String get tripInfo => 'Trip Information';
+
+  @override
+  String get tripInfoUpdated => 'Trip details updated';
+
+  @override
+  String consultationInitialPrompt(String prompt) {
+    return 'Hello! I see you are planning: \"$prompt\". Would you like to refine your preferred pace, transport, or any must-see activities?';
+  }
+
+  @override
+  String get quickChipRelaxed => 'Relaxed & leisurely pace';
+
+  @override
+  String get quickChipFoodie => 'Focus on local food & cuisine';
+
+  @override
+  String get quickChipBudget => 'Budget-friendly options';
+
+  @override
+  String get quickChipReady => 'Looks great, let\'s finalize!';
 }

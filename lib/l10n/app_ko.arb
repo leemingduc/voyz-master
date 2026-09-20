@@ -82,6 +82,19 @@
   "aiPromptHint": "원하는 여행에 대해 AI에게 알려주세요...",
   "getAiSuggestions": "AI 추천 받기",
   "fillAllRequired": "필수 정보를 모두 입력해 주세요",
+
+  "plannerPromptRequired": "AI가 추천할 수 있도록 원하는 여행을 설명해 주세요.",
+  "@plannerPromptRequired": {"description": "Validation error when the AI planner request is empty"},
+
+  "backgroundMusic": "배경 음악",
+  "@backgroundMusic": {"description": "Profile setting label for background music"},
+
+  "backgroundMusicOn": "켜짐 — 배경 음악 재생 중",
+  "@backgroundMusicOn": {"description": "Profile status when background music is on"},
+
+  "backgroundMusicOff": "꺼짐 — 배경 음악 일시 정지",
+  "@backgroundMusicOff": {"description": "Profile status when background music is off"},
+
   "trendingDestinations": "인기 여행지",
   "aiInsight": "AI 인사이트",
   "topMatch": "최고 매칭",
@@ -220,6 +233,60 @@
   "aiBestTimeSubtitle": "계절별 분석",
   "aiBestTimeDesc": "날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.",
 
+  "aiCulturalTipsTitle": "문화 팁",
+  "@aiCulturalTipsTitle": {"description": "Cultural tips tool card title"},
+
+  "aiCulturalTipsSubtitle": "현지 문화",
+  "@aiCulturalTipsSubtitle": {"description": "Cultural tips tool card subtitle"},
+
+  "aiCulturalTipsDesc": "여행 전에 현지 예절, 관습, 유용한 표현을 알아보세요.",
+  "@aiCulturalTipsDesc": {"description": "Cultural tips tool card description"},
+
+  "chatQuickPrompts": "추천 질문",
+  "@chatQuickPrompts": {"description": "Heading for AI chat quick prompts"},
+
+  "chatQuickPromptWeather": "오늘 더위를 피하려면 어디에 가면 좋을까요?",
+  "@chatQuickPromptWeather": {"description": "Quick AI chat weather prompt"},
+
+  "chatQuickPromptCafe": "아름다운 일몰 카페를 추천해 주세요.",
+  "@chatQuickPromptCafe": {"description": "Quick AI chat café prompt"},
+
+  "chatQuickPromptBudget": "2인 3일 여행 예산을 예상해 주세요.",
+  "@chatQuickPromptBudget": {"description": "Quick AI chat budget prompt"},
+
+  "savedFilterAll": "전체",
+  "@savedFilterAll": {"description": "Saved trips filter: all items"},
+
+  "savedFilterTrips": "여행 일정",
+  "@savedFilterTrips": {"description": "Saved trips filter: workspaces"},
+
+  "savedFilterPlaces": "저장한 장소",
+  "@savedFilterPlaces": {"description": "Saved trips filter: wishlist"},
+
+  "groupTripsTitle": "계획 중인 그룹 여행",
+  "@groupTripsTitle": {"description": "Friends screen group trips heading"},
+
+  "groupTripsEmptyTitle": "아직 그룹 여행이 없습니다",
+  "@groupTripsEmptyTitle": {"description": "Friends screen empty group trips title"},
+
+  "groupTripsEmptyHint": "여행 계획을 저장한 뒤 친구를 초대하여 함께 계획해 보세요.",
+  "@groupTripsEmptyHint": {"description": "Friends screen empty group trips description"},
+
+  "groupTripMembers": "{count}명",
+  "@groupTripMembers": {"description": "Number of members in a group trip", "placeholders": {"count": {"type": "int"}}},
+
+  "inviteFriendToTrip": "친구 초대",
+  "@inviteFriendToTrip": {"description": "Action to invite a friend into a trip"},
+
+  "inviteFriendToTripTitle": "{trip}에 초대",
+  "@inviteFriendToTripTitle": {"description": "Friend picker title for a trip", "placeholders": {"trip": {"type": "String"}}},
+
+  "inviteFriendNone": "여행에 초대하려면 먼저 수락된 친구를 추가하세요.",
+  "@inviteFriendNone": {"description": "Message when no accepted friend can be invited"},
+
+  "inviteFriendSuccess": "여행 워크스페이스에 초대가 추가되었습니다.",
+  "@inviteFriendSuccess": {"description": "Confirmation when a friend is invited to a trip"},
+
   "currencySelectorTitle": "표시 통화",
   "currencySelectorDescription": "Voyz의 가격은 최신 기준 환율로 환산됩니다.",
   "currencyVietnameseDong": "베트남 동",
@@ -231,5 +298,21 @@
   "currencyBritishPound": "영국 파운드",
   "currencyAustralianDollar": "호주 달러",
   "currencySingaporeDollar": "싱가포르 달러",
-  "currencyCanadianDollar": "캐나다 달러"
+  "currencyCanadianDollar": "캐나다 달러",
+  "editDisplayName": "이름 변경",
+  "saveDisplayName": "이름 저장",
+  "displayNameSaved": "이름이 성공적으로 변경되었습니다",
+  "presetAvatars": "기본 아바타",
+  "choosePresetAvatar": "기본 아바타 선택",
+  "avatarSelected": "아바타가 선택되었습니다",
+  "enterDisplayName": "이름을 입력하세요",
+  "tripConsultationTitle": "AI 여행 상담",
+  "confirmAndSeeSuggestions": "확인 및 추천 보기",
+  "tripInfo": "여행 정보",
+  "tripInfoUpdated": "여행 정보가 업데이트되었습니다",
+  "consultationInitialPrompt": "안녕하세요! 계획 중이신 여행: \"{prompt}\". 선호하는 여행 템포, 이동 수단 또는 꼭 가보고 싶은 활동이 있으신가요?",
+  "quickChipRelaxed": "여유롭고 편안한 일정",
+  "quickChipFoodie": "현지 맛집 및 미식 중심",
+  "quickChipBudget": "가성비 중심 알뜰 여행",
+  "quickChipReady": "좋습니다, 바로 확정해주세요!"
 }
