@@ -12,27 +12,26 @@ class AppTheme {
   AppTheme._();
 
   // ── Brand Colors ──────────────────────────────────────────────────────
-  static const Color primaryPink = Color(0xFFFF4D8D);
-  static const Color secondaryOrange = Color(0xFFFF8C42);
-  static const Color accentBlue = Color(0xFF4FACEF);
-  static const Color backgroundDark = Color(0xFF050B15);
-  static const Color navyAccent = Color(0xFF0A0E1A);
-  static const Color surfaceDark = Color(0xFF12182B);
+  static const Color cyan = Color(0xFF00E5FF);
+  static const Color violet = Color(0xFF8B5CF6);
+  static const Color magenta = Color(0xFFFF3366);
+  static const Color backgroundDark = Color(0xFF06070B);
+  static const Color navyAccent = Color(0xFF0B0E15);
+  static const Color surfaceDark = Color(0xFF10131A);
+  static const Color primaryPink = magenta;
+  static const Color secondaryOrange = violet;
+  static const Color accentBlue = cyan;
+  static const Color textMuted = Color(0xFF94A3B8);
 
   // ── Gradient ──────────────────────────────────────────────────────────
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [primaryPink, secondaryOrange],
+    colors: [cyan, violet, magenta],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient splashTextGradient = LinearGradient(
-    colors: [
-      Color(0xFFFF5E8E),
-      Color(0xFFF59E0B),
-      Color(0xFFA855F7),
-      Color(0xFF3B82F6),
-    ],
+    colors: [cyan, violet, magenta],
   );
 
   // ── Spacing ───────────────────────────────────────────────────────────
@@ -47,6 +46,11 @@ class AppTheme {
   static const double radiusMd = 12;
   static const double radiusLg = 16;
   static const double radiusXl = 24;
+
+  static EdgeInsets pagePadding(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return EdgeInsets.symmetric(horizontal: width >= 720 ? 24 : 16);
+  }
 
   // ── CJK Font Fallbacks ──────────────────────────────────────────────
   // Font Inter (Google Fonts) does not include Korean/Japanese/Chinese
@@ -90,7 +94,7 @@ class AppTheme {
   // ── Dark Theme ────────────────────────────────────────────────────────
   static ThemeData darkTheme() {
     final textTheme = _applyCjkFallbacks(
-      GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
     );
 
     return ThemeData(
@@ -99,15 +103,15 @@ class AppTheme {
       scaffoldBackgroundColor: backgroundDark,
       textTheme: textTheme,
       colorScheme: const ColorScheme.dark(
-        primary: primaryPink,
-        secondary: secondaryOrange,
-        tertiary: accentBlue,
+        primary: cyan,
+        secondary: magenta,
+        tertiary: violet,
         surface: surfaceDark,
         onSurface: Colors.white,
         error: Color(0xFFEF4444),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: backgroundDark.withValues(alpha: 0.8),
+        backgroundColor: surfaceDark.withValues(alpha: 0.84),
         elevation: 0,
         titleTextStyle: textTheme.titleLarge?.copyWith(
           color: Colors.white,
@@ -115,9 +119,9 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: backgroundDark,
-        selectedItemColor: primaryPink,
-        unselectedItemColor: Color(0xFF64748B),
+        backgroundColor: surfaceDark,
+        selectedItemColor: cyan,
+        unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
       ),
@@ -135,7 +139,7 @@ class AppTheme {
   // ── Light Theme (placeholder) ─────────────────────────────────────────
   static ThemeData lightTheme() {
     final textTheme = _applyCjkFallbacks(
-      GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+      GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme),
     );
 
     return ThemeData(

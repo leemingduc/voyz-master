@@ -5,6 +5,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/splash_screen.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
 /// A minimal widget that renders a single localized string so we can assert
 /// the generated AppLocalizations supplies the correct translation.
@@ -39,6 +40,16 @@ void main() {
 
     // Cleanly let all timers and animations finish
     await tester.pumpAndSettle(const Duration(seconds: 5));
+  });
+
+  testWidgets('AIVIVU wordmark keeps the uppercase brand treatment', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: AivivuWordmark())),
+    );
+
+    expect(find.text('AIVIVU'), findsOneWidget);
   });
 
   testWidgets('generated localization supplies Vietnamese copy', (
