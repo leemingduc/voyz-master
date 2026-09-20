@@ -19,7 +19,11 @@ class SavedScreen extends StatefulWidget {
   State<SavedScreen> createState() => _SavedScreenState();
 }
 
+enum _SavedFilter { all, trips, places }
+
 class _SavedScreenState extends State<SavedScreen> {
+  _SavedFilter _filter = _SavedFilter.all;
+
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -46,6 +50,11 @@ class _SavedScreenState extends State<SavedScreen> {
     final allItems = provider.savedItems;
     final workspaceCount = provider.tripWorkspaces.length;
     final wishlistCount = provider.wishlistItems.length;
+    final visibleItems = switch (_filter) {
+      _SavedFilter.all => allItems,
+      _SavedFilter.trips => provider.tripWorkspaces,
+      _SavedFilter.places => provider.wishlistItems,
+    };
 
     return Scaffold(
       body: Container(
@@ -67,9 +76,19 @@ class _SavedScreenState extends State<SavedScreen> {
 
               // ── Content ──
               Expanded(
-                child: _ItemListView(
-                  items: allItems,
-                  onRemoved: () => setState(() {}),
+                child: Column(
+                  children: [
+                    _SavedFilterTabs(
+                      selected: _filter,
+                      onChanged: (filter) => setState(() => _filter = filter),
+                    ),
+                    Expanded(
+                      child: _ItemListView(
+                        items: visibleItems,
+                        onRemoved: () => setState(() {}),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -82,6 +101,42 @@ class _SavedScreenState extends State<SavedScreen> {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────
+
+class _SavedFilterTabs extends StatelessWidget {
+  const _SavedFilterTabs({required this.selected, required this.onChanged});
+
+  final _SavedFilter selected;
+  final ValueChanged<_SavedFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final filters = <(_SavedFilter, String)>[
+      (_SavedFilter.all, l10n.savedFilterAll),
+      (_SavedFilter.trips, l10n.savedFilterTrips),
+      (_SavedFilter.places, l10n.savedFilterPlaces),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Row(
+        children: filters
+            .map(
+              (filter) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(filter.$2),
+                  selected: selected == filter.$1,
+                  onSelected: (_) => onChanged(filter.$1),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
 
 class _Header extends StatelessWidget {
   const _Header({required this.workspaceCount, required this.wishlistCount});

@@ -101,6 +101,45 @@ class ProfileService {
     return avatarUrl;
   }
 
+  Future<String> updateDisplayName({required String displayName}) async {
+    final user = _requireUser();
+    final normalizedName = displayName.trim();
+
+    await _auth.updateUser(
+      UserAttributes(
+        data: {...?user.userMetadata, 'display_name': normalizedName},
+      ),
+    );
+    await _client.from('profiles').upsert({
+      'user_id': user.id,
+      'email': user.email ?? '',
+      'display_name': normalizedName,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+
+    return normalizedName;
+  }
+
+  Future<String> updateAvatarUrl({required String avatarUrl}) async {
+    final user = _requireUser();
+
+    await _auth.updateUser(
+      UserAttributes(
+        data: {...?user.userMetadata, 'avatar_url': avatarUrl},
+      ),
+    );
+    await _client.from('profiles').upsert({
+      'user_id': user.id,
+      'email': user.email ?? '',
+      'display_name': _displayNameFromMetadata(user),
+      'avatar_url': avatarUrl,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+
+    return avatarUrl;
+  }
+
+
   Future<String> updateContactInfo({required String phoneNumber}) async {
     final user = _requireUser();
     final normalizedPhone = phoneNumber.trim();

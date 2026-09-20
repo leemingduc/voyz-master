@@ -130,6 +130,41 @@ void main() {
     expect(find.byType(AivivuHeader), findsOneWidget);
   });
 
+  testWidgets('AI tools opens cultural tips with a destination prompt', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const AIToolsScreen(),
+      ),
+    );
+
+    final culturalTool = find.text('Cultural Tips').last;
+    await tester.scrollUntilVisible(culturalTool, 180);
+    await tester.tap(culturalTool);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('AI tools cultural tips card follows the active language', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('vi'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const AIToolsScreen(),
+      ),
+    );
+
+    expect(find.text('Mẹo văn hóa'), findsOneWidget);
+    expect(find.text('Văn hóa địa phương'), findsOneWidget);
+  });
+
   testWidgets('generated localization supplies Vietnamese copy', (
     tester,
   ) async {

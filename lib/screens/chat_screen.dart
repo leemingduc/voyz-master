@@ -109,6 +109,15 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _sendQuickPrompt(String prompt) {
+    if (_isSending) return;
+    _messageController.text = prompt;
+    _messageController.selection = TextSelection.collapsed(
+      offset: prompt.length,
+    );
+    _sendMessage();
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -183,6 +192,9 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+
+          if (!_isSending && _messages.length <= 1)
+            _QuickPrompts(onSelected: _sendQuickPrompt),
 
           // Loading indicator
           if (_isSending)
@@ -265,6 +277,57 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
+    );
+  }
+}
+
+class _QuickPrompts extends StatelessWidget {
+  const _QuickPrompts({required this.onSelected});
+
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final prompts = [
+      l10n.chatQuickPromptWeather,
+      l10n.chatQuickPromptCafe,
+      l10n.chatQuickPromptBudget,
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.chatQuickPrompts,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: prompts
+                  .map(
+                    (prompt) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        avatar: const Icon(Icons.auto_awesome, size: 15),
+                        label: Text(prompt),
+                        onPressed: () => onSelected(prompt),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

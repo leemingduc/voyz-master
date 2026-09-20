@@ -5,6 +5,8 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_header.dart';
+import 'package:voyz/widgets/shared/aivivu_page_background.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
 // ── Theme colors for sections ──
@@ -68,50 +70,16 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topLeft,
-            radius: 1.5,
-            colors: [AppTheme.navyAccent, AppTheme.backgroundDark],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ── Top bar ──
-              _buildTopBar(theme),
-              // ── Body ──
-              Expanded(child: _buildBody(theme)),
-            ],
-          ),
+      appBar: AivivuHeader(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
-    );
-  }
-
-  Widget _buildTopBar(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.emoji_objects, color: _adviceColor, size: 24),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context)!.culturalTips,
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+      body: AivivuPageBackground(
+        padding: false,
+        constrainContent: false,
+        child: _buildBody(theme),
       ),
     );
   }
