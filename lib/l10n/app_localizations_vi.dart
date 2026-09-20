@@ -748,4 +748,14 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get currencyCanadianDollar => 'Đô la Canada';
+
+  @override
+  String get aiModel => 'Mô hình AI';
+
+  @override
+  String get aiModelDescription =>
+      'Mô hình Gemini trả lời các câu hỏi du lịch của bạn. Mô hình lớn hơn suy nghĩ lâu hơn và có thể hết hạn mức miễn phí sớm hơn.';
+
+  @override
+  String get aiModelSaved => 'Đã lưu mô hình AI';
 }

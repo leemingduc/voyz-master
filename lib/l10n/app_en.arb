@@ -884,5 +884,13 @@
   "currencyBritishPound": "British pound",
   "currencyAustralianDollar": "Australian dollar",
   "currencySingaporeDollar": "Singapore dollar",
-  "currencyCanadianDollar": "Canadian dollar"
+  "currencyCanadianDollar": "Canadian dollar",
+  "aiModel": "AI model",
+  "@aiModel": {"description": "Profile section heading for the Gemini model picker"},
+
+  "aiModelDescription": "Which Gemini model answers your travel questions. Larger models think longer and may reach the free quota sooner.",
+  "@aiModelDescription": {"description": "Helper text under the AI model picker"},
+
+  "aiModelSaved": "AI model saved",
+  "@aiModelSaved": {"description": "Snackbar after the AI model is changed"}
 }

@@ -1,11 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
-  test('uses Gemini 3.1 Flash Lite for every AI feature', () {
-    expect(GeminiService.modelName, 'gemini-3.1-flash-lite');
+  test('defaults to Gemini 3.1 Flash Lite for every AI feature', () {
+    expect(supportedAiModels.first.id, 'gemini-3.1-flash-lite');
+    expect(GeminiService.instance.modelName, 'gemini-3.1-flash-lite');
   });
 
   group('languageInstruction', () {
@@ -65,8 +67,9 @@ void main() {
     });
 
     test('decodes JSON with markdown code fence', () {
-      final result = GeminiService.instance
-          .safeJsonDecode('```json\n{"key":"value"}\n```');
+      final result = GeminiService.instance.safeJsonDecode(
+        '```json\n{"key":"value"}\n```',
+      );
       expect(result, isA<Map<String, dynamic>>());
     });
 
@@ -82,8 +85,10 @@ void main() {
       expect(result, isA<List<dynamic>>());
     });
 
-    test('parses JSON wrapped in ``` markdown block without language specifier', () {
-      final jsonStr = '''
+    test(
+      'parses JSON wrapped in ``` markdown block without language specifier',
+      () {
+        final jsonStr = '''
 ```
 {
   "name": "Saigon",
@@ -91,11 +96,12 @@ void main() {
 }
 ```
 ''';
-      final result = GeminiService.instance.safeJsonDecode(jsonStr);
-      expect(result, isA<Map<String, dynamic>>());
-      expect(result['name'], 'Saigon');
-      expect(result['rating'], 4.7);
-    });
+        final result = GeminiService.instance.safeJsonDecode(jsonStr);
+        expect(result, isA<Map<String, dynamic>>());
+        expect(result['name'], 'Saigon');
+        expect(result['rating'], 4.7);
+      },
+    );
 
     test('parses JSON array wrapped in markdown', () {
       final jsonStr = '''
@@ -144,8 +150,10 @@ Please let me know if you need anything else!
       expect(result.first.isTopMatch, true);
     });
 
-    test('handles mismatched types and casts safely without throwing TypeError', () {
-      final jsonStr = '''
+    test(
+      'handles mismatched types and casts safely without throwing TypeError',
+      () {
+        final jsonStr = '''
 [
   {
     "name": 12345,
@@ -158,18 +166,21 @@ Please let me know if you need anything else!
   }
 ]
 ''';
-      final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
-      expect(result, isNotEmpty);
-      expect(result.first.name, '12345');
-      expect(result.first.matchPercent, 90);
-      expect(result.first.rating, 4.2);
-      expect(result.first.reviewCount, 100);
-      expect(result.first.price, 'Free');
-      expect(result.first.aiInsight, '');
-    });
+        final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
+        expect(result, isNotEmpty);
+        expect(result.first.name, '12345');
+        expect(result.first.matchPercent, 90);
+        expect(result.first.rating, 4.2);
+        expect(result.first.reviewCount, 100);
+        expect(result.first.price, 'Free');
+        expect(result.first.aiInsight, '');
+      },
+    );
 
     test('heals JSON array closed with } instead of ] (Gemini model bug)', () {
-      final jsonStr = '[{"name": "Phu Quoc", "matchPercent": 98, "rating": 4.8, "reviewCount": 100, "price": "5M VNĐ", "aiInsight": "Great", "isTopMatch": true}]'.replaceFirst(']', '}');
+      final jsonStr =
+          '[{"name": "Phu Quoc", "matchPercent": 98, "rating": 4.8, "reviewCount": 100, "price": "5M VNĐ", "aiInsight": "Great", "isTopMatch": true}]'
+              .replaceFirst(']', '}');
       final result = GeminiService.instance.parseSuggestionsSync(jsonStr);
       expect(result, isNotEmpty);
       expect(result.first.name, 'Phu Quoc');
@@ -190,8 +201,11 @@ Please let me know if you need anything else!
   group('buildSuggestionsPrompt - prompt-first behavior', () {
     test('prompt-only trip asks AI to infer the destination, not Vietnam', () {
       final trip = TripData(aiPrompt: 'Đi biển 5 ngày cùng gia đình 4 người');
-      final prompt =
-          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      final prompt = GeminiService.instance.buildSuggestionsPrompt(
+        trip,
+        5,
+        'vi',
+      );
       expect(prompt, contains('suy ra điểm đến'));
       expect(prompt, isNot(contains('Điểm đến mong muốn: Việt Nam')));
       expect(
@@ -202,22 +216,31 @@ Please let me know if you need anything else!
 
     test('explicit destination field still wins over inference', () {
       final trip = TripData(destination: 'Đà Lạt', aiPrompt: 'nghỉ dưỡng');
-      final prompt =
-          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      final prompt = GeminiService.instance.buildSuggestionsPrompt(
+        trip,
+        5,
+        'vi',
+      );
       expect(prompt, contains('Điểm đến mong muốn: Đà Lạt'));
       expect(prompt, isNot(contains('suy ra điểm đến')));
     });
 
     test('fully empty trip keeps the Vietnam fallback', () {
-      final prompt =
-          GeminiService.instance.buildSuggestionsPrompt(TripData(), 5, 'vi');
+      final prompt = GeminiService.instance.buildSuggestionsPrompt(
+        TripData(),
+        5,
+        'vi',
+      );
       expect(prompt, contains('Điểm đến mong muốn: Việt Nam'));
     });
 
     test('missing dates and party size point the AI at the description', () {
       final trip = TripData(aiPrompt: 'Đi 5 ngày, 4 người lớn');
-      final prompt =
-          GeminiService.instance.buildSuggestionsPrompt(trip, 5, 'vi');
+      final prompt = GeminiService.instance.buildSuggestionsPrompt(
+        trip,
+        5,
+        'vi',
+      );
       expect(prompt, contains('nếu mô tả chuyến đi nêu thời gian'));
       expect(prompt, contains('suy ra từ mô tả chuyến đi'));
     });
@@ -226,8 +249,11 @@ Please let me know if you need anything else!
   group('buildDetailPrompt - prompt-first behavior', () {
     test('includes the trip description and drops the fake date fallback', () {
       final trip = TripData(aiPrompt: 'Đi 5 ngày với bố mẹ, thích ẩm thực');
-      final prompt = GeminiService.instance
-          .buildDetailPrompt('Đà Nẵng', trip, 'vi');
+      final prompt = GeminiService.instance.buildDetailPrompt(
+        'Đà Nẵng',
+        trip,
+        'vi',
+      );
       expect(
         prompt,
         contains('Mô tả chuyến đi của người dùng: Đi 5 ngày với bố mẹ'),
@@ -241,8 +267,11 @@ Please let me know if you need anything else!
         departDate: DateTime(2026, 10, 1),
         returnDate: DateTime(2026, 10, 5),
       );
-      final prompt = GeminiService.instance
-          .buildDetailPrompt('Đà Nẵng', trip, 'vi');
+      final prompt = GeminiService.instance.buildDetailPrompt(
+        'Đà Nẵng',
+        trip,
+        'vi',
+      );
       expect(prompt, isNot(contains('Linh hoạt')));
     });
   });
@@ -250,8 +279,14 @@ Please let me know if you need anything else!
   group('buildItineraryPrompt - prompt-first behavior', () {
     test('no dates: lets the AI honor a day count from the description', () {
       final trip = TripData(aiPrompt: 'Chuyến đi 5 ngày khám phá ẩm thực');
-      final prompt = GeminiService.instance
-          .buildItineraryPrompt('Huế', 3, trip, 4, 'vi', null);
+      final prompt = GeminiService.instance.buildItineraryPrompt(
+        'Huế',
+        3,
+        trip,
+        4,
+        'vi',
+        null,
+      );
       expect(prompt, contains('Mô tả chuyến đi của người dùng:'));
       expect(prompt, contains('nêu số ngày cụ thể'));
       expect(prompt, contains('Thời gian: Linh hoạt'));
@@ -264,8 +299,14 @@ Please let me know if you need anything else!
         returnDate: DateTime(2026, 10, 4),
         aiPrompt: 'đi chơi',
       );
-      final prompt = GeminiService.instance
-          .buildItineraryPrompt('Huế', 3, trip, 4, 'vi', null);
+      final prompt = GeminiService.instance.buildItineraryPrompt(
+        'Huế',
+        3,
+        trip,
+        4,
+        'vi',
+        null,
+      );
       expect(prompt, isNot(contains('nêu số ngày cụ thể')));
     });
   });
@@ -273,21 +314,24 @@ Please let me know if you need anything else!
   group('parseExtractedTripData', () {
     final service = GeminiService.instance;
 
-    test('JSON day du: moi truong vao dung cho, participants so thanh chuoi', () {
-      final trip = service.parseExtractedTripData('''
+    test(
+      'JSON day du: moi truong vao dung cho, participants so thanh chuoi',
+      () {
+        final trip = service.parseExtractedTripData('''
 {"destination":"Da Lat","departDate":"2026-10-01","returnDate":"2026-10-03",
  "numDays":3,"budgetTier":"economy","participants":4,"ageRange":"30-40",
  "interests":["food","culture"]}
 ''', originalPrompt: 'Di Da Lat');
-      expect(trip.destination, 'Da Lat');
-      expect(trip.departDate, DateTime(2026, 10, 1));
-      expect(trip.returnDate, DateTime(2026, 10, 3));
-      expect(trip.budget, 'economy');
-      expect(trip.participants, '4');
-      expect(trip.ageRange, '30-40');
-      expect(trip.selectedInterests, ['food', 'culture']);
-      expect(trip.aiPrompt, 'Di Da Lat');
-    });
+        expect(trip.destination, 'Da Lat');
+        expect(trip.departDate, DateTime(2026, 10, 1));
+        expect(trip.returnDate, DateTime(2026, 10, 3));
+        expect(trip.budget, 'economy');
+        expect(trip.participants, '4');
+        expect(trip.ageRange, '30-40');
+        expect(trip.selectedInterests, ['food', 'culture']);
+        expect(trip.aiPrompt, 'Di Da Lat');
+      },
+    );
 
     test('JSON chi co destination: cac truong khac rong', () {
       final trip = service.parseExtractedTripData('{"destination":"Hue"}');
@@ -323,12 +367,16 @@ Please let me know if you need anything else!
     });
 
     test('participants khong phai so thi rong', () {
-      final trip = service.parseExtractedTripData('{"participants":"gia dinh"}');
+      final trip = service.parseExtractedTripData(
+        '{"participants":"gia dinh"}',
+      );
       expect(trip.participants, '');
     });
 
     test('chuoi "null" duoc coi la rong', () {
-      final trip = service.parseExtractedTripData('{"destination":"null","ageRange":"NULL"}');
+      final trip = service.parseExtractedTripData(
+        '{"destination":"null","ageRange":"NULL"}',
+      );
       expect(trip.destination, '');
       expect(trip.ageRange, '');
     });

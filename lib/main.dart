@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
@@ -36,6 +37,7 @@ Future<void> main() async {
     await SearchHistoryService.instance.init();
     await ExchangeRateService.instance.init();
     initialDisplayCurrency = await CurrencySettingsStore.instance.load();
+    await AiModelSettings.instance.load();
     // Don't block app startup on background music init.
     BackgroundMusicService.instance.init();
   } catch (e, st) {
