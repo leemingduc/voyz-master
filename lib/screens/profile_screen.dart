@@ -9,8 +9,8 @@ import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/utils/error_localizer.dart';
@@ -284,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.4,
-            colors: [Color(0xFF1A1C2E), AppTheme.backgroundDark],
+            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(
@@ -820,19 +820,7 @@ class _Header extends StatelessWidget {
             tooltip: l10n.back,
           ),
           const SizedBox(width: 4),
-          ShaderMask(
-            shaderCallback: (bounds) =>
-                AppTheme.brandGradient.createShader(bounds),
-            child: Text(
-              MockData.appName,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
+          const AivivuWordmark(fontSize: 18),
           const Spacer(),
           Text(
             l10n.profile,

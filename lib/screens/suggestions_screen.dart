@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
@@ -10,6 +9,7 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
@@ -136,7 +136,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D0A16), Color(0xFF1A1528)],
+            colors: [Color(0xFF10131A), Color(0xFF06070B)],
           ),
         ),
         child: SafeArea(
@@ -282,19 +282,7 @@ class _Header extends StatelessWidget {
           ),
           Column(
             children: [
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppTheme.brandGradient.createShader(bounds),
-                child: Text(
-                  MockData.appName,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 3,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              const AivivuWordmark(fontSize: 11, alignment: Alignment.center),
               const SizedBox(height: 2),
               Text(
                 AppLocalizations.of(context)!.travelSuggestions,

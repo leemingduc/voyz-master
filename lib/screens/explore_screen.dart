@@ -8,6 +8,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
@@ -30,14 +31,39 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String? _error;
   String _selectedCategoryKey = 'random';
 
-  static const List<(String key, String label, String? promptCategory)> _categories = [
+  static const List<(String key, String label, String? promptCategory)>
+  _categories = [
     ('random', '🎲 Ngẫu nhiên', null),
-    ('beach', '🏖️ Biển đảo', 'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ'),
-    ('mountain', '🏔️ Vùng núi & Đèo', 'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang'),
-    ('heritage', '🏯 Cổ kính & Di sản', 'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính'),
-    ('city', '🏙️ Đô thị sôi động', 'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm'),
-    ('wellness', '🌿 Nghỉ dưỡng thiên nhiên', 'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát'),
-    ('hidden_gems', '💎 Độc lạ (Hidden Gems)', 'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến'),
+    (
+      'beach',
+      '🏖️ Biển đảo',
+      'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
+    ),
+    (
+      'mountain',
+      '🏔️ Vùng núi & Đèo',
+      'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
+    ),
+    (
+      'heritage',
+      '🏯 Cổ kính & Di sản',
+      'Cố đô ngàn năm văn hiến, di sản văn hóa thế giới và những góc phố cổ kính',
+    ),
+    (
+      'city',
+      '🏙️ Đô thị sôi động',
+      'Đô thị sôi động hiện đại, ánh đèn rực rỡ, ẩm thực đường phố và chợ đêm',
+    ),
+    (
+      'wellness',
+      '🌿 Nghỉ dưỡng thiên nhiên',
+      'Nghỉ dưỡng tĩnh lặng giữa thiên nhiên, suối khoáng nóng, rừng thông xanh ngát',
+    ),
+    (
+      'hidden_gems',
+      '💎 Độc lạ (Hidden Gems)',
+      'Những viên ngọc ẩn (Hidden Gems) hoang sơ, kỳ bí, độc lạ ít người biết đến',
+    ),
   ];
 
   @override
@@ -46,7 +72,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadExplore());
   }
 
-  Future<void> _loadExplore({bool forceRefresh = false, String? categoryPrompt}) async {
+  Future<void> _loadExplore({
+    bool forceRefresh = false,
+    String? categoryPrompt,
+  }) async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -132,7 +161,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D0A16), Color(0xFF1A1528)],
+            colors: [Color(0xFF10131A), Color(0xFF06070B)],
           ),
         ),
         child: SafeArea(
@@ -173,6 +202,30 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const AivivuWordmark(fontSize: 14),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cyan.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: AppTheme.cyan.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Text(
+                    '• AI TRAVEL INTELLIGENCE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppTheme.cyan,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   AppLocalizations.of(context)!.exploreTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -256,9 +309,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         colors: [Color(0xFFE91E63), Color(0xFFFF4081)],
                       )
                     : null,
-                color: isSelected
-                    ? null
-                    : Colors.white.withValues(alpha: 0.06),
+                color: isSelected ? null : Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
@@ -345,22 +396,48 @@ class _ExploreScreenState extends State<ExploreScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      itemCount: _destinations.length,
-      itemBuilder: (context, index) {
-        final dest = _destinations[index];
-        return _DestinationCard(
-          destination: dest,
-          isTopMatch: dest.isTopMatch,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    DestinationDetailScreen(destinationName: dest.name),
-              ),
-            );
-          },
+    Widget buildCard(int index) {
+      final dest = _destinations[index];
+      return _DestinationCard(
+        destination: dest,
+        isTopMatch: dest.isTopMatch,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  DestinationDetailScreen(destinationName: dest.name),
+            ),
+          );
+        },
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 760;
+        final padding = EdgeInsets.fromLTRB(
+          isWide ? 32 : 16,
+          8,
+          isWide ? 32 : 16,
+          100,
+        );
+        if (!isWide) {
+          return ListView.builder(
+            padding: padding,
+            itemCount: _destinations.length,
+            itemBuilder: (_, index) => buildCard(index),
+          );
+        }
+        return GridView.builder(
+          padding: padding,
+          itemCount: _destinations.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 420,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 20,
+            childAspectRatio: 0.82,
+          ),
+          itemBuilder: (_, index) => buildCard(index),
         );
       },
     );

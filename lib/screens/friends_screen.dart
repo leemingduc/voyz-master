@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_header.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -94,7 +95,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   void _openChat(Friendship friendship) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => FriendChatScreen(friendship: friendship)),
+      MaterialPageRoute(
+        builder: (_) => FriendChatScreen(friendship: friendship),
+      ),
     );
   }
 
@@ -121,7 +124,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.4,
-            colors: [Color(0xFF1A1C2E), AppTheme.backgroundDark],
+            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(
@@ -154,7 +157,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             const _EmptyPanel(
                               icon: Icons.people_outline,
                               title: 'No friends yet',
-                              subtitle: 'Search by email or display name to add someone.',
+                              subtitle:
+                                  'Search by email or display name to add someone.',
                             )
                           else
                             ...accepted.map(
@@ -174,7 +178,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             const _EmptyPanel(
                               icon: Icons.inbox_outlined,
                               title: 'No pending requests',
-                              subtitle: 'Incoming and outgoing requests appear here.',
+                              subtitle:
+                                  'Incoming and outgoing requests appear here.',
                             )
                           else
                             ...pending.map(
@@ -266,13 +271,17 @@ class _SearchPanel extends StatelessWidget {
                   onSubmitted: (_) => onSearch(),
                   decoration: InputDecoration(
                     hintText: 'Email or display name',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
                     ),
                   ),
                 ),
@@ -297,8 +306,13 @@ class _SearchPanel extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: _Avatar(url: profile.avatarUrl),
                 title: Text(
-                  profile.displayName.isEmpty ? profile.email : profile.displayName,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  profile.displayName.isEmpty
+                      ? profile.email
+                      : profile.displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 subtitle: Text(
                   profile.email,
@@ -307,7 +321,10 @@ class _SearchPanel extends StatelessWidget {
                 trailing: IconButton(
                   tooltip: 'Add friend',
                   onPressed: () => onSendRequest(profile),
-                  icon: const Icon(Icons.person_add_alt_1, color: AppTheme.primaryPink),
+                  icon: const Icon(
+                    Icons.person_add_alt_1,
+                    color: AppTheme.primaryPink,
+                  ),
                 ),
               ),
             ),
@@ -334,9 +351,15 @@ class _FriendTile extends StatelessWidget {
         leading: _Avatar(url: friend.avatarUrl),
         title: Text(
           friend.displayName.isEmpty ? friend.email : friend.displayName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-        subtitle: Text(friend.email, style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+        subtitle: Text(
+          friend.email,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+        ),
         trailing: const Icon(Icons.chat_bubble_outline, color: Colors.white70),
         onTap: onTap,
       ),
@@ -362,7 +385,10 @@ class _RequestTile extends StatelessWidget {
         leading: _Avatar(url: friend.avatarUrl),
         title: Text(
           friend.displayName.isEmpty ? friend.email : friend.displayName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         subtitle: Text(
           isIncoming ? 'Wants to connect' : 'Request sent',
@@ -403,13 +429,18 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     try {
       _streamSub = FriendsService.instance
           .streamMessages(widget.friendship.id)
-          .listen((messages) {
-        if (!mounted) return;
-        setState(() => _messages = messages);
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-      }, onError: (error) {
-        debugPrint('Friend chat realtime stream error: $error');
-      });
+          .listen(
+            (messages) {
+              if (!mounted) return;
+              setState(() => _messages = messages);
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _scrollToBottom(),
+              );
+            },
+            onError: (error) {
+              debugPrint('Friend chat realtime stream error: $error');
+            },
+          );
     } catch (e) {
       debugPrint('Friend chat stream setup error: $e');
     }
@@ -425,14 +456,19 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
   Future<void> _loadMessages({bool silent = false}) async {
     try {
-      final messages = await FriendsService.instance.getMessages(widget.friendship.id);
+      final messages = await FriendsService.instance.getMessages(
+        widget.friendship.id,
+      );
       if (!mounted) return;
       setState(() => _messages = messages);
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (error) {
       if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString()), behavior: SnackBarBehavior.floating),
+          SnackBar(
+            content: Text(error.toString()),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -462,13 +498,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final friend = widget.friendship.friend;
     final currentId = FriendsService.instance.currentUserId;
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      appBar: AppBar(
-        title: Text(friend.displayName.isEmpty ? friend.email : friend.displayName),
-      ),
+      appBar: const AivivuHeader(),
       body: Column(
         children: [
           Expanded(
@@ -480,16 +513,26 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                 final message = _messages[index];
                 final isMine = message.senderId == currentId;
                 return Align(
-                  alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isMine
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 280),
                     margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: isMine ? AppTheme.primaryPink : Colors.white.withValues(alpha: 0.08),
+                      color: isMine
+                          ? AppTheme.primaryPink
+                          : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(message.body, style: const TextStyle(color: Colors.white)),
+                    child: Text(
+                      message.body,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                 );
               },
@@ -509,7 +552,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Message',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.07),
                         border: OutlineInputBorder(
@@ -536,7 +581,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.title, required this.count});
+  const _SectionTitle({
+    required this.icon,
+    required this.title,
+    required this.count,
+  });
 
   final IconData icon;
   final String title;
@@ -550,10 +599,17 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(width: 8),
-        Text('$count', style: TextStyle(color: Colors.white.withValues(alpha: 0.45))),
+        Text(
+          '$count',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+        ),
       ],
     );
   }
@@ -590,7 +646,9 @@ class _Avatar extends StatelessWidget {
     final value = url;
     return CircleAvatar(
       backgroundColor: AppTheme.primaryPink.withValues(alpha: 0.22),
-      backgroundImage: value == null || value.isEmpty ? null : NetworkImage(value),
+      backgroundImage: value == null || value.isEmpty
+          ? null
+          : NetworkImage(value),
       child: value == null || value.isEmpty
           ? const Icon(Icons.person, color: Colors.white)
           : null,
@@ -599,7 +657,11 @@ class _Avatar extends StatelessWidget {
 }
 
 class _EmptyPanel extends StatelessWidget {
-  const _EmptyPanel({required this.icon, required this.title, required this.subtitle});
+  const _EmptyPanel({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   final IconData icon;
   final String title;
@@ -616,9 +678,21 @@ class _EmptyPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
@@ -644,7 +718,11 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, color: Colors.white54, size: 42),
             const SizedBox(height: 12),
-            Text(error, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Try again')),
           ],

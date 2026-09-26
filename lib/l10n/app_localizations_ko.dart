@@ -178,22 +178,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get update => '업데이트';
 
   @override
-  String get requiredInfo => '여행 정보 (선택)';
-
-  @override
-  String get optionalInfo => '선택 정보';
-
-  @override
   String get destination => '목적지';
-
-  @override
-  String get destinationHint => '예: 푸꾸옥, 파리, 발리...';
-
-  @override
-  String get departDate => '출발일';
-
-  @override
-  String get returnDate => '귀국일';
 
   @override
   String get addDate => '날짜 추가';
@@ -226,22 +211,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get participants => '참가자';
 
   @override
-  String get participantsHint => '예: 성인 2명';
-
-  @override
-  String get ageRange => '연령대';
-
-  @override
-  String get ageRangeHint => '예: 25-35';
-
-  @override
   String get interests => '관심사';
-
-  @override
-  String get additionalNotes => '추가 메모';
-
-  @override
-  String get notesHint => '특별 요청, 접근성 필요 사항...';
 
   @override
   String get aiPrompt => '꿈의 여행을 설명하세요';
@@ -257,17 +227,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get analyzingTrip => '분석 중...';
-
-  @override
-  String aiFilledFields(int count) {
-    return 'AI가 $count개 항목을 채웠습니다. 확인 후 AI 추천 받기를 누르세요.';
-  }
-
-  @override
-  String get aiFilledNothing => 'AI가 설명에서 정보를 추출하지 못했습니다. 양식을 채운 뒤 계속하세요.';
-
-  @override
-  String get fillAllRequired => '필수 정보를 모두 입력해 주세요';
 
   @override
   String get describeTripRequired => '먼저 여행을 설명해 주세요';
@@ -346,9 +305,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get noSuggestions => '추천을 찾을 수 없습니다';
-
-  @override
-  String get optional => '(선택사항)';
 
   @override
   String get plannerGreeting => '어디로 가고\n싶으신가요? 🌍';
@@ -738,4 +694,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'AI 모델이 저장되었습니다';
+
+  @override
+  String get chipAiWillSuggest => 'AI가 추천해요';
+
+  @override
+  String get chipFlexible => '유연하게';
+
+  @override
+  String get chipNotSet => '미정';
+
+  @override
+  String get quickPromptsLabel => '빠른 아이디어:';
 }

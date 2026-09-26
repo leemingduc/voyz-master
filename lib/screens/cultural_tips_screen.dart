@@ -73,7 +73,7 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
           gradient: RadialGradient(
             center: Alignment.topLeft,
             radius: 1.5,
-            colors: [const Color(0xFF0A1628), AppTheme.backgroundDark],
+            colors: [AppTheme.navyAccent, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(

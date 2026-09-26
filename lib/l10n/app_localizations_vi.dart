@@ -183,22 +183,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get update => 'Cập nhật';
 
   @override
-  String get requiredInfo => 'THÔNG TIN CHUYẾN ĐI (TÙY CHỌN)';
-
-  @override
-  String get optionalInfo => 'THÔNG TIN TÙY CHỌN';
-
-  @override
   String get destination => 'Điểm đến';
-
-  @override
-  String get destinationHint => 'vd. Phú Quốc, Paris, Bali...';
-
-  @override
-  String get departDate => 'Ngày khởi hành';
-
-  @override
-  String get returnDate => 'Ngày về';
 
   @override
   String get addDate => 'Thêm ngày';
@@ -231,22 +216,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get participants => 'Số người';
 
   @override
-  String get participantsHint => 'vd. 2 người lớn';
-
-  @override
-  String get ageRange => 'Độ tuổi';
-
-  @override
-  String get ageRangeHint => 'vd. 25-35';
-
-  @override
   String get interests => 'Sở thích';
-
-  @override
-  String get additionalNotes => 'Ghi chú thêm';
-
-  @override
-  String get notesHint => 'Yêu cầu đặc biệt, nhu cầu tiếp cận...';
 
   @override
   String get aiPrompt => 'Mô tả chuyến đi trong mơ';
@@ -262,18 +232,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get analyzingTrip => 'Đang phân tích...';
-
-  @override
-  String aiFilledFields(int count) {
-    return 'AI đã điền $count thông tin. Kiểm tra rồi bấm Nhận gợi ý AI.';
-  }
-
-  @override
-  String get aiFilledNothing =>
-      'AI chưa suy ra được thông tin nào từ mô tả. Hãy điền form rồi tiếp tục.';
-
-  @override
-  String get fillAllRequired => 'Vui lòng điền đầy đủ thông tin bắt buộc';
 
   @override
   String get describeTripRequired => 'Hãy mô tả chuyến đi của bạn trước';
@@ -353,9 +311,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get noSuggestions => 'Không tìm thấy gợi ý';
-
-  @override
-  String get optional => '(tùy chọn)';
 
   @override
   String get plannerGreeting => 'Bạn muốn\nđi đến đâu? 🌍';
@@ -758,4 +713,16 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'Đã lưu mô hình AI';
+
+  @override
+  String get chipAiWillSuggest => 'AI sẽ gợi ý';
+
+  @override
+  String get chipFlexible => 'linh hoạt';
+
+  @override
+  String get chipNotSet => 'chưa rõ';
+
+  @override
+  String get quickPromptsLabel => 'Gợi ý nhanh:';
 }

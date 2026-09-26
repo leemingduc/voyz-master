@@ -169,23 +169,13 @@
   "update": "Update",
   "@update": {"description": "Generic update action"},
 
-  "requiredInfo": "TRIP DETAILS (OPTIONAL)",
-  "@requiredInfo": {"description": "Section heading for planner detail fields, all optional since the AI prompt became the only required input"},
 
-  "optionalInfo": "OPTIONAL INFO",
-  "@optionalInfo": {"description": "Section heading for optional planner fields"},
 
   "destination": "Destination",
   "@destination": {"description": "Destination input field label"},
 
-  "destinationHint": "e.g. Phu Quoc, Paris, Bali...",
-  "@destinationHint": {"description": "Destination field hint text"},
 
-  "departDate": "Departure",
-  "@departDate": {"description": "Departure date field label"},
 
-  "returnDate": "Return",
-  "@returnDate": {"description": "Return date field label"},
 
   "addDate": "Add date",
   "@addDate": {"description": "Placeholder when no date is selected"},
@@ -217,23 +207,13 @@
   "participants": "Participants",
   "@participants": {"description": "Number of participants field label"},
 
-  "participantsHint": "e.g. 2 adults",
-  "@participantsHint": {"description": "Participants field hint"},
 
-  "ageRange": "Age range",
-  "@ageRange": {"description": "Age range field label"},
 
-  "ageRangeHint": "e.g. 25-35",
-  "@ageRangeHint": {"description": "Age range field hint"},
 
   "interests": "Interests",
   "@interests": {"description": "Interests section heading"},
 
-  "additionalNotes": "Additional notes",
-  "@additionalNotes": {"description": "Additional notes field label"},
 
-  "notesHint": "Any special requests, accessibility needs...",
-  "@notesHint": {"description": "Notes field hint"},
 
   "aiPrompt": "Describe your dream trip",
   "@aiPrompt": {"description": "AI prompt field label"},
@@ -248,16 +228,7 @@
   "@analyzeTrip": {"description": "Planner primary button before the AI has extracted trip details from the prompt"},
   "analyzingTrip": "Analyzing...",
   "@analyzingTrip": {"description": "Planner primary button label while the extraction request is in flight"},
-  "aiFilledFields": "AI filled {count} fields. Review, then tap Get AI Suggestions.",
-  "@aiFilledFields": {
-    "description": "Snackbar after AI extraction filled some form fields",
-    "placeholders": {"count": {"type": "int"}}
-  },
-  "aiFilledNothing": "AI could not extract details from your description. Fill the form, then continue.",
-  "@aiFilledNothing": {"description": "Snackbar after AI extraction filled nothing"},
 
-  "fillAllRequired": "Please fill in all required info",
-  "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
 
   "describeTripRequired": "Please describe your trip first",
   "@describeTripRequired": {"description": "Validation snackbar when the AI prompt box is empty"},
@@ -337,8 +308,6 @@
   "noSuggestions": "No suggestions found",
   "@noSuggestions": {"description": "Empty state on suggestions screen"},
 
-  "optional": "(optional)",
-  "@optional": {"description": "Optional field marker"},
 
   "plannerGreeting": "Where do you\nwant to go? 🌍",
   "@plannerGreeting": {"description": "Greeting headline on smart planner screen"},
@@ -892,5 +861,9 @@
   "@aiModelDescription": {"description": "Helper text under the AI model picker"},
 
   "aiModelSaved": "AI model saved",
-  "@aiModelSaved": {"description": "Snackbar after the AI model is changed"}
+  "@aiModelSaved": {"description": "Snackbar after the AI model is changed"},
+  "chipAiWillSuggest": "AI will suggest",
+  "chipFlexible": "flexible",
+  "chipNotSet": "not set",
+  "quickPromptsLabel": "Quick ideas:"
 }

@@ -432,56 +432,66 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _LocationSubtitle(theme: theme, location: d.location),
-                      const SizedBox(height: 8),
-                      Text(
-                        d.name,
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.sizeOf(context).width >= 900
+                        ? 40
+                        : 24,
+                  ),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1100),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _LocationSubtitle(theme: theme, location: d.location),
+                          const SizedBox(height: 8),
+                          Text(
+                            d.name,
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _TagsRow(tags: d.tags),
+                          if (d.gallery.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _LandmarkGallerySection(
+                              gallery: d.gallery,
+                              fallbackUrl: d.imageUrl,
+                              onSelectPhoto: (url) {
+                                setState(() {
+                                  _activeHeroUrl = url;
+                                });
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          _WeatherCard(
+                            theme: theme,
+                            weather: d.weather,
+                            dateRange: d.dateRange,
+                          ),
+                          const SizedBox(height: 16),
+                          _BudgetCard(
+                            theme: theme,
+                            totalBudget: d.totalBudget,
+                            breakdown: d.budgetBreakdown,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildReviewsSection(theme),
+                          const SizedBox(height: 32),
+                          _ActionButtons(
+                            theme: theme,
+                            onSaveInfo: () => _onSaveInfo(context),
+                            onGenerateItinerary: _onGenerateItinerary,
+                            destinationName: d.name,
+                          ),
+                          const SizedBox(height: 120),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _TagsRow(tags: d.tags),
-                      if (d.gallery.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        _LandmarkGallerySection(
-                          gallery: d.gallery,
-                          fallbackUrl: d.imageUrl,
-                          onSelectPhoto: (url) {
-                            setState(() {
-                              _activeHeroUrl = url;
-                            });
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      _WeatherCard(
-                        theme: theme,
-                        weather: d.weather,
-                        dateRange: d.dateRange,
-                      ),
-                      const SizedBox(height: 16),
-                      _BudgetCard(
-                        theme: theme,
-                        totalBudget: d.totalBudget,
-                        breakdown: d.budgetBreakdown,
-                      ),
-                      const SizedBox(height: 24),
-                      _buildReviewsSection(theme),
-                      const SizedBox(height: 32),
-                      _ActionButtons(
-                        theme: theme,
-                        onSaveInfo: () => _onSaveInfo(context),
-                        onGenerateItinerary: _onGenerateItinerary,
-                        destinationName: d.name,
-                      ),
-                      const SizedBox(height: 120),
-                    ],
+                    ),
                   ),
                 ),
               ),

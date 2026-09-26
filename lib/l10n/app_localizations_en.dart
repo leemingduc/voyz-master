@@ -184,22 +184,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get update => 'Update';
 
   @override
-  String get requiredInfo => 'TRIP DETAILS (OPTIONAL)';
-
-  @override
-  String get optionalInfo => 'OPTIONAL INFO';
-
-  @override
   String get destination => 'Destination';
-
-  @override
-  String get destinationHint => 'e.g. Phu Quoc, Paris, Bali...';
-
-  @override
-  String get departDate => 'Departure';
-
-  @override
-  String get returnDate => 'Return';
 
   @override
   String get addDate => 'Add date';
@@ -232,22 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get participants => 'Participants';
 
   @override
-  String get participantsHint => 'e.g. 2 adults';
-
-  @override
-  String get ageRange => 'Age range';
-
-  @override
-  String get ageRangeHint => 'e.g. 25-35';
-
-  @override
   String get interests => 'Interests';
-
-  @override
-  String get additionalNotes => 'Additional notes';
-
-  @override
-  String get notesHint => 'Any special requests, accessibility needs...';
 
   @override
   String get aiPrompt => 'Describe your dream trip';
@@ -263,18 +233,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyzingTrip => 'Analyzing...';
-
-  @override
-  String aiFilledFields(int count) {
-    return 'AI filled $count fields. Review, then tap Get AI Suggestions.';
-  }
-
-  @override
-  String get aiFilledNothing =>
-      'AI could not extract details from your description. Fill the form, then continue.';
-
-  @override
-  String get fillAllRequired => 'Please fill in all required info';
 
   @override
   String get describeTripRequired => 'Please describe your trip first';
@@ -354,9 +312,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSuggestions => 'No suggestions found';
-
-  @override
-  String get optional => '(optional)';
 
   @override
   String get plannerGreeting => 'Where do you\nwant to go? 🌍';
@@ -758,4 +713,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'AI model saved';
+
+  @override
+  String get chipAiWillSuggest => 'AI will suggest';
+
+  @override
+  String get chipFlexible => 'flexible';
+
+  @override
+  String get chipNotSet => 'not set';
+
+  @override
+  String get quickPromptsLabel => 'Quick ideas:';
 }
