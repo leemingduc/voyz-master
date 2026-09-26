@@ -1,16 +1,18 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:voyz/models/destination_detail.dart';
 
 /// Service to fetch real destination photography from verifiable sources.
 ///
 /// Priority chain:
-///   1. Wikipedia REST summary (vi rồi en) — 1 request, CORS chính thức,
-///      server trả sẵn URL thumbnail hợp lệ nên không bao giờ dính 400/404
-///      do tự đoán hash path hay kích thước thumb.
+///   1. Wikipedia REST summary (vi rồi en với tên có dấu, en rồi vi với tên
+///      không dấu), 1 request, CORS chính thức, server trả sẵn URL thumbnail
+///      hợp lệ nên không bao giờ dính 400/404 do tự đoán hash path hay
+///      kích thước thumb.
 ///   2. Wikimedia Commons full-text search.
-///   3. Chuỗi rỗng — UI đã có errorWidget placeholder ở mọi call site.
+///   3. Chuỗi rỗng, widget `DestinationImage` dùng chung sẽ vẽ fallback.
 ///
 /// KHÔNG có URL viết tay trong code: mọi URL curated thuộc về bảng
 /// `destinations` và phải qua `tool/verify_image_urls.dart` trước khi vào seed.
@@ -22,56 +24,100 @@ class ImageService {
   /// phải đi qua client này.
   static http.Client client = http.Client();
 
-  final Map<String, String> _cache = {};
+  /// Cache trong phiên. URL tìm được giữ suốt phiên; URL rỗng chỉ giữ
+  /// [negativeTtl] để một lần lỗi mạng không làm điểm đến mất ảnh tới khi
+  /// restart.
+  final Map<String, ({String url, DateTime fetchedAt})> _cache = {};
+
+  static const negativeTtl = Duration(minutes: 10);
+
+  /// Số tên tra song song tối đa. Bắn cả 10 gợi ý cùng lúc (tới 30 request)
+  /// dễ dính 429 từ Wikimedia.
+  static const batchSize = 3;
+
+  /// Swap được trong test để đẩy thời gian.
+  static DateTime Function() now = DateTime.now;
+
+  static final _vietnameseDiacritics = RegExp(
+    r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]',
+    caseSensitive: false,
+  );
+
+  /// Tên có dấu tiếng Việt thì trang vi.wikipedia gần như chắc chắn tồn tại,
+  /// nên hỏi vi trước. Tên không dấu (đa số tên AI sinh) hỏi en trước để
+  /// tránh một request 404 thừa.
+  @visibleForTesting
+  static bool hasVietnameseDiacritics(String s) =>
+      _vietnameseDiacritics.hasMatch(s);
 
   /// Gets the single most iconic photo for a destination.
-  /// Returns an empty string when no verifiable image is found;
-  /// the UI's errorWidget renders the placeholder in that case.
+  /// Returns an empty string when no verifiable image is found; the shared
+  /// `DestinationImage` widget draws the fallback in that case.
   Future<String> getImageUrl(String destinationName) async {
-    if (_cache.containsKey(destinationName)) {
-      return _cache[destinationName]!;
+    final hit = _cache[destinationName];
+    if (hit != null) {
+      final stillFresh =
+          hit.url.isNotEmpty || now().difference(hit.fetchedAt) < negativeTtl;
+      if (stillFresh) return hit.url;
     }
 
     final placeName = destinationName.split(',').first.trim();
 
-    // 1. Wikipedia REST summary (vi rồi en)
-    String? url = await _fetchWikipediaSummaryImage(placeName, 'vi');
-    url ??= await _fetchWikipediaSummaryImage(placeName, 'en');
+    // 1. Wikipedia REST summary, thứ tự ngôn ngữ theo dấu tiếng Việt
+    final langs = hasVietnameseDiacritics(placeName)
+        ? const ['vi', 'en']
+        : const ['en', 'vi'];
+    String? url;
+    for (final lang in langs) {
+      url = await _fetchWikipediaSummaryImage(placeName, lang);
+      if (url != null) break;
+    }
 
     // 2. Wikimedia Commons full-text search
     url ??= await _fetchCommonsImage(placeName);
 
     // 3. Bó tay: trả rỗng, UI errorWidget lo phần placeholder.
     final result = url ?? '';
-    _cache[destinationName] = result;
+    _cache[destinationName] = (url: result, fetchedAt: now());
     return result;
   }
 
-  /// Fetches image URLs for all destinations in parallel.
+  /// Tra URL ảnh cho nhiều điểm đến, tối đa [batchSize] tên song song.
   Future<Map<String, String>> getImageUrls(List<String> names) async {
-    final futures = names.map((name) => getImageUrl(name));
-    final urls = await Future.wait(futures);
+    final urls = await _inBatches(names, getImageUrl);
     return {for (int i = 0; i < names.length; i++) names[i]: urls[i]};
   }
 
-  /// Backward-compatible alias: the REST summary chain is already the fast
-  /// path (1 request per destination), so "fast" and "full" are the same now.
-  Future<Map<String, String>> getImageUrlsFast(List<String> names) =>
-      getImageUrls(names);
-
-  /// Fetches multiple supplementary photos for specific landmarks of a destination.
+  /// Tra ảnh cho từng landmark của một điểm đến, tối đa [batchSize] song song.
+  /// Landmark không có ảnh trả `imageUrl` rỗng; GeminiService điền ảnh chính
+  /// của điểm đến vào chỗ rỗng.
   Future<List<DestinationLandmarkPhoto>> getLandmarkPhotos(
     String destinationName,
     List<String> landmarkTitles,
   ) async {
-    final futures = landmarkTitles.map((title) async {
+    final urls = await _inBatches(landmarkTitles, (title) {
       final query = title.isNotEmpty
           ? '$title, $destinationName'
           : destinationName;
-      final url = await getImageUrl(query);
-      return DestinationLandmarkPhoto(title: title, imageUrl: url);
+      return getImageUrl(query);
     });
-    return Future.wait(futures);
+    return [
+      for (int i = 0; i < landmarkTitles.length; i++)
+        DestinationLandmarkPhoto(title: landmarkTitles[i], imageUrl: urls[i]),
+    ];
+  }
+
+  /// Chạy [run] trên từng phần tử, [batchSize] phần tử một lúc, giữ thứ tự.
+  Future<List<String>> _inBatches(
+    List<String> items,
+    Future<String> Function(String) run,
+  ) async {
+    final results = <String>[];
+    for (var i = 0; i < items.length; i += batchSize) {
+      final end = (i + batchSize < items.length) ? i + batchSize : items.length;
+      results.addAll(await Future.wait(items.sublist(i, end).map(run)));
+    }
+    return results;
   }
 
   // ── Wikipedia REST summary ──────────────────────────────────────────────

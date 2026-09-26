@@ -1,105 +1,48 @@
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/services/supabase_service.dart';
 
-/// Represents a cached AI response including optional pre-cached image URLs.
-class CachedAiResponse {
-  final String payload;
-  final Map<String, String> imageUrls;
-
-  const CachedAiResponse({
-    required this.payload,
-    this.imageUrls = const {},
-  });
-
-  Map<String, dynamic> toMap() => {
-        'payload': payload,
-        'imageUrls': imageUrls,
-      };
-
-  factory CachedAiResponse.fromMap(Map<dynamic, dynamic> map) {
-    final rawImages = map['imageUrls'];
-    final Map<String, String> images = {};
-    if (rawImages is Map) {
-      rawImages.forEach((k, v) {
-        if (k != null && v != null) {
-          images[k.toString()] = v.toString();
-        }
-      });
-    }
-    return CachedAiResponse(
-      payload: map['payload']?.toString() ?? '',
-      // Cache cũ có thể đã nhiễm URL bịa/dịch vụ chết: lọc cả khi đọc.
-      imageUrls: AiCacheService.sanitizeImageUrls(images),
-    );
-  }
-}
-
-/// Multi-tier cache service for AI responses.
+/// Cache một tầng cho phản hồi AI. Chỉ là cache: mất là được phép.
 ///
-/// Hierarchy:
-/// Tier 1: In-Memory Map (0ms)
-/// Tier 2: Hive Local Box (<5ms)
-/// Tier 3: Supabase Cloud Database `ai_generated_cache` (~50-100ms)
+/// Mỗi entry trong box là JSON string `{"payload": "...", "expiresAt": "ISO-8601"}`.
+/// Muốn xem cache đang có gì: mở box Hive [boxName].
 class AiCacheService {
   AiCacheService._();
   static final AiCacheService instance = AiCacheService._();
 
-  // Đổi tên box (v2) để bỏ sạch cache đã nhiễm image URL bịa/chết từ các
-  // phiên trước. Cache là cache, được phép mất.
-  static const String _boxName = 'gemini_multi_tier_cache_v2';
+  /// Tăng số version mỗi khi sửa prompt: box mới, cache cũ tự bị bỏ qua.
+  static const boxName = 'ai_cache_v3';
 
-  // Chỉ host phục vụ ảnh TRỰC TIẾP kèm CORS header. commons.wikimedia.org
-  // không nằm đây vì Special:FilePath redirect và hop đó không có ACAO,
-  // browser sẽ chặn dù curl thấy 200.
-  static const List<String> _allowedImageHosts = [
-    'upload.wikimedia.org',
-  ];
+  /// Một TTL cho mọi feature. Explore muốn mới thì đã có nút refresh.
+  static const ttl = Duration(days: 7);
 
-  final Map<String, CachedAiResponse> _memoryCache = {};
-  bool _initialized = false;
+  static const _oldBoxNames = ['gemini_cache', 'gemini_multi_tier_cache_v2'];
 
-  /// Chỉ giữ image URL từ nguồn tin cậy. Chặn tái nhiễm cache bằng URL
-  /// từ dịch vụ đã chết hoặc URL AI bịa.
-  @visibleForTesting
-  static Map<String, String> sanitizeImageUrls(Map<String, String> urls) {
-    final safe = <String, String>{};
-    urls.forEach((name, url) {
-      final host = Uri.tryParse(url)?.host ?? '';
-      if (_allowedImageHosts.contains(host) || host.endsWith('.supabase.co')) {
-        safe[name] = url;
-      }
-    });
-    return safe;
-  }
+  Box<String>? _box;
 
-  /// Initializes the local Hive cache box.
   Future<void> init() async {
-    if (_initialized) return;
-    try {
-      await Hive.openBox<String>(_boxName);
-    } catch (e) {
-      debugPrint('AiCacheService Hive init error: $e');
+    if (_box != null) return;
+    for (final name in _oldBoxNames) {
+      try {
+        await Hive.deleteBoxFromDisk(name);
+      } catch (_) {}
     }
-    _initialized = true;
-  }
-
-  Box<String>? get _box {
     try {
-      if (Hive.isBoxOpen(_boxName)) {
-        return Hive.box<String>(_boxName);
-      }
-    } catch (_) {}
-    return null;
+      _box = await Hive.openBox<String>(boxName);
+    } catch (e) {
+      debugPrint('AiCacheService init error: $e');
+    }
   }
 
-  /// Build a deterministic cache key from input parts.
+  /// Key md5 từ prefix + mọi input ảnh hưởng đến kết quả + model đang chọn
+  /// + userId hiện tại. Đổi model là đổi key, không trả kết quả của model khác.
   String buildKey(String prefix, Map<String, dynamic> parts) {
     final sorted = parts.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-
     final buffer = StringBuffer(prefix);
     for (final entry in sorted) {
       buffer.write('|${entry.key}=');
@@ -110,188 +53,45 @@ class AiCacheService {
         buffer.write(entry.value.toString().trim().toLowerCase());
       }
     }
-
-    final bytes = utf8.encode(buffer.toString());
-    return md5.convert(bytes).toString();
+    buffer.write('|model=${AiModelSettings.instance.current}');
+    buffer.write('|user=$_userId');
+    return md5.convert(utf8.encode(buffer.toString())).toString();
   }
 
-  /// Retrieves cached AI response from Tier 1 (Memory) -> Tier 2 (Hive) -> Tier 3 (Supabase).
-  Future<CachedAiResponse?> getResponse(String key) async {
-    // 1. Tier 1: In-Memory cache (0ms)
-    if (_memoryCache.containsKey(key)) {
-      return _memoryCache[key];
-    }
-
-    // 2. Tier 2: Hive Local Cache (~5ms)
-    final hiveData = _box?.get(key);
-    if (hiveData != null && hiveData.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(hiveData);
-        if (decoded is Map) {
-          final res = CachedAiResponse.fromMap(decoded);
-          _memoryCache[key] = res;
-          return res;
-        }
-      } catch (_) {
-        // Raw string format backward compatibility
-        final res = CachedAiResponse(payload: hiveData);
-        _memoryCache[key] = res;
-        return res;
+  /// Trả payload nếu còn hạn; hết hạn hoặc hỏng thì xoá và trả null.
+  String? get(String key) {
+    final raw = _box?.get(key);
+    if (raw == null) return null;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final expiresAt = DateTime.tryParse(map['expiresAt']?.toString() ?? '');
+      if (expiresAt == null || expiresAt.isBefore(DateTime.now())) {
+        _box?.delete(key);
+        return null;
       }
-    }
-
-    // 3. Tier 3: Supabase Cloud DB (~50-100ms)
-    try {
-      final supabase = SupabaseService.instance.client;
-      final response = await supabase
-          .from('ai_generated_cache')
-          .select('payload, image_urls')
-          .eq('cache_key', key)
-          .maybeSingle();
-
-      if (response != null && response['payload'] != null) {
-        final rawPayload = response['payload'];
-        final payloadStr = rawPayload is String ? rawPayload : jsonEncode(rawPayload);
-
-        final rawImages = response['image_urls'];
-        final Map<String, String> imageUrls = {};
-        if (rawImages is Map) {
-          rawImages.forEach((k, v) {
-            if (k != null && v != null) {
-              imageUrls[k.toString()] = v.toString();
-            }
-          });
-        }
-
-        final res = CachedAiResponse(
-          payload: payloadStr,
-          // Cloud cache dùng chung có thể chứa URL đã nhiễm từ trước.
-          imageUrls: sanitizeImageUrls(imageUrls),
-        );
-
-        // Populate Memory & Hive
-        _memoryCache[key] = res;
-        await _box?.put(key, jsonEncode(res.toMap()));
-
-        // Background touch hit_count without waiting
-        _incrementHitCount(key);
-
-        return res;
-      }
-    } catch (e) {
-      // Offline or Supabase not reachable; gracefully fall through
-      debugPrint('AiCacheService Supabase get error: $e');
-    }
-
-    return null;
-  }
-
-  /// Convenience method to retrieve just the raw payload string.
-  Future<String?> get(String key) async {
-    final res = await getResponse(key);
-    return res?.payload;
-  }
-
-  /// Save response across all 3 tiers.
-  Future<void> putResponse(
-    String key,
-    String payload, {
-    required String featureType,
-    String? destination,
-    String languageCode = 'vi',
-    Map<String, String>? imageUrls,
-  }) async {
-    final safeImageUrls = sanitizeImageUrls(imageUrls ?? const {});
-    final responseObj = CachedAiResponse(
-      payload: payload,
-      imageUrls: safeImageUrls,
-    );
-
-    // 1. Tier 1: RAM
-    _memoryCache[key] = responseObj;
-
-    // 2. Tier 2: Hive Box
-    try {
-      await _box?.put(key, jsonEncode(responseObj.toMap()));
-    } catch (e) {
-      debugPrint('AiCacheService Hive put error: $e');
-    }
-
-    // 3. Tier 3: Supabase DB (Upsert)
-    _saveToSupabase(
-      key: key,
-      payload: payload,
-      featureType: featureType,
-      destination: destination,
-      languageCode: languageCode,
-      imageUrls: safeImageUrls,
-    );
-  }
-
-  /// Save raw string to cache (compatible with legacy CacheService signature).
-  Future<void> put(
-    String key,
-    String payload, {
-    String featureType = 'general',
-    String? destination,
-    String languageCode = 'vi',
-    Map<String, String>? imageUrls,
-  }) async {
-    await putResponse(
-      key,
-      payload,
-      featureType: featureType,
-      destination: destination,
-      languageCode: languageCode,
-      imageUrls: imageUrls,
-    );
-  }
-
-  /// Async background save to Supabase.
-  Future<void> _saveToSupabase({
-    required String key,
-    required String payload,
-    required String featureType,
-    String? destination,
-    required String languageCode,
-    Map<String, String>? imageUrls,
-  }) async {
-    try {
-      dynamic parsedPayload;
-      try {
-        parsedPayload = jsonDecode(payload);
-      } catch (_) {
-        parsedPayload = payload;
-      }
-
-      final supabase = SupabaseService.instance.client;
-      await supabase.from('ai_generated_cache').upsert({
-        'cache_key': key,
-        'feature_type': featureType,
-        'destination': destination,
-        'language_code': languageCode,
-        'payload': parsedPayload,
-        'image_urls': imageUrls ?? {},
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'cache_key');
-    } catch (e) {
-      debugPrint('AiCacheService Supabase upsert error (non-fatal): $e');
-    }
-  }
-
-  /// Background hit count increment.
-  Future<void> _incrementHitCount(String key) async {
-    try {
-      final supabase = SupabaseService.instance.client;
-      await supabase.rpc('increment_ai_cache_hit', params: {'target_key': key});
+      return map['payload']?.toString();
     } catch (_) {
-      // Stored procedure is optional; ignore if not created
+      _box?.delete(key);
+      return null;
     }
   }
 
-  /// Clear in-memory and Hive caches.
-  Future<void> clearLocal() async {
-    _memoryCache.clear();
-    await _box?.clear();
+  Future<void> put(String key, String payload) async {
+    final entry = jsonEncode({
+      'payload': payload,
+      'expiresAt': DateTime.now().toUtc().add(ttl).toIso8601String(),
+    });
+    await _box?.put(key, entry);
+  }
+
+  Future<void> clear() async => _box?.clear();
+
+  String get _userId {
+    try {
+      return SupabaseService.instance.auth.currentUser?.id ?? 'anonymous';
+    } catch (_) {
+      // Test hoặc khởi động offline: chưa có Supabase.
+      return 'anonymous';
+    }
   }
 }

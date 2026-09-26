@@ -183,22 +183,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get update => 'Cập nhật';
 
   @override
-  String get requiredInfo => 'THÔNG TIN BẮT BUỘC';
-
-  @override
-  String get optionalInfo => 'THÔNG TIN TÙY CHỌN';
-
-  @override
   String get destination => 'Điểm đến';
-
-  @override
-  String get destinationHint => 'vd. Phú Quốc, Paris, Bali...';
-
-  @override
-  String get departDate => 'Ngày khởi hành';
-
-  @override
-  String get returnDate => 'Ngày về';
 
   @override
   String get addDate => 'Thêm ngày';
@@ -231,22 +216,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get participants => 'Số người';
 
   @override
-  String get participantsHint => 'vd. 2 người lớn';
-
-  @override
-  String get ageRange => 'Độ tuổi';
-
-  @override
-  String get ageRangeHint => 'vd. 25-35';
-
-  @override
   String get interests => 'Sở thích';
-
-  @override
-  String get additionalNotes => 'Ghi chú thêm';
-
-  @override
-  String get notesHint => 'Yêu cầu đặc biệt, nhu cầu tiếp cận...';
 
   @override
   String get aiPrompt => 'Mô tả chuyến đi trong mơ';
@@ -258,20 +228,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get getAiSuggestions => 'Nhận gợi ý AI';
 
   @override
-  String get fillAllRequired => 'Vui lòng điền đầy đủ thông tin bắt buộc';
+  String get analyzeTrip => 'Phân tích bằng AI';
 
   @override
-  String get plannerPromptRequired =>
-      'Hãy mô tả chuyến đi bạn mong muốn để AI gợi ý.';
+  String get analyzingTrip => 'Đang phân tích...';
 
   @override
-  String get backgroundMusic => 'Nhạc nền';
-
-  @override
-  String get backgroundMusicOn => 'Đang bật — nhạc nền đang phát';
-
-  @override
-  String get backgroundMusicOff => 'Đang tắt — nhạc nền đang dừng';
+  String get describeTripRequired => 'Hãy mô tả chuyến đi của bạn trước';
 
   @override
   String get trendingDestinations => 'Điểm đến thịnh hành';
@@ -348,9 +311,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get noSuggestions => 'Không tìm thấy gợi ý';
-
-  @override
-  String get optional => '(tùy chọn)';
 
   @override
   String get plannerGreeting => 'Bạn muốn\nđi đến đâu? 🌍';
@@ -690,68 +650,6 @@ class AppLocalizationsVi extends AppLocalizations {
       'Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.';
 
   @override
-  String get aiCulturalTipsTitle => 'Mẹo văn hóa';
-
-  @override
-  String get aiCulturalTipsSubtitle => 'Văn hóa địa phương';
-
-  @override
-  String get aiCulturalTipsDesc =>
-      'Tìm hiểu cách ứng xử, phong tục và những cụm từ hữu ích trước chuyến đi.';
-
-  @override
-  String get chatQuickPrompts => 'Gợi ý câu hỏi thông minh';
-
-  @override
-  String get chatQuickPromptWeather => 'Hôm nay nên đi đâu để tránh nắng?';
-
-  @override
-  String get chatQuickPromptCafe => 'Gợi ý quán cà phê ngắm hoàng hôn đẹp.';
-
-  @override
-  String get chatQuickPromptBudget =>
-      'Dự trù ngân sách cho hai người đi 3 ngày.';
-
-  @override
-  String get savedFilterAll => 'Tất cả';
-
-  @override
-  String get savedFilterTrips => 'Lịch trình';
-
-  @override
-  String get savedFilterPlaces => 'Địa điểm đã lưu';
-
-  @override
-  String get groupTripsTitle => 'Chuyến đi nhóm đang lên lịch';
-
-  @override
-  String get groupTripsEmptyTitle => 'Chưa có chuyến đi nhóm';
-
-  @override
-  String get groupTripsEmptyHint =>
-      'Lưu một kế hoạch rồi mời bạn bè cùng xây dựng lịch trình.';
-
-  @override
-  String groupTripMembers(int count) {
-    return '$count thành viên';
-  }
-
-  @override
-  String get inviteFriendToTrip => 'Mời bạn bè';
-
-  @override
-  String inviteFriendToTripTitle(String trip) {
-    return 'Mời vào $trip';
-  }
-
-  @override
-  String get inviteFriendNone =>
-      'Hãy kết bạn trước khi mời ai đó vào chuyến đi.';
-
-  @override
-  String get inviteFriendSuccess => 'Đã thêm lời mời vào không gian chuyến đi.';
-
-  @override
   String get contextCompareSuggestions => 'So sánh các gợi ý này';
 
   @override
@@ -807,52 +705,24 @@ class AppLocalizationsVi extends AppLocalizations {
   String get currencyCanadianDollar => 'Đô la Canada';
 
   @override
-  String get editDisplayName => 'Đổi tên hiển thị';
+  String get aiModel => 'Mô hình AI';
 
   @override
-  String get saveDisplayName => 'Lưu tên';
+  String get aiModelDescription =>
+      'Mô hình Gemini trả lời các câu hỏi du lịch của bạn. Mô hình lớn hơn suy nghĩ lâu hơn và có thể hết hạn mức miễn phí sớm hơn.';
 
   @override
-  String get displayNameSaved => 'Đã lưu tên hiển thị thành công';
+  String get aiModelSaved => 'Đã lưu mô hình AI';
 
   @override
-  String get presetAvatars => 'Avatar sẵn có';
+  String get chipAiWillSuggest => 'AI sẽ gợi ý';
 
   @override
-  String get choosePresetAvatar => 'Chọn avatar sẵn có';
+  String get chipFlexible => 'linh hoạt';
 
   @override
-  String get avatarSelected => 'Đã chọn avatar mới thành công';
+  String get chipNotSet => 'chưa rõ';
 
   @override
-  String get enterDisplayName => 'Nhập tên hiển thị của bạn';
-
-  @override
-  String get tripConsultationTitle => 'Thảo luận chuyến đi cùng AI';
-
-  @override
-  String get confirmAndSeeSuggestions => 'Xác nhận & Xem gợi ý';
-
-  @override
-  String get tripInfo => 'Thông tin chuyến đi';
-
-  @override
-  String get tripInfoUpdated => 'Đã cập nhật thông tin chuyến đi';
-
-  @override
-  String consultationInitialPrompt(String prompt) {
-    return 'Chào bạn! Tôi thấy bạn đang lên kế hoạch: \"$prompt\". Bạn có muốn điều chỉnh thêm về nhịp độ chuyến đi, phương tiện hay hoạt động đặc biệt nào không?';
-  }
-
-  @override
-  String get quickChipRelaxed => 'Lịch trình thư thả, không vội';
-
-  @override
-  String get quickChipFoodie => 'Ưu tiên ẩm thực & ăn uống';
-
-  @override
-  String get quickChipBudget => 'Tối ưu chi phí tiết kiệm';
-
-  @override
-  String get quickChipReady => 'Tôi thấy ổn rồi, chốt nhé!';
+  String get quickPromptsLabel => 'Gợi ý nhanh:';
 }

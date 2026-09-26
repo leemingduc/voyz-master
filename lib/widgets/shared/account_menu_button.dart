@@ -60,21 +60,11 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = SupabaseService.instance.auth.currentUser;
-    final metadata = user?.userMetadata ?? {};
-    final rawName = (metadata['display_name'] ??
-            metadata['username'] ??
-            metadata['full_name'] ??
-            '')
-        .toString()
-        .trim();
-    final email = user?.email ?? '';
-    final displayName = user == null
-        ? l10n.signIn
-        : (rawName.isNotEmpty ? rawName : (email.isNotEmpty ? email : l10n.signIn));
-    final avatarUrl = metadata['avatar_url']?.toString();
+    final email = user?.email ?? l10n.signIn;
+    final avatarUrl = user?.userMetadata?['avatar_url']?.toString();
 
     return PopupMenuButton<String>(
-      tooltip: displayName,
+      tooltip: email,
       onSelected: (value) {
         if (value == 'profile') _openProfile(context);
         if (value == 'friends') _openFriends(context);
@@ -85,29 +75,10 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
           enabled: false,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayName,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                if (email.isNotEmpty && displayName != email)
-                  Text(
-                    email,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.color
-                          ?.withValues(alpha: 0.6),
-                    ),
-                  ),
-              ],
+            child: Text(
+              email,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -149,7 +120,7 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 150),
             child: Text(
-              displayName,
+              email,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
@@ -166,9 +137,7 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
             ).colorScheme.primary.withValues(alpha: 0.25),
             backgroundImage: avatarUrl == null || avatarUrl.isEmpty
                 ? null
-                : (avatarUrl.startsWith('assets/')
-                    ? AssetImage(avatarUrl) as ImageProvider
-                    : NetworkImage(avatarUrl)),
+                : NetworkImage(avatarUrl),
             child: avatarUrl == null || avatarUrl.isEmpty
                 ? const Icon(Icons.person, color: Colors.white, size: 20)
                 : null,

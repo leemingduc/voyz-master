@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
-import 'package:voyz/widgets/shared/aivivu_header.dart';
-import 'package:voyz/widgets/shared/aivivu_page_background.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
 // ── Theme colors for sections ──
@@ -70,16 +68,50 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      appBar: AivivuHeader(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).maybePop(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topLeft,
+            radius: 1.5,
+            colors: [AppTheme.navyAccent, AppTheme.backgroundDark],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ── Top bar ──
+              _buildTopBar(theme),
+              // ── Body ──
+              Expanded(child: _buildBody(theme)),
+            ],
+          ),
         ),
       ),
-      body: AivivuPageBackground(
-        padding: false,
-        constrainContent: false,
-        child: _buildBody(theme),
+    );
+  }
+
+  Widget _buildTopBar(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.emoji_objects, color: _adviceColor, size: 24),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context)!.culturalTips,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -195,15 +227,10 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (tips.imageUrl.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: tips.imageUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
-                    _gradientFallback(tips.destinationName),
-              )
-            else
-              _gradientFallback(tips.destinationName),
+            DestinationImage(
+              imageUrl: tips.imageUrl,
+              destinationName: tips.destinationName,
+            ),
             // Gradient overlay
             Container(
               decoration: BoxDecoration(
@@ -231,26 +258,6 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _gradientFallback(String name) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryPink.withValues(alpha: 0.4),
-            AppTheme.secondaryOrange.withValues(alpha: 0.3),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.public,
-          size: 64,
-          color: Colors.white.withValues(alpha: 0.3),
         ),
       ),
     );

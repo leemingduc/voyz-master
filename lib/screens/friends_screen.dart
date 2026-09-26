@@ -1,9 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:voyz/data/saved_trips_provider.dart';
-import 'package:voyz/data/trip_data.dart';
-import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
@@ -96,78 +93,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }
   }
 
-  Future<void> _inviteFriendToTrip(SavedItem trip) async {
-    final l10n = AppLocalizations.of(context)!;
-    final eligibleFriends = _friendships
-        .where(
-          (friendship) =>
-              friendship.isAccepted &&
-              !trip.sharedWith.contains(friendship.friend.email),
-        )
-        .toList();
-
-    if (eligibleFriends.isEmpty) {
-      _showMessage(l10n.inviteFriendNone, isError: true);
-      return;
-    }
-
-    final selected = await showModalBottomSheet<Friendship>(
-      context: context,
-      backgroundColor: AppTheme.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.inviteFriendToTripTitle(trip.name),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...eligibleFriends.map(
-                (friendship) => ListTile(
-                  leading: _Avatar(url: friendship.friend.avatarUrl),
-                  title: Text(
-                    friendship.friend.displayName.isEmpty
-                        ? friendship.friend.email
-                        : friendship.friend.displayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  subtitle: Text(
-                    friendship.friend.email,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.person_add_alt_1,
-                    color: AppTheme.cyan,
-                  ),
-                  onTap: () => Navigator.of(sheetContext).pop(friendship),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (!mounted || selected == null) return;
-    SavedTripsProvider.of(context).addSharedPerson(trip, selected.friend.email);
-    _showMessage(l10n.inviteFriendSuccess);
-  }
-
   void _openChat(Friendship friendship) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -192,24 +117,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Widget build(BuildContext context) {
     final accepted = _friendships.where((f) => f.status == 'accepted').toList();
     final pending = _friendships.where((f) => f.status == 'pending').toList();
-    final groupTrips = SavedTripsProvider.of(context).tripWorkspaces;
-    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
-      appBar: AivivuHeader(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
@@ -218,90 +127,110 @@ class _FriendsScreenState extends State<FriendsScreen> {
             colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
-        child: Column(
-          children: [
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? _ErrorState(error: _error!, onRetry: _load)
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
-                      children: [
-                        _SearchPanel(
-                          controller: _searchController,
-                          isSearching: _isSearching,
-                          results: _searchResults,
-                          onSearch: _search,
-                          onSendRequest: _sendRequest,
-                        ),
-                        const SizedBox(height: 18),
-                        _SectionTitle(
-                          icon: Icons.explore_outlined,
-                          title: l10n.groupTripsTitle,
-                          count: groupTrips.length,
-                        ),
-                        const SizedBox(height: 10),
-                        if (groupTrips.isEmpty)
-                          _EmptyPanel(
-                            icon: Icons.group_outlined,
-                            title: l10n.groupTripsEmptyTitle,
-                            subtitle: l10n.groupTripsEmptyHint,
-                          )
-                        else
-                          ...groupTrips.map(
-                            (trip) => _GroupTripTile(
-                              trip: trip,
-                              onInvite: () => _inviteFriendToTrip(trip),
-                            ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _Header(onRefresh: _load),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                    ? _ErrorState(error: _error!, onRetry: _load)
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+                        children: [
+                          _SearchPanel(
+                            controller: _searchController,
+                            isSearching: _isSearching,
+                            results: _searchResults,
+                            onSearch: _search,
+                            onSendRequest: _sendRequest,
                           ),
-                        const SizedBox(height: 18),
-                        _SectionTitle(
-                          icon: Icons.people_alt_outlined,
-                          title: 'Friends',
-                          count: accepted.length,
-                        ),
-                        const SizedBox(height: 10),
-                        if (accepted.isEmpty)
-                          const _EmptyPanel(
-                            icon: Icons.people_outline,
-                            title: 'No friends yet',
-                            subtitle:
-                                'Search by email or display name to add someone.',
-                          )
-                        else
-                          ...accepted.map(
-                            (friendship) => _FriendTile(
-                              friendship: friendship,
-                              onTap: () => _openChat(friendship),
-                            ),
+                          const SizedBox(height: 18),
+                          _SectionTitle(
+                            icon: Icons.people_alt_outlined,
+                            title: 'Friends',
+                            count: accepted.length,
                           ),
-                        const SizedBox(height: 18),
-                        _SectionTitle(
-                          icon: Icons.mark_email_unread_outlined,
-                          title: 'Requests',
-                          count: pending.length,
-                        ),
-                        const SizedBox(height: 10),
-                        if (pending.isEmpty)
-                          const _EmptyPanel(
-                            icon: Icons.inbox_outlined,
-                            title: 'No pending requests',
-                            subtitle:
-                                'Incoming and outgoing requests appear here.',
-                          )
-                        else
-                          ...pending.map(
-                            (friendship) => _RequestTile(
-                              friendship: friendship,
-                              onAccept: () => _accept(friendship),
+                          const SizedBox(height: 10),
+                          if (accepted.isEmpty)
+                            const _EmptyPanel(
+                              icon: Icons.people_outline,
+                              title: 'No friends yet',
+                              subtitle:
+                                  'Search by email or display name to add someone.',
+                            )
+                          else
+                            ...accepted.map(
+                              (friendship) => _FriendTile(
+                                friendship: friendship,
+                                onTap: () => _openChat(friendship),
+                              ),
                             ),
+                          const SizedBox(height: 18),
+                          _SectionTitle(
+                            icon: Icons.mark_email_unread_outlined,
+                            title: 'Requests',
+                            count: pending.length,
                           ),
-                      ],
-                    ),
-            ),
-          ],
+                          const SizedBox(height: 10),
+                          if (pending.isEmpty)
+                            const _EmptyPanel(
+                              icon: Icons.inbox_outlined,
+                              title: 'No pending requests',
+                              subtitle:
+                                  'Incoming and outgoing requests appear here.',
+                            )
+                          else
+                            ...pending.map(
+                              (friendship) => _RequestTile(
+                                friendship: friendship,
+                                onAccept: () => _accept(friendship),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.onRefresh});
+
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 16, 6),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              'Friends',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh, color: Colors.white70),
+          ),
+        ],
       ),
     );
   }
@@ -400,81 +329,6 @@ class _SearchPanel extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _GroupTripTile extends StatelessWidget {
-  const _GroupTripTile({required this.trip, required this.onInvite});
-
-  final SavedItem trip;
-  final VoidCallback onInvite;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final memberCount = trip.sharedWith.length + 1;
-
-    return _Panel(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.violet.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.flight_takeoff_outlined,
-                  color: AppTheme.cyan,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  trip.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.sync,
-                size: 18,
-                color: Colors.white.withValues(alpha: 0.45),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.group_outlined, size: 16, color: Colors.white70),
-              const SizedBox(width: 6),
-              Text(
-                l10n.groupTripMembers(memberCount),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.68),
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: onInvite,
-                icon: const Icon(Icons.person_add_alt_1, size: 16),
-                label: Text(l10n.inviteFriendToTrip),
-              ),
-            ],
-          ),
         ],
       ),
     );

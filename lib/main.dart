@@ -3,17 +3,18 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/background_music_service.dart';
-import 'package:voyz/services/cache_service.dart';
 import 'package:voyz/services/currency_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
+import 'package:voyz/widgets/shared/background_music_button.dart';
 import 'package:voyz/widgets/shared/aivivu_page_background.dart';
 
 Future<void> main() async {
@@ -33,11 +34,11 @@ Future<void> main() async {
   String initialDisplayCurrency = 'VND';
   try {
     await Hive.initFlutter();
-    await CacheService.instance.init();
     await AiCacheService.instance.init();
     await SearchHistoryService.instance.init();
     await ExchangeRateService.instance.init();
     initialDisplayCurrency = await CurrencySettingsStore.instance.load();
+    await AiModelSettings.instance.load();
     // Don't block app startup on background music init.
     BackgroundMusicService.instance.init();
   } catch (e, st) {
@@ -134,6 +135,12 @@ class _VoyzAppState extends State<VoyzApp> {
                     child: Stack(
                       children: [
                         child ?? const SizedBox.shrink(),
+                        // Persistent background music toggle button
+                        Positioned(
+                          left: 12,
+                          bottom: MediaQuery.of(context).padding.bottom + 92,
+                          child: const BackgroundMusicButton(),
+                        ),
                         Positioned(
                           right: 16,
                           // Keeps this shortcut above the bottom navigation.

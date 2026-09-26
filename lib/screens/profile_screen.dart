@@ -4,11 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
-import 'package:voyz/data/preset_avatars.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
-import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
@@ -27,7 +26,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _displayNameController = TextEditingController();
 
   late UserProfile _profile;
   PickedAvatarImage? _pickedImage;
@@ -35,7 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double _offsetX = 0;
   double _offsetY = 0;
   bool _isSavingAvatar = false;
-  bool _isSavingDisplayName = false;
   bool _isChangingPassword = false;
   bool _isSavingContactInfo = false;
   bool _isSavingPreferences = false;
@@ -46,7 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _profile = ProfileService.instance.currentProfile();
-    _displayNameController.text = _profile.displayName;
     _phoneController.text = _profile.phoneNumber;
     _preferredCurrency = _profile.preferredCurrency;
     _travelStyles = _profile.travelStyles.toSet();
@@ -55,7 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    _displayNameController.dispose();
     _phoneController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -67,7 +62,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() {
       _profile = profile;
-      _displayNameController.text = profile.displayName;
       _phoneController.text = profile.phoneNumber;
       _preferredCurrency = profile.preferredCurrency;
       _travelStyles = profile.travelStyles.toSet();
@@ -170,183 +164,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _isSavingAvatar = false);
     }
-  }
-
-  Future<void> _saveDisplayName() async {
-    final name = _displayNameController.text.trim();
-    final l10n = AppLocalizations.of(context);
-    if (name.isEmpty) {
-      _showMessage(l10n?.enterDisplayName ?? 'Display name cannot be empty', isError: true);
-      return;
-    }
-
-    setState(() => _isSavingDisplayName = true);
-    try {
-      final savedName = await ProfileService.instance.updateDisplayName(
-        displayName: name,
-      );
-      if (!mounted) return;
-      setState(() {
-        _profile = _profile.copyWith(displayName: savedName);
-        _displayNameController.text = savedName;
-      });
-      _showMessage(l10n?.displayNameSaved ?? 'Display name saved successfully');
-    } catch (error) {
-      if (mounted) _showMessage(error.toString(), isError: true);
-    } finally {
-      if (mounted) setState(() => _isSavingDisplayName = false);
-    }
-  }
-
-  Future<void> _selectPresetAvatar(PresetAvatarItem preset) async {
-    setState(() => _isSavingAvatar = true);
-    try {
-      final avatarUrl = await ProfileService.instance.updateAvatarUrl(
-        avatarUrl: preset.avatarUrl,
-      );
-      if (!mounted) return;
-      setState(() {
-        _profile = _profile.copyWith(avatarUrl: avatarUrl);
-        _pickedImage = null;
-      });
-      final l10n = AppLocalizations.of(context);
-      _showMessage(l10n?.avatarSelected ?? 'Avatar updated');
-    } catch (error) {
-      if (mounted) _showMessage(error.toString(), isError: true);
-    } finally {
-      if (mounted) setState(() => _isSavingAvatar = false);
-    }
-  }
-
-  void _showPresetAvatarPicker() {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          decoration: const BoxDecoration(
-            color: Color(0xFF13111C),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.grid_view_rounded, color: AppTheme.cyan),
-                  const SizedBox(width: 10),
-                  Text(
-                    l10n.choosePresetAvatar,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: PresetAvatarsData.presets.length,
-                  itemBuilder: (context, index) {
-                    final preset = PresetAvatarsData.presets[index];
-                    final isSelected = _profile.avatarUrl == preset.avatarUrl;
-                    return InkWell(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _selectPresetAvatar(preset);
-                      },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? preset.badgeColor.withValues(alpha: 0.25)
-                              : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected
-                                ? preset.badgeColor
-                                : Colors.white.withValues(alpha: 0.12),
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: preset.badgeColor,
-                                  width: 2,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: CachedNetworkImage(
-                                  imageUrl: preset.avatarUrl,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, _) => const Center(
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                  errorWidget: (_, _, _) => Icon(
-                                    preset.icon,
-                                    color: preset.badgeColor,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              preset.title,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   String? _phoneValidationMessage(String phoneNumber) {
@@ -487,9 +304,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                           _buildLanguageCard(theme),
                           const SizedBox(height: 16),
-                          _buildPreferencesCard(theme),
+                          _buildAiModelCard(),
                           const SizedBox(height: 16),
-                          _buildMusicCard(theme),
+                          _buildPreferencesCard(theme),
                           const SizedBox(height: 16),
                           _buildPasswordCard(theme),
                         ],
@@ -587,19 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _isSavingAvatar ? null : _showPresetAvatarPicker,
-          icon: const Icon(Icons.grid_view_rounded, size: 18),
-          label: Text(l10n.presetAvatars),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.cyan,
-            side: BorderSide(color: AppTheme.cyan.withValues(alpha: 0.3)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-          ),
-        ),
         if (_pickedImage != null) ...[
           const SizedBox(height: 14),
           _SliderRow(
@@ -657,27 +461,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileDetails(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
+    final displayName = _profile.displayName.isEmpty
+        ? l10n.noDisplayName
+        : _profile.displayName;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _DisplayNameField(controller: _displayNameController),
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: SizedBox(
-            width: 220,
-            child: GradientButton(
-              label: _isSavingDisplayName
-                  ? l10n.saving
-                  : l10n.saveDisplayName,
-              icon: Icons.save,
-              height: 44,
-              onPressed: _isSavingDisplayName ? null : _saveDisplayName,
-            ),
-          ),
+        _InfoRow(
+          icon: Icons.person_outline,
+          label: l10n.displayName,
+          value: displayName,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _InfoRow(
           icon: Icons.mail_outline,
           label: l10n.email,
@@ -799,6 +595,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ── AI model card ─────────────────────────────────────────────────────
+
+  Widget _buildAiModelCard() {
+    final l10n = AppLocalizations.of(context)!;
+    final current = AiModelSettings.instance.current;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white70, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.aiModel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.aiModelDescription,
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          for (final option in supportedAiModels)
+            RadioListTile<String>(
+              contentPadding: EdgeInsets.zero,
+              value: option.id,
+              groupValue: current,
+              onChanged: (id) async {
+                if (id == null) return;
+                await AiModelSettings.instance.save(id);
+                if (mounted) {
+                  setState(() {});
+                  _showMessage(l10n.aiModelSaved);
+                }
+              },
+              title: Text(
+                option.label,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              subtitle: Text(
+                option.id,
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreferencesCard(ThemeData theme) {
     const styles = [
       'Beach',
@@ -900,68 +754,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMusicCard(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    final music = BackgroundMusicService.instance;
-
-    return ValueListenableBuilder<bool>(
-      valueListenable: music.isPlayingNotifier,
-      builder: (context, isPlaying, _) => GlassCard(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: (isPlaying ? AppTheme.cyan : AppTheme.textMuted)
-                    .withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isPlaying ? Icons.music_note_rounded : Icons.music_off_rounded,
-                color: isPlaying ? AppTheme.cyan : AppTheme.textMuted,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.backgroundMusic,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    isPlaying
-                        ? l10n.backgroundMusicOn
-                        : l10n.backgroundMusicOff,
-                    style: TextStyle(
-                      color: isPlaying
-                          ? AppTheme.cyan
-                          : Colors.white.withValues(alpha: 0.55),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Switch(
-              value: isPlaying,
-              activeThumbColor: AppTheme.cyan,
-              onChanged: (_) => music.toggle(),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1280,35 +1072,3 @@ class _ContactPhoneField extends StatelessWidget {
     );
   }
 }
-
-class _DisplayNameField extends StatelessWidget {
-  const _DisplayNameField({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.name,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: l10n.displayName,
-        hintText: l10n.enterDisplayName,
-        prefixIcon: const Icon(Icons.person_outline),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-      ),
-    );
-  }
-}
-

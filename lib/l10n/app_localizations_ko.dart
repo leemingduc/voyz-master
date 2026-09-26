@@ -178,22 +178,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get update => '업데이트';
 
   @override
-  String get requiredInfo => '필수 정보';
-
-  @override
-  String get optionalInfo => '선택 정보';
-
-  @override
   String get destination => '목적지';
-
-  @override
-  String get destinationHint => '예: 푸꾸옥, 파리, 발리...';
-
-  @override
-  String get departDate => '출발일';
-
-  @override
-  String get returnDate => '귀국일';
 
   @override
   String get addDate => '날짜 추가';
@@ -226,22 +211,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get participants => '참가자';
 
   @override
-  String get participantsHint => '예: 성인 2명';
-
-  @override
-  String get ageRange => '연령대';
-
-  @override
-  String get ageRangeHint => '예: 25-35';
-
-  @override
   String get interests => '관심사';
-
-  @override
-  String get additionalNotes => '추가 메모';
-
-  @override
-  String get notesHint => '특별 요청, 접근성 필요 사항...';
 
   @override
   String get aiPrompt => '꿈의 여행을 설명하세요';
@@ -253,19 +223,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get getAiSuggestions => 'AI 추천 받기';
 
   @override
-  String get fillAllRequired => '필수 정보를 모두 입력해 주세요';
+  String get analyzeTrip => 'AI로 분석';
 
   @override
-  String get plannerPromptRequired => 'AI가 추천할 수 있도록 원하는 여행을 설명해 주세요.';
+  String get analyzingTrip => '분석 중...';
 
   @override
-  String get backgroundMusic => '배경 음악';
-
-  @override
-  String get backgroundMusicOn => '켜짐 — 배경 음악 재생 중';
-
-  @override
-  String get backgroundMusicOff => '꺼짐 — 배경 음악 일시 정지';
+  String get describeTripRequired => '먼저 여행을 설명해 주세요';
 
   @override
   String get trendingDestinations => '인기 여행지';
@@ -341,9 +305,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get noSuggestions => '추천을 찾을 수 없습니다';
-
-  @override
-  String get optional => '(선택사항)';
 
   @override
   String get plannerGreeting => '어디로 가고\n싶으신가요? 🌍';
@@ -671,80 +632,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
 
   @override
-  String get aiCulturalTipsTitle => '문화 팁';
+  String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
-  String get aiCulturalTipsSubtitle => '현지 문화';
+  String get contextBestTime => 'When should I go?';
 
   @override
-  String get aiCulturalTipsDesc => '여행 전에 현지 예절, 관습, 유용한 표현을 알아보세요.';
+  String get contextAskAboutDestination => 'Ask AI about this place';
 
   @override
-  String get chatQuickPrompts => '추천 질문';
+  String get refineForBudget => 'Optimize for budget';
 
   @override
-  String get chatQuickPromptWeather => '오늘 더위를 피하려면 어디에 가면 좋을까요?';
+  String get refineForFamily => 'Better for children or seniors';
 
   @override
-  String get chatQuickPromptCafe => '아름다운 일몰 카페를 추천해 주세요.';
-
-  @override
-  String get chatQuickPromptBudget => '2인 3일 여행 예산을 예상해 주세요.';
-
-  @override
-  String get savedFilterAll => '전체';
-
-  @override
-  String get savedFilterTrips => '여행 일정';
-
-  @override
-  String get savedFilterPlaces => '저장한 장소';
-
-  @override
-  String get groupTripsTitle => '계획 중인 그룹 여행';
-
-  @override
-  String get groupTripsEmptyTitle => '아직 그룹 여행이 없습니다';
-
-  @override
-  String get groupTripsEmptyHint => '여행 계획을 저장한 뒤 친구를 초대하여 함께 계획해 보세요.';
-
-  @override
-  String groupTripMembers(int count) {
-    return '$count명';
-  }
-
-  @override
-  String get inviteFriendToTrip => '친구 초대';
-
-  @override
-  String inviteFriendToTripTitle(String trip) {
-    return '$trip에 초대';
-  }
-
-  @override
-  String get inviteFriendNone => '여행에 초대하려면 먼저 수락된 친구를 추가하세요.';
-
-  @override
-  String get inviteFriendSuccess => '여행 워크스페이스에 초대가 추가되었습니다.';
-
-  @override
-  String get contextCompareSuggestions => '이 추천들 비교하기';
-
-  @override
-  String get contextBestTime => '언제 가는 게 좋을까요?';
-
-  @override
-  String get contextAskAboutDestination => '이 곳에 대해 AI에게 물어보기';
-
-  @override
-  String get refineForBudget => '예산에 맞게 최적화';
-
-  @override
-  String get refineForFamily => '어린이/노인에 적합하게';
-
-  @override
-  String get refineLessTravel => '이동 시간 줄이기';
+  String get refineLessTravel => 'Less travel between stops';
 
   @override
   String get currencySelectorTitle => '표시 통화';
@@ -783,52 +686,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get currencyCanadianDollar => '캐나다 달러';
 
   @override
-  String get editDisplayName => '이름 변경';
+  String get aiModel => 'AI 모델';
 
   @override
-  String get saveDisplayName => '이름 저장';
+  String get aiModelDescription =>
+      '여행 질문에 답하는 Gemini 모델입니다. 큰 모델은 더 오래 생각하며 무료 한도에 더 빨리 도달할 수 있습니다.';
 
   @override
-  String get displayNameSaved => '이름이 성공적으로 변경되었습니다';
+  String get aiModelSaved => 'AI 모델이 저장되었습니다';
 
   @override
-  String get presetAvatars => '기본 아바타';
+  String get chipAiWillSuggest => 'AI가 추천해요';
 
   @override
-  String get choosePresetAvatar => '기본 아바타 선택';
+  String get chipFlexible => '유연하게';
 
   @override
-  String get avatarSelected => '아바타가 선택되었습니다';
+  String get chipNotSet => '미정';
 
   @override
-  String get enterDisplayName => '이름을 입력하세요';
-
-  @override
-  String get tripConsultationTitle => 'AI 여행 상담';
-
-  @override
-  String get confirmAndSeeSuggestions => '확인 및 추천 보기';
-
-  @override
-  String get tripInfo => '여행 정보';
-
-  @override
-  String get tripInfoUpdated => '여행 정보가 업데이트되었습니다';
-
-  @override
-  String consultationInitialPrompt(String prompt) {
-    return '안녕하세요! 계획 중이신 여행: \"$prompt\". 선호하는 여행 템포, 이동 수단 또는 꼭 가보고 싶은 활동이 있으신가요?';
-  }
-
-  @override
-  String get quickChipRelaxed => '여유롭고 편안한 일정';
-
-  @override
-  String get quickChipFoodie => '현지 맛집 및 미식 중심';
-
-  @override
-  String get quickChipBudget => '가성비 중심 알뜰 여행';
-
-  @override
-  String get quickChipReady => '좋습니다, 바로 확정해주세요!';
+  String get quickPromptsLabel => '빠른 아이디어:';
 }

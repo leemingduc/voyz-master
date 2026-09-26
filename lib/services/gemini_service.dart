@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:intl/intl.dart';
+import 'package:voyz/data/ai_model_settings.dart';
+import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/best_time_travel.dart';
 import 'package:voyz/models/chat_message.dart';
@@ -18,8 +21,8 @@ import 'package:voyz/services/image_service.dart';
 /// Central service for interacting with the Gemini Flash 3 API.
 ///
 /// Prompts include a language instruction so the AI responds in the
-/// user's active locale. All methods check Multi-Tier cache first; only
-/// calls the API on cache miss.
+/// user's active locale. Every feature checks the Hive cache first and
+/// only calls the API on a miss.
 class GeminiService {
   GeminiService._();
   static final GeminiService instance = GeminiService._();
@@ -47,10 +50,11 @@ class GeminiService {
     };
   }
 
-  /// The single Gemini model used by every AI feature in the app.
-  static const modelName = 'gemini-3.1-flash-lite';
+  /// The Gemini model used by every AI feature, as picked in Profile.
+  String get modelName => AiModelSettings.instance.current;
 
   GenerativeModel? _model;
+  String? _modelNameInUse;
 
   /// Returns a configured Gemini API key or throws the app-level config error.
   ///
@@ -74,54 +78,139 @@ class GeminiService {
   }
 
   GenerativeModel get _gemini {
-    if (_model != null) return _model!;
+    // Rebuild when the user switched model in Profile since the last call.
+    if (_model != null && _modelNameInUse == modelName) return _model!;
+    _modelNameInUse = modelName;
     _model = _createModel(
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.7,
-        maxOutputTokens:
-            4096, // Sufficient for all features; reduces latency significantly
+        // Thinking models count their thinking tokens against this limit,
+        // so it is well above what the JSON itself needs.
+        maxOutputTokens: 12288,
       ),
     );
     return _model!;
   }
 
-  /// Asynchronously pre-caches image URLs in the background and updates the multi-tier cache.
-  void _precacheAndStoreImages(
-    String cacheKey,
-    List<DestinationSuggestion> suggestions, {
-    required String featureType,
-    String? destination,
-    required String languageCode,
-  }) {
-    Future.microtask(() async {
-      try {
-        final names = suggestions.map((s) => s.name).toList();
-        final imageUrls = await ImageService.instance.getImageUrls(names);
-        final cached = await _aiCache.getResponse(cacheKey);
-        if (cached != null) {
-          await _aiCache.putResponse(
-            cacheKey,
-            cached.payload,
-            featureType: featureType,
-            destination: destination,
-            languageCode: languageCode,
-            imageUrls: imageUrls,
-          );
-        }
-      } catch (e) {
-        debugPrint('Image pre-caching error (non-fatal): $e');
-      }
-    });
+  /// Tra URL ảnh cho danh sách gợi ý qua ImageService.
+  /// Lỗi ảnh không làm hỏng kết quả AI: trả lại danh sách không ảnh.
+  Future<List<DestinationSuggestion>> _withImages(
+    List<DestinationSuggestion> suggestions,
+  ) async {
+    try {
+      return await enrichSuggestionsWithImages(suggestions);
+    } catch (e) {
+      debugPrint('Image fetch error (non-fatal): $e');
+      return suggestions;
+    }
+  }
+
+  // ── Trích xuất TripData từ mô tả (planner hai bước) ──────────────────
+
+  static const _validTiers = ['economy', 'moderate', 'premium', 'luxury'];
+
+  /// Chuỗi từ JSON: trim, coi "null" (chữ) và rỗng là không có.
+  String _cleanString(dynamic value) {
+    final s = value?.toString().trim() ?? '';
+    return (s.isEmpty || s.toLowerCase() == 'null') ? '' : s;
+  }
+
+  /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
+  /// người dùng sửa mô tả là phân tích lại.
+  Future<TripData> extractTripData(
+    String prompt, {
+    String languageCode = 'vi',
+  }) async {
+    final text = (await _gemini.generateContent([
+      Content.text(buildExtractPrompt(prompt, languageCode, DateTime.now())),
+    ])).text;
+    if (text == null || text.isEmpty) throw Exception('noAiResponse');
+    return parseExtractedTripData(text, originalPrompt: prompt);
+  }
+
+  @visibleForTesting
+  String buildExtractPrompt(
+    String prompt,
+    String languageCode,
+    DateTime today,
+  ) {
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    return '''
+Bạn là trợ lý du lịch. Hôm nay là $todayStr. Đọc mô tả chuyến đi của người dùng và bóc tách thông tin.
+
+Mô tả: "$prompt"
+
+Trả về JSON đúng các key sau, không thêm key khác:
+{
+  "destination": "tên điểm đến, hoặc null nếu không nêu",
+  "departDate": "yyyy-MM-dd hoặc null (chỉ khi mô tả nêu ngày hoặc mốc thời gian đủ rõ để tính từ hôm nay)",
+  "returnDate": "yyyy-MM-dd hoặc null",
+  "numDays": "số nguyên hoặc null",
+  "budgetTier": "một trong: economy | moderate | premium | luxury, hoặc null",
+  "participants": "số người, số nguyên hoặc null",
+  "ageRange": "khoảng tuổi dạng chuỗi, hoặc null",
+  "interests": ["chỉ dùng các giá trị: beach, adventure, culture, food, wellness"]
+}
+
+Quy tắc:
+- Không đoán bừa: không có thông tin thì để null hoặc mảng rỗng.
+- "tiết kiệm", "rẻ" là economy; "sang", "5 sao" là luxury; "cao cấp" là premium.
+- CHỈ trả về JSON, KHÔNG thêm markdown hay text khác.
+- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng danh sách trên, không dịch.
+- ${languageInstruction(languageCode)}
+''';
+  }
+
+  /// Parser thuần cho JSON trích xuất. Key thiếu hoặc sai thì để rỗng.
+  @visibleForTesting
+  TripData parseExtractedTripData(String text, {String originalPrompt = ''}) {
+    final decoded = safeJsonDecode(text);
+    final map = decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : <String, dynamic>{};
+
+    DateTime? depart = DateTime.tryParse(map['departDate']?.toString() ?? '');
+    DateTime? ret = DateTime.tryParse(map['returnDate']?.toString() ?? '');
+    final numDays = map['numDays'] is num
+        ? (map['numDays'] as num).toInt()
+        : int.tryParse(map['numDays']?.toString() ?? '');
+    if (depart != null && ret == null && numDays != null && numDays > 0) {
+      ret = depart.add(Duration(days: numDays - 1));
+    }
+    // Chỉ có ngày về mà không có ngày đi thì bỏ, form không dùng được.
+    if (depart == null) ret = null;
+
+    DateTime? dateOnly(DateTime? d) =>
+        d == null ? null : DateTime(d.year, d.month, d.day);
+    depart = dateOnly(depart);
+    ret = dateOnly(ret);
+
+    final tier = map['budgetTier']?.toString().trim().toLowerCase() ?? '';
+    final participants = map['participants'];
+    final participantsStr = participants is num
+        ? participants.toInt().toString()
+        : (int.tryParse(participants?.toString() ?? '')?.toString() ?? '');
+    final interests = TripData.stringList(map['interests'])
+        .map((e) => e.trim().toLowerCase())
+        .where(MockData.interests.contains)
+        .toList();
+
+    return TripData(
+      destination: _cleanString(map['destination']),
+      departDate: depart,
+      returnDate: ret,
+      budget: _validTiers.contains(tier) ? tier : '',
+      participants: participantsStr,
+      ageRange: _cleanString(map['ageRange']),
+      aiPrompt: originalPrompt,
+      selectedInterests: interests,
+    );
   }
 
   // ── Explore (independent, no TripData needed) ─────────────────────────
 
-  /// Get trending travel destinations for free exploration.
-  /// Does NOT require any user input — perfect for the Explore tab.
-  ///
-  /// [limit] number of destinations to return.
-  /// [forceRefresh] if true, bypasses the cache.
+  // Chủ đề ngẫu nhiên dùng khi không truyền category.
   static final List<String> _randomExploreThemes = [
     'Thiên đường biển đảo nhiệt đới, làn nước trong xanh và bãi cát trắng hoang sơ',
     'Vùng núi cao hùng vĩ, mây mù giăng lối, đèo dốc hiểm trở và ruộng bậc thang',
@@ -134,10 +223,12 @@ class GeminiService {
   ];
 
   /// Get trending or randomly discovered travel destinations for free exploration.
-  /// Does NOT require any user input — perfect for the Explore tab.
+  /// Does NOT require any user input, perfect for the Explore tab.
   ///
   /// [limit] number of destinations to return.
-  /// [forceRefresh] if true, generates a completely new random batch of destinations.
+  /// [forceRefresh] if true, skips the cache read, draws a new random theme,
+  /// and overwrites the same cache key. The theme is intentionally left out
+  /// of the cache key so a refresh never adds extra entries.
   /// [category] optional specific travel category / theme.
   /// [languageCode] locale code for language-aware prompts (vi, en, ko).
   Future<List<DestinationSuggestion>> getExploreTrending({
@@ -147,25 +238,26 @@ class GeminiService {
     String languageCode = 'vi',
   }) async {
     final randomSeed = DateTime.now().millisecondsSinceEpoch % 100000;
-    final theme = category ??
+    final theme =
+        category ??
         _randomExploreThemes[randomSeed % _randomExploreThemes.length];
 
     final cacheKey = _aiCache.buildKey('explore_trending', {
       'limit': limit,
       'lang': languageCode,
-      if (!forceRefresh && category != null) 'category': category,
-      if (forceRefresh) 'nonce': randomSeed,
+      'category': category ?? '',
     });
 
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
+      final cached = _aiCache.get(cacheKey);
       if (cached != null) {
-        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
+        return _withImages(parseSuggestionsSync(cached));
       }
     }
 
     final langInst = languageInstruction(languageCode);
-    final prompt = '''
+    final prompt =
+        '''
 Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý một danh sách $limit điểm đến du lịch ĐỘC ĐÁO, MỚI LẠ và NGẪU NHIÊN theo chủ đề:
 👉 "$theme"
 
@@ -200,49 +292,8 @@ Quy tắc:
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'explore_trending',
-      languageCode: languageCode,
-    );
-
-    final suggestions = parseSuggestionsSync(text);
-
-    // Fetch images immediately in parallel with 1 fast request per destination
-    // (curated registry → Wikipedia thumbnail → themed fallback)
-    try {
-      final names = suggestions.map((s) => s.name).toList();
-      final imageUrls = await ImageService.instance.getImageUrlsFast(names);
-
-      final enriched = suggestions.map((s) {
-        final img = imageUrls[s.name] ?? '';
-        if (img.isEmpty) return s;
-        return DestinationSuggestion(
-          name: s.name,
-          imageUrl: img,
-          matchPercent: s.matchPercent,
-          rating: s.rating,
-          reviewCount: s.reviewCount,
-          price: s.price,
-          aiInsight: s.aiInsight,
-          isTopMatch: s.isTopMatch,
-        );
-      }).toList();
-
-      // Store enriched (with images) back to cache for next time
-      _precacheAndStoreImages(
-        cacheKey,
-        enriched,
-        featureType: 'explore_trending',
-        languageCode: languageCode,
-      );
-
-      return enriched;
-    } catch (e) {
-      debugPrint('Image fetch error (non-fatal): $e');
-      return suggestions;
-    }
+    await _aiCache.put(cacheKey, text);
+    return _withImages(parseSuggestionsSync(text));
   }
 
   // ── Suggestions ──────────────────────────────────────────────────────────
@@ -250,7 +301,6 @@ Quy tắc:
   /// Get AI travel suggestions based on user's trip preferences.
   ///
   /// **Phase 1 (fast, ~1-2s or <100ms on cache):** Returns suggestions immediately.
-  /// If pre-cached images are available from the multi-tier cache, they are rendered right away.
   ///
   /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
   /// image URLs asynchronously if not already cached.
@@ -272,43 +322,27 @@ Quy tắc:
       'interests': trip.selectedInterests,
       'limit': limit,
       'lang': languageCode,
+      'aiPrompt': trip.aiPrompt.trim(),
+      'notes': trip.additionalNotes.trim(),
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
+      'participants': trip.participants.trim(),
+      'ageRange': trip.ageRange.trim(),
     });
 
-    // Check Multi-Tier cache (Memory -> Hive -> Supabase)
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return parseSuggestionsSync(cached.payload, imageUrls: cached.imageUrls);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return parseSuggestionsSync(cached);
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildSuggestionsPrompt(trip, limit, languageCode);
+    final prompt = buildSuggestionsPrompt(trip, limit, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) return [];
 
-    // Save to multi-tier cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'suggestions',
-      destination: trip.destination.isNotEmpty ? trip.destination : null,
-      languageCode: languageCode,
-    );
-
-    final suggestions = parseSuggestionsSync(text);
-
-    // Pre-cache images in background
-    _precacheAndStoreImages(
-      cacheKey,
-      suggestions,
-      featureType: 'suggestions',
-      destination: trip.destination.isNotEmpty ? trip.destination : null,
-      languageCode: languageCode,
-    );
-
-    return suggestions;
+    await _aiCache.put(cacheKey, text);
+    return parseSuggestionsSync(text);
   }
 
   /// Phase 2: Back-fill image URLs into an existing list of suggestions.
@@ -332,7 +366,9 @@ Quy tắc:
     return suggestions.map((s) {
       return DestinationSuggestion(
         name: s.name,
-        imageUrl: (s.imageUrl.isNotEmpty) ? s.imageUrl : (imageUrls[s.name] ?? ''),
+        imageUrl: (s.imageUrl.isNotEmpty)
+            ? s.imageUrl
+            : (imageUrls[s.name] ?? ''),
         matchPercent: s.matchPercent,
         rating: s.rating,
         reviewCount: s.reviewCount,
@@ -344,12 +380,8 @@ Quy tắc:
   }
 
   /// Synchronously parse raw JSON text into DestinationSuggestions.
-  ///
-  /// If [imageUrls] map is provided, image URLs are attached immediately.
-  List<DestinationSuggestion> parseSuggestionsSync(
-    String text, {
-    Map<String, String>? imageUrls,
-  }) {
+  /// Ảnh không nằm trong JSON của AI; tra sau bằng [enrichSuggestionsWithImages].
+  List<DestinationSuggestion> parseSuggestionsSync(String text) {
     final decoded = safeJsonDecode(text);
     final List<dynamic> jsonList;
     if (decoded is List) {
@@ -373,7 +405,6 @@ Quy tắc:
     final suggestions = jsonList.whereType<Map>().map((e) {
       final rawMap = Map<String, dynamic>.from(e);
       final name = rawMap['name']?.toString() ?? '';
-      final cachedImage = imageUrls?[name] ?? '';
       final map = <String, dynamic>{
         'name': name,
         'matchPercent': (rawMap['matchPercent'] is num)
@@ -391,7 +422,7 @@ Quy tắc:
             ? rawMap['isTopMatch'] as bool
             : (rawMap['isTopMatch']?.toString().toLowerCase() == 'true'),
       };
-      return DestinationSuggestion.fromJson(map, cachedImage);
+      return DestinationSuggestion.fromJson(map, '');
     }).toList();
 
     // Mark the first item as top match if none is flagged.
@@ -415,19 +446,25 @@ Quy tắc:
   /// Formats the budget tier into clear, realistic guidance for the AI model.
   static String _describeBudgetTier(String tier, String currency) {
     final lower = tier.toLowerCase();
-    if (lower == 'economy' || lower.contains('bình dân') || lower.contains('알뜰')) {
+    if (lower == 'economy' ||
+        lower.contains('bình dân') ||
+        lower.contains('알뜰')) {
       return 'Phân khúc Bình dân / Tiết kiệm: '
           'Lựa chọn homestay/khách sạn bình dân 1-2 sao, quán ăn địa phương/đường phố, '
           'di chuyển bằng xe máy/xe buýt/tàu. Ước tính chi phí thực tế: ~1.5M - 3.5M $currency cho chuyến 3 ngày trong nước, '
           'hoặc tương đương \$150-\$350 $currency cho chuyến quốc tế.';
     }
-    if (lower == 'premium' || lower.contains('cao cấp') || lower.contains('고급')) {
+    if (lower == 'premium' ||
+        lower.contains('cao cấp') ||
+        lower.contains('고급')) {
       return 'Phân khúc Cao cấp: '
           'Lựa chọn khách sạn 4-5 sao / resort cao cấp, nhà hàng chất lượng, '
           'xe đưa đón riêng / chuyến bay giờ đẹp, tour trải nghiệm chất lượng cao. Ước tính chi phí thực tế: ~9M - 18M $currency cho chuyến 3 ngày trong nước, '
           'hoặc tương đương \$900-\$2200 $currency cho chuyến quốc tế.';
     }
-    if (lower == 'luxury' || lower.contains('hạng sang') || lower.contains('럭셔리')) {
+    if (lower == 'luxury' ||
+        lower.contains('hạng sang') ||
+        lower.contains('럭셔리')) {
       return 'Phân khúc Hạng sang / Siêu sang: '
           'Lựa chọn resort 5 sao quốc tế / villa riêng tư sang trọng bậc nhất, ẩm thực fine dining / Michelin, '
           'dịch vụ VIP / du thuyền / trải nghiệm độc quyền. Ước tính chi phí thực tế: ~22M - 60M+ $currency cho chuyến 3 ngày trong nước, '
@@ -440,31 +477,39 @@ Quy tắc:
         'hoặc tương đương \$450-\$850 $currency cho chuyến quốc tế.';
   }
 
-  String _buildSuggestionsPrompt(
-    TripData trip,
-    int limit,
-    String languageCode,
-  ) {
+  /// Builds the suggestions prompt. Public for testing only.
+  @visibleForTesting
+  String buildSuggestionsPrompt(TripData trip, int limit, String languageCode) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final interests = trip.selectedInterests.isNotEmpty
         ? trip.selectedInterests.join(', ')
         : 'du lịch tổng hợp';
 
     final destination = trip.destination.isNotEmpty
         ? trip.destination
+        : hasTripDescription
+        ? 'chưa xác định, hãy tự suy ra điểm đến phù hợp từ mô tả chuyến đi bên dưới'
         : 'Việt Nam';
 
     final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
 
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? 'từ ${_formatDate(trip.departDate!)} đến ${_formatDate(trip.returnDate!)}'
+        : hasTripDescription
+        ? 'linh hoạt (nếu mô tả chuyến đi nêu thời gian, hãy dùng thời gian đó)'
         : 'linh hoạt';
+
+    final unknownHint = hasTripDescription
+        ? 'không rõ (suy ra từ mô tả chuyến đi nếu có)'
+        : 'không rõ';
 
     final additionalNotes = trip.additionalNotes.isNotEmpty
         ? '\nYêu cầu thêm: ${trip.additionalNotes}'
         : '';
 
-    final aiPromptExtra = trip.aiPrompt.isNotEmpty
-        ? '\nMô tả chuyến đi: ${trip.aiPrompt}'
+    final aiPromptExtra = hasTripDescription
+        ? '\nMô tả chuyến đi: ${trip.aiPrompt.trim()}'
         : '';
 
     final langInst = languageInstruction(languageCode);
@@ -477,8 +522,8 @@ Thông tin người dùng:
 - Mức ngân sách: $budgetDescription
 - Sở thích: $interests
 - Thời gian: $dateInfo
-- Số người: ${trip.participants.isNotEmpty ? trip.participants : 'không rõ'}
-- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : 'không rõ'}$additionalNotes$aiPromptExtra
+- Số người: ${trip.participants.isNotEmpty ? trip.participants : unknownHint}
+- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : unknownHint}$additionalNotes$aiPromptExtra
 
 Trả về JSON array với đúng $limit phần tử, mỗi phần tử có cấu trúc:
 {
@@ -517,18 +562,21 @@ Quy tắc quan trọng:
     final cacheKey = _aiCache.buildKey('detail', {
       'name': destinationName,
       'lang': languageCode,
+      'aiPrompt': trip.aiPrompt.trim(),
+      'budget': trip.budget,
+      'currency': trip.currency,
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return _parseDetail(cached.payload, destinationName);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return _parseDetail(cached, destinationName);
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildDetailPrompt(destinationName, trip, languageCode);
+    final prompt = buildDetailPrompt(destinationName, trip, languageCode);
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
@@ -536,15 +584,29 @@ Quy tắc quan trọng:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'detail',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     return _parseDetail(text, destinationName);
+  }
+
+  /// Landmark AI đặt tên thường không có trang Wikipedia riêng. Ô nào rỗng
+  /// thì dùng ảnh chính của điểm đến để gallery không có ô trống. Ảnh chính
+  /// cũng rỗng thì giữ nguyên, widget chung sẽ vẽ fallback.
+  @visibleForTesting
+  static List<DestinationLandmarkPhoto> fillEmptyLandmarkImages(
+    List<DestinationLandmarkPhoto> gallery,
+    String mainImageUrl,
+  ) {
+    if (mainImageUrl.isEmpty) return gallery;
+    return [
+      for (final photo in gallery)
+        photo.imageUrl.isEmpty
+            ? DestinationLandmarkPhoto(
+                title: photo.title,
+                imageUrl: mainImageUrl,
+              )
+            : photo,
+    ];
   }
 
   /// Parse raw JSON text into a DestinationDetail with image and photo gallery.
@@ -557,7 +619,8 @@ Quy tắc quan trọng:
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
 
-    final rawLandmarks = (json['galleryLandmarks'] as List<dynamic>?)
+    final rawLandmarks =
+        (json['galleryLandmarks'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .where((e) => e.isNotEmpty)
             .toList() ??
@@ -570,17 +633,33 @@ Quy tắc quan trọng:
           : [name, '$name beach', '$name city', '$name mountain'],
     );
 
-    return DestinationDetail.fromJson(json, imageUrl, gallery: gallery);
+    return DestinationDetail.fromJson(
+      json,
+      imageUrl,
+      gallery: fillEmptyLandmarkImages(gallery, imageUrl),
+    );
   }
 
-  String _buildDetailPrompt(
+  /// Builds the destination detail prompt. Public for testing only.
+  @visibleForTesting
+  String buildDetailPrompt(
     String destinationName,
     TripData trip,
     String languageCode,
   ) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'Mar 15 - Mar 18';
+        : 'Linh hoạt';
+
+    final tripDescription = hasTripDescription
+        ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
+        : '';
+
+    final dateRule = hasTripDescription && trip.departDate == null
+        ? '\n- Nếu mô tả chuyến đi nêu thời gian cụ thể, dùng thời gian đó cho dateRange thay vì "Linh hoạt".'
+        : '';
 
     final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
     final langInst = languageInstruction(languageCode);
@@ -589,7 +668,7 @@ Quy tắc quan trọng:
 Bạn là chuyên gia tư vấn du lịch AI. Hãy cung cấp thông tin chi tiết, ước tính chi phí thực tế và các địa danh biểu tượng cụ thể cho điểm đến "$destinationName".
 
 Mức ngân sách & phân khúc: $budgetDescription
-Thời gian dự kiến: $dateInfo
+Thời gian dự kiến: $dateInfo$tripDescription
 
 Trả về JSON object với cấu trúc:
 {
@@ -621,7 +700,7 @@ Quy tắc:
 - tags: 4 thẻ ngắn gọn, đặc trưng nhất cho điểm đến, có kèm emoji.
 - weather: Dự báo thời tiết thực tế theo mùa của điểm đến.
 - Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.
-- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.
+- CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.$dateRule
 - $langInst
 ''';
   }
@@ -645,22 +724,26 @@ Quy tắc:
     final cacheKey = _aiCache.buildKey('itinerary', {
       'name': destinationName,
       'numDays': numDays,
+      'limit': limit,
       'lang': languageCode,
-      'instruction': additionalInstruction,
+      'instruction': additionalInstruction ?? '',
+      'aiPrompt': trip.aiPrompt.trim(),
+      'depart': trip.departDate?.toIso8601String() ?? '',
+      'return': trip.returnDate?.toIso8601String() ?? '',
     });
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
+      final cached = _aiCache.get(cacheKey);
       if (cached != null) {
         final Map<String, dynamic> json =
-            safeJsonDecode(cached.payload) as Map<String, dynamic>;
+            safeJsonDecode(cached) as Map<String, dynamic>;
         return ItineraryPlan.fromJson(json);
       }
     }
 
     // Cache miss — call Gemini API
-    final prompt = _buildItineraryPrompt(
+    final prompt = buildItineraryPrompt(
       destinationName,
       numDays,
       trip,
@@ -675,13 +758,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'itinerary',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     try {
       final Map<String, dynamic> json =
@@ -696,7 +773,9 @@ Quy tắc:
     }
   }
 
-  String _buildItineraryPrompt(
+  /// Builds the itinerary prompt. Public for testing only.
+  @visibleForTesting
+  String buildItineraryPrompt(
     String destinationName,
     int numDays,
     TripData trip,
@@ -704,9 +783,19 @@ Quy tắc:
     String languageCode,
     String? additionalInstruction,
   ) {
+    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
+
     final dateInfo = trip.departDate != null && trip.returnDate != null
         ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'MAR 15 - MAR 18';
+        : 'Linh hoạt';
+
+    final tripDescription = hasTripDescription
+        ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
+        : '';
+
+    final dayCountInstruction = hasTripDescription && trip.departDate == null
+        ? '\nNếu mô tả chuyến đi nêu số ngày cụ thể, hãy lên kế hoạch đúng số ngày đó (tối đa 7 ngày) thay vì $numDays ngày.'
+        : '';
 
     final languageName = languageCode == 'vi'
         ? 'Vietnamese'
@@ -717,7 +806,7 @@ Quy tắc:
     return '''
 Bạn là chuyên gia du lịch AI. Hãy lên kế hoạch du lịch chi tiết $numDays ngày tại "$destinationName".
 
-Thời gian: $dateInfo
+Thời gian: $dateInfo$tripDescription$dayCountInstruction
 
 ${additionalInstruction == null || additionalInstruction.trim().isEmpty ? '' : 'Ưu tiên điều chỉnh: ${additionalInstruction.trim()}'}
 
@@ -802,74 +891,11 @@ Trả về JSON object với cấu trúc:
       generationConfig: GenerationConfig(
         responseMimeType: 'text/plain',
         temperature: 0.8,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 3072,
       ),
     );
 
     final response = await chatModel.generateContent(contents);
-    final text = response.text;
-    if (text == null || text.isEmpty) {
-      throw Exception('noAiResponse');
-    }
-    return text.trim();
-  }
-
-  /// Interactive consultation before generating suggestions.
-  /// Refines user prompt, preferences, and details in a conversational flow.
-  Future<String> consultTrip({
-    required String message,
-    required List<ChatMessage> history,
-    required TripData currentTrip,
-    String languageCode = 'vi',
-  }) async {
-    final langInst = chatLanguageInstruction(languageCode);
-    final budgetDesc = _describeBudgetTier(currentTrip.budget, currentTrip.currency);
-    final interestsDesc = currentTrip.selectedInterests.join(', ');
-    final dateInfo = currentTrip.departDate != null && currentTrip.returnDate != null
-        ? '${_formatDateShort(currentTrip.departDate!)} - ${_formatDateShort(currentTrip.returnDate!)}'
-        : 'Linh hoạt';
-
-    final contents = <Content>[];
-
-    // System context as first turn
-    contents.add(
-      Content.text(
-        'You are an expert AI Travel Planner for Aivivu. '
-        'You are actively discussing and fine-tuning an upcoming trip with the user. '
-        'Initial trip prompt: "${currentTrip.aiPrompt}". '
-        'Current budget tier: $budgetDesc. '
-        'Travel dates/period: $dateInfo. '
-        'Interests/Preferences: $interestsDesc. '
-        'Your goal is to help the user clarify and decide destinations, travel pace, activities, and must-haves. '
-        'Be conversational, concise (2-4 sentences or short bullet points), encouraging, and helpful. '
-        'If the user updates preferences or mentions new ideas, acknowledge them enthusiastically. '
-        'When the user seems satisfied or says ok/ready, encourage them to click "Confirm & See Suggestions" ("Xác nhận & Xem gợi ý") to view curated destinations and detailed itineraries. '
-        'Reply only in natural, clean text. Do NOT use code fences or JSON. '
-        '$langInst',
-      ),
-    );
-
-    // Add history
-    for (final msg in history) {
-      if (msg.isUser) {
-        contents.add(Content.text(msg.text));
-      } else {
-        contents.add(Content('model', [TextPart(msg.text)]));
-      }
-    }
-
-    // Current message
-    contents.add(Content.text(message));
-
-    final model = _createModel(
-      generationConfig: GenerationConfig(
-        responseMimeType: 'text/plain',
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-      ),
-    );
-
-    final response = await model.generateContent(contents);
     final text = response.text;
     if (text == null || text.isEmpty) {
       throw Exception('noAiResponse');
@@ -892,10 +918,10 @@ Trả về JSON object với cấu trúc:
       'lang': languageCode,
     });
 
-    final cached = await _aiCache.getResponse(cacheKey);
+    final cached = _aiCache.get(cacheKey);
     if (cached != null) {
       final Map<String, dynamic> json =
-          safeJsonDecode(cached.payload) as Map<String, dynamic>;
+          safeJsonDecode(cached) as Map<String, dynamic>;
       return DestinationComparison.fromJson(json);
     }
 
@@ -946,12 +972,7 @@ Quy tắc:
       throw Exception('noAiResponse');
     }
 
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'comparison',
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
@@ -974,10 +995,10 @@ Quy tắc:
     });
 
     // Check cache
-    final cached = await _aiCache.getResponse(cacheKey);
+    final cached = _aiCache.get(cacheKey);
     if (cached != null) {
       final Map<String, dynamic> json =
-          safeJsonDecode(cached.payload) as Map<String, dynamic>;
+          safeJsonDecode(cached) as Map<String, dynamic>;
       return BestTimeTravel.fromJson(json);
     }
 
@@ -1036,13 +1057,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'best_time',
-      destination: destination,
-      languageCode: languageCode,
-    );
+    await _aiCache.put(cacheKey, text);
 
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
@@ -1067,10 +1082,8 @@ Quy tắc:
 
     // Check cache
     if (!forceRefresh) {
-      final cached = await _aiCache.getResponse(cacheKey);
-      if (cached != null) {
-        return _parseCulturalTips(cached.payload, destinationName);
-      }
+      final cached = _aiCache.get(cacheKey);
+      if (cached != null) return _parseCulturalTips(cached, destinationName);
     }
 
     // Cache miss — call Gemini API
@@ -1082,14 +1095,7 @@ Quy tắc:
     }
 
     // Save to cache
-    await _aiCache.putResponse(
-      cacheKey,
-      text,
-      featureType: 'cultural_tips',
-      destination: destinationName,
-      languageCode: languageCode,
-    );
-
+    await _aiCache.put(cacheKey, text);
     return _parseCulturalTips(text, destinationName);
   }
 

@@ -169,23 +169,13 @@
   "update": "Update",
   "@update": {"description": "Generic update action"},
 
-  "requiredInfo": "REQUIRED INFO",
-  "@requiredInfo": {"description": "Section heading for required planner fields"},
 
-  "optionalInfo": "OPTIONAL INFO",
-  "@optionalInfo": {"description": "Section heading for optional planner fields"},
 
   "destination": "Destination",
   "@destination": {"description": "Destination input field label"},
 
-  "destinationHint": "e.g. Phu Quoc, Paris, Bali...",
-  "@destinationHint": {"description": "Destination field hint text"},
 
-  "departDate": "Departure",
-  "@departDate": {"description": "Departure date field label"},
 
-  "returnDate": "Return",
-  "@returnDate": {"description": "Return date field label"},
 
   "addDate": "Add date",
   "@addDate": {"description": "Placeholder when no date is selected"},
@@ -217,23 +207,13 @@
   "participants": "Participants",
   "@participants": {"description": "Number of participants field label"},
 
-  "participantsHint": "e.g. 2 adults",
-  "@participantsHint": {"description": "Participants field hint"},
 
-  "ageRange": "Age range",
-  "@ageRange": {"description": "Age range field label"},
 
-  "ageRangeHint": "e.g. 25-35",
-  "@ageRangeHint": {"description": "Age range field hint"},
 
   "interests": "Interests",
   "@interests": {"description": "Interests section heading"},
 
-  "additionalNotes": "Additional notes",
-  "@additionalNotes": {"description": "Additional notes field label"},
 
-  "notesHint": "Any special requests, accessibility needs...",
-  "@notesHint": {"description": "Notes field hint"},
 
   "aiPrompt": "Describe your dream trip",
   "@aiPrompt": {"description": "AI prompt field label"},
@@ -244,20 +224,14 @@
   "getAiSuggestions": "Get AI Suggestions",
   "@getAiSuggestions": {"description": "Main CTA button on smart planner"},
 
-  "fillAllRequired": "Please fill in all required info",
-  "@fillAllRequired": {"description": "Validation snackbar when required fields are empty"},
+  "analyzeTrip": "Analyze with AI",
+  "@analyzeTrip": {"description": "Planner primary button before the AI has extracted trip details from the prompt"},
+  "analyzingTrip": "Analyzing...",
+  "@analyzingTrip": {"description": "Planner primary button label while the extraction request is in flight"},
 
-  "plannerPromptRequired": "Tell AI what kind of trip you would like.",
-  "@plannerPromptRequired": {"description": "Validation error when the AI planner request is empty"},
 
-  "backgroundMusic": "Background music",
-  "@backgroundMusic": {"description": "Profile setting label for background music"},
-
-  "backgroundMusicOn": "On — ambient music is playing",
-  "@backgroundMusicOn": {"description": "Profile status when background music is on"},
-
-  "backgroundMusicOff": "Off — ambient music is paused",
-  "@backgroundMusicOff": {"description": "Profile status when background music is off"},
+  "describeTripRequired": "Please describe your trip first",
+  "@describeTripRequired": {"description": "Validation snackbar when the AI prompt box is empty"},
 
   "trendingDestinations": "Trending Destinations",
   "@trendingDestinations": {"description": "Explore screen section heading"},
@@ -334,8 +308,6 @@
   "noSuggestions": "No suggestions found",
   "@noSuggestions": {"description": "Empty state on suggestions screen"},
 
-  "optional": "(optional)",
-  "@optional": {"description": "Optional field marker"},
 
   "plannerGreeting": "Where do you\nwant to go? 🌍",
   "@plannerGreeting": {"description": "Greeting headline on smart planner screen"},
@@ -614,6 +586,201 @@
   "@bestTimeBestMonth": {"description": "Best month label with month name", "placeholders": {"month": {"type": "String"}}},
 
   "bestTimeSeasons": "Seasons",
+  "@generateAiItinerary": {"description": "CTA button on destination detail to plan itinerary"},
+
+  "saveInfo": "Save Info",
+  "@saveInfo": {"description": "Button to save trip info on destination detail"},
+
+  "remove": "Remove",
+  "@remove": {"description": "Remove button label"},
+
+  "estimatedBudget": "ESTIMATED BUDGET",
+  "@estimatedBudget": {"description": "Budget section heading on destination detail"},
+
+  "bookNow": "Book Now",
+  "@bookNow": {"description": "Book now button label"},
+
+  "addToWishlist": "Add to Wishlist",
+  "@addToWishlist": {"description": "Add to wishlist button label"},
+
+  "addedToWishlist": "added to wishlist!",
+  "@addedToWishlist": {"description": "Snackbar message when item added to wishlist"},
+
+  "alreadySaved": "is already saved!",
+  "@alreadySaved": {"description": "Snackbar message when item already saved"},
+
+  "hot": "HOT",
+  "@hot": {"description": "Hot badge label for trending destinations"},
+
+  "perPerson": "/ person",
+  "@perPerson": {"description": "Price label suffix per person"},
+
+  "aiInsightPrefix": "💡 AI Insight: ",
+  "@aiInsightPrefix": {"description": "Prefix label for AI insight box"},
+
+  "defaultAiInsight": "Perfect for your wellness budget. Dry season now.",
+  "@defaultAiInsight": {"description": "Default AI insight text when saving trip"},
+
+  "vnd": "VNĐ",
+  "@vnd": {"description": "Vietnamese Dong currency symbol"},
+
+  "loginRequired": "You need to be logged in.",
+  "@loginRequired": {"description": "Error when user is not authenticated"},
+
+  "noAiResponse": "No response received from AI.",
+  "@noAiResponse": {"description": "Error when AI returns no response"},
+
+  "apiKeyNotSet": "GEMINI_API_KEY is not set. Please add your key to .env file.",
+  "@apiKeyNotSet": {"description": "Error when API key is missing"},
+
+  "invalidLoginCredentials": "Invalid login credentials. Please check your email and password.",
+  "@invalidLoginCredentials": {"description": "Error when login credentials are invalid"},
+
+  "emailNotConfirmed": "Email not confirmed. Please check your inbox.",
+  "@emailNotConfirmed": {"description": "Error when email is not confirmed"},
+
+  "userAlreadyExists": "User already exists. Please sign in instead.",
+  "@userAlreadyExists": {"description": "Error when user already exists"},
+
+  "beach": "Beach",
+  "@beach": {"description": "Beach interest label"},
+
+  "adventure": "Adventure",
+  "@adventure": {"description": "Adventure interest label"},
+
+  "culture": "Culture",
+  "@culture": {"description": "Culture interest label"},
+
+  "food": "Food",
+  "@food": {"description": "Food interest label"},
+
+  "wellness": "Wellness",
+  "@wellness": {"description": "Wellness interest label"},
+
+  "phoneNumber": "Phone number",
+  "@phoneNumber": {"description": "Phone number field label"},
+
+  "phoneHint": "+84 912 345 678",
+  "@phoneHint": {"description": "Phone number field hint text"},
+
+  "phoneInvalidChars": "Phone number can only contain digits, spaces, +, -, (, ).",
+  "@phoneInvalidChars": {"description": "Phone validation error for invalid characters"},
+
+  "phoneMinDigits": "Phone number needs at least 8 digits.",
+  "@phoneMinDigits": {"description": "Phone validation error for minimum digits"},
+
+  "contactInfoSaved": "Contact info saved.",
+  "@contactInfoSaved": {"description": "Snackbar after saving contact info"},
+
+  "saveContactInfo": "Save contact info",
+  "@saveContactInfo": {"description": "Button label to save contact information"},
+
+  "savingContactInfo": "Saving…",
+  "@savingContactInfo": {"description": "Button label while saving contact info"},
+
+  "culturalTips": "Cultural Tips",
+  "@culturalTips": {"description": "Cultural tips screen title"},
+
+  "culturalDos": "Do's",
+  "@culturalDos": {"description": "Section heading for do's"},
+
+  "culturalDonts": "Don'ts",
+  "@culturalDonts": {"description": "Section heading for don'ts"},
+
+  "basicPhrases": "Basic Phrases",
+  "@basicPhrases": {"description": "Section heading for basic phrases"},
+
+  "diningEtiquette": "Dining Etiquette",
+  "@diningEtiquette": {"description": "Section heading for dining etiquette"},
+
+  "sacredSites": "Sacred Sites",
+  "@sacredSites": {"description": "Section heading for sacred site rules"},
+
+  "loadingCulturalTips": "Loading cultural tips...",
+  "@loadingCulturalTips": {"description": "Loading message for cultural tips"},
+
+  "cannotLoadCulturalTips": "Cannot load cultural tips",
+  "@cannotLoadCulturalTips": {"description": "Error message when cultural tips fail to load"},
+
+  "culturalTipsButton": "🎭 Cultural Tips",
+  "@culturalTipsButton": {"description": "Button label to navigate to cultural tips"},
+
+  "chatTitle": "AI Travel Chat",
+  "@chatTitle": {"description": "Chat screen app bar title"},
+
+  "chatWelcome": "Hi! I'm your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍",
+  "@chatWelcome": {"description": "Welcome message shown when chat screen opens"},
+
+  "chatError": "Sorry, I couldn't respond. Please try again.",
+  "@chatError": {"description": "Error message when chat fails"},
+
+  "chatCleared": "Chat cleared. How can I help you?",
+  "@chatCleared": {"description": "Message shown after chat history is cleared"},
+
+  "chatAiReply": "AI is typing...",
+  "@chatAiReply": {"description": "Loading indicator text while AI is replying"},
+
+  "chatInputHint": "Ask me about any destination...",
+  "@chatInputHint": {"description": "Hint text in the chat input field"},
+
+  "compareTitle": "Compare Destinations",
+  "@compareTitle": {"description": "Compare screen app bar title"},
+
+  "compareInputHeader": "Enter destinations to compare",
+  "@compareInputHeader": {"description": "Header for the compare input section"},
+
+  "compareDest1Hint": "e.g. Phu Quoc",
+  "@compareDest1Hint": {"description": "Hint for the first destination input"},
+
+  "compareDest2Hint": "e.g. Da Nang",
+  "@compareDest2Hint": {"description": "Hint for the second destination input"},
+
+  "compareDest3Hint": "e.g. Hoi An (optional)",
+  "@compareDest3Hint": {"description": "Hint for the optional third destination input"},
+
+  "compareLoading": "Comparing...",
+  "@compareLoading": {"description": "Button label while compare is loading"},
+
+  "compareButton": "Compare Destinations",
+  "@compareButton": {"description": "Button label to trigger comparison"},
+
+  "compareMinError": "Please enter at least 2 destinations.",
+  "@compareMinError": {"description": "Error when fewer than 2 destinations are entered"},
+
+  "compareRecommendation": "AI Recommendation",
+  "@compareRecommendation": {"description": "Section heading for AI recommendation in compare results"},
+
+  "compareDetail": "Comparison Details",
+  "@compareDetail": {"description": "Section heading for comparison detail table"},
+
+  "comparePros": "Pros",
+  "@comparePros": {"description": "Label for pros list in compare results"},
+
+  "compareCons": "Cons",
+  "@compareCons": {"description": "Label for cons list in compare results"},
+
+  "bestTimeTitle": "Best Time to Travel",
+  "@bestTimeTitle": {"description": "Best time screen app bar title"},
+
+  "bestTimeInputHeader": "Find the best time to visit",
+  "@bestTimeInputHeader": {"description": "Header for the best time input section"},
+
+  "bestTimeHint": "e.g. Bali, Tokyo, Paris...",
+  "@bestTimeHint": {"description": "Hint text for the best time destination input"},
+
+  "bestTimeLoading": "Analyzing...",
+  "@bestTimeLoading": {"description": "Button label while best time is loading"},
+
+  "bestTimeButton": "Find Best Time",
+  "@bestTimeButton": {"description": "Button label to trigger best time analysis"},
+
+  "bestTimeMinError": "Please enter a destination.",
+  "@bestTimeMinError": {"description": "Error when destination is empty in best time screen"},
+
+  "bestTimeBestMonth": "Best month: {month}",
+  "@bestTimeBestMonth": {"description": "Best month label with month name", "placeholders": {"month": {"type": "String"}}},
+
+  "bestTimeSeasons": "Seasons",
   "@bestTimeSeasons": {"description": "Section heading for seasons in best time results"},
 
   "bestTimeMonthly": "Monthly Overview",
@@ -655,60 +822,6 @@
   "aiBestTimeDesc": "Find the ideal months to visit any destination based on weather, crowds, and local events.",
   "@aiBestTimeDesc": {"description": "Best time tool card description"},
 
-  "aiCulturalTipsTitle": "Cultural Tips",
-  "@aiCulturalTipsTitle": {"description": "Cultural tips tool card title"},
-
-  "aiCulturalTipsSubtitle": "Local culture",
-  "@aiCulturalTipsSubtitle": {"description": "Cultural tips tool card subtitle"},
-
-  "aiCulturalTipsDesc": "Learn local etiquette, customs, and useful phrases before your trip.",
-  "@aiCulturalTipsDesc": {"description": "Cultural tips tool card description"},
-
-  "chatQuickPrompts": "Smart question suggestions",
-  "@chatQuickPrompts": {"description": "Heading for AI chat quick prompts"},
-
-  "chatQuickPromptWeather": "What should I do today to avoid the heat?",
-  "@chatQuickPromptWeather": {"description": "Quick AI chat weather prompt"},
-
-  "chatQuickPromptCafe": "Recommend a beautiful sunset café.",
-  "@chatQuickPromptCafe": {"description": "Quick AI chat café prompt"},
-
-  "chatQuickPromptBudget": "Estimate a budget for a 3-day trip for two.",
-  "@chatQuickPromptBudget": {"description": "Quick AI chat budget prompt"},
-
-  "savedFilterAll": "All",
-  "@savedFilterAll": {"description": "Saved trips filter: all items"},
-
-  "savedFilterTrips": "Trip plans",
-  "@savedFilterTrips": {"description": "Saved trips filter: workspaces"},
-
-  "savedFilterPlaces": "Saved places",
-  "@savedFilterPlaces": {"description": "Saved trips filter: wishlist"},
-
-  "groupTripsTitle": "Group trips in planning",
-  "@groupTripsTitle": {"description": "Friends screen group trips heading"},
-
-  "groupTripsEmptyTitle": "No group trip yet",
-  "@groupTripsEmptyTitle": {"description": "Friends screen empty group trips title"},
-
-  "groupTripsEmptyHint": "Save a trip plan, then invite friends to plan it together.",
-  "@groupTripsEmptyHint": {"description": "Friends screen empty group trips description"},
-
-  "groupTripMembers": "{count} members",
-  "@groupTripMembers": {"description": "Number of members in a group trip", "placeholders": {"count": {"type": "int"}}},
-
-  "inviteFriendToTrip": "Invite a friend",
-  "@inviteFriendToTrip": {"description": "Action to invite a friend into a trip"},
-
-  "inviteFriendToTripTitle": "Invite to {trip}",
-  "@inviteFriendToTripTitle": {"description": "Friend picker title for a trip", "placeholders": {"trip": {"type": "String"}}},
-
-  "inviteFriendNone": "Add an accepted friend before inviting someone to a trip.",
-  "@inviteFriendNone": {"description": "Message when no accepted friend can be invited"},
-
-  "inviteFriendSuccess": "Invitation added to the trip workspace.",
-  "@inviteFriendSuccess": {"description": "Confirmation when a friend is invited to a trip"},
-
   "contextCompareSuggestions": "Compare these suggestions",
   "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
 
@@ -735,40 +848,22 @@
   "currencyUsDollar": "US dollar",
   "currencyEuro": "Euro",
   "currencyKoreanWon": "South Korean won",
-
-
-
-
-
-
   "currencyJapaneseYen": "Japanese yen",
   "currencyThaiBaht": "Thai baht",
   "currencyBritishPound": "British pound",
   "currencyAustralianDollar": "Australian dollar",
   "currencySingaporeDollar": "Singapore dollar",
   "currencyCanadianDollar": "Canadian dollar",
-  "editDisplayName": "Edit Display Name",
-  "saveDisplayName": "Save Name",
-  "displayNameSaved": "Display name updated successfully",
-  "presetAvatars": "Preset Avatars",
-  "choosePresetAvatar": "Choose Preset Avatar",
-  "avatarSelected": "Avatar selected successfully",
-  "enterDisplayName": "Enter your display name",
-  "tripConsultationTitle": "AI Trip Consultation",
-  "confirmAndSeeSuggestions": "Confirm & See Suggestions",
-  "tripInfo": "Trip Information",
-  "tripInfoUpdated": "Trip details updated",
-  "consultationInitialPrompt": "Hello! I see you are planning: \"{prompt}\". Would you like to refine your preferred pace, transport, or any must-see activities?",
-  "@consultationInitialPrompt": {
-    "description": "Greeting message from AI consultant",
-    "placeholders": {
-      "prompt": {
-        "type": "String"
-      }
-    }
-  },
-  "quickChipRelaxed": "Relaxed & leisurely pace",
-  "quickChipFoodie": "Focus on local food & cuisine",
-  "quickChipBudget": "Budget-friendly options",
-  "quickChipReady": "Looks great, let's finalize!"
+  "aiModel": "AI model",
+  "@aiModel": {"description": "Profile section heading for the Gemini model picker"},
+
+  "aiModelDescription": "Which Gemini model answers your travel questions. Larger models think longer and may reach the free quota sooner.",
+  "@aiModelDescription": {"description": "Helper text under the AI model picker"},
+
+  "aiModelSaved": "AI model saved",
+  "@aiModelSaved": {"description": "Snackbar after the AI model is changed"},
+  "chipAiWillSuggest": "AI will suggest",
+  "chipFlexible": "flexible",
+  "chipNotSet": "not set",
+  "quickPromptsLabel": "Quick ideas:"
 }

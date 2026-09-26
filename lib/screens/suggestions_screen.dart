@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
@@ -14,6 +13,7 @@ import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 
 /// AI Travel Suggestions screen — scrollable list of AI-recommended destinations.
 class SuggestionsScreen extends StatefulWidget {
@@ -384,13 +384,9 @@ class _CardImage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CachedNetworkImage(
+          DestinationImage(
             imageUrl: data['imageUrl'] as String,
-            fit: BoxFit.cover,
-            errorWidget: (_, e, s) => Container(
-              color: const Color(0xFF1E293B),
-              child: const Icon(Icons.image, color: Colors.white24, size: 48),
-            ),
+            destinationName: data['name'] as String,
           ),
           // Match badge
           Positioned(
@@ -566,50 +562,75 @@ class _AiInsightBox extends StatelessWidget {
   }
 }
 
-class _CardActions extends StatelessWidget {
+class _CardActions extends StatefulWidget {
   const _CardActions({required this.theme, required this.data});
   final ThemeData theme;
   final Map<String, dynamic> data;
 
-  void _onAddToWishlist(BuildContext context) {
-    final added = SavedTripsProvider.of(context).saveToWishlist(
-      name: data['name'] as String,
-      imageUrl: data['imageUrl'] as String,
-      price: data['price'] as String,
-      matchPercent: data['matchPercent'] as int,
-      rating: (data['rating'] as num).toDouble(),
-      reviewCount: data['reviewCount'] as int,
-      aiInsight: data['aiInsight'] as String,
-    );
+  @override
+  State<_CardActions> createState() => _CardActionsState();
+}
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              added ? Icons.favorite : Icons.info_outline,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                added
-                    ? '${data['name']} ${AppLocalizations.of(context)!.addedToWishlist}'
-                    : '${data['name']} ${AppLocalizations.of(context)!.alreadySaved}',
-                style: const TextStyle(color: Colors.white),
+class _CardActionsState extends State<_CardActions> {
+  bool _isAdding = false;
+
+  Future<void> _onAddToWishlist(BuildContext context) async {
+    if (_isAdding) return;
+    final l10n = AppLocalizations.of(context)!;
+    final name = widget.data['name'] as String;
+    _isAdding = true;
+    try {
+      final added = await SavedTripsProvider.of(context).saveToWishlist(
+        name: name,
+        imageUrl: widget.data['imageUrl'] as String,
+        price: widget.data['price'] as String,
+        matchPercent: widget.data['matchPercent'] as int,
+        rating: (widget.data['rating'] as num).toDouble(),
+        reviewCount: widget.data['reviewCount'] as int,
+        aiInsight: widget.data['aiInsight'] as String,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                added ? Icons.favorite : Icons.info_outline,
+                color: Colors.white,
+                size: 18,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  added
+                      ? '$name ${l10n.addedToWishlist}'
+                      : '$name ${l10n.alreadySaved}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: added
+              ? AppTheme.primaryPink.withValues(alpha: 0.9)
+              : const Color(0xFF475569),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
         ),
-        backgroundColor: added
-            ? AppTheme.primaryPink.withValues(alpha: 0.9)
-            : const Color(0xFF475569),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: const Color(0xFFB91C1C),
+        ),
+      );
+    } finally {
+      _isAdding = false;
+    }
   }
 
   void _onShare(BuildContext context) {
@@ -632,6 +653,7 @@ class _CardActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return Row(
       children: [
         // Share button

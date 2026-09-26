@@ -184,22 +184,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get update => 'Update';
 
   @override
-  String get requiredInfo => 'REQUIRED INFO';
-
-  @override
-  String get optionalInfo => 'OPTIONAL INFO';
-
-  @override
   String get destination => 'Destination';
-
-  @override
-  String get destinationHint => 'e.g. Phu Quoc, Paris, Bali...';
-
-  @override
-  String get departDate => 'Departure';
-
-  @override
-  String get returnDate => 'Return';
 
   @override
   String get addDate => 'Add date';
@@ -232,22 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get participants => 'Participants';
 
   @override
-  String get participantsHint => 'e.g. 2 adults';
-
-  @override
-  String get ageRange => 'Age range';
-
-  @override
-  String get ageRangeHint => 'e.g. 25-35';
-
-  @override
   String get interests => 'Interests';
-
-  @override
-  String get additionalNotes => 'Additional notes';
-
-  @override
-  String get notesHint => 'Any special requests, accessibility needs...';
 
   @override
   String get aiPrompt => 'Describe your dream trip';
@@ -259,20 +229,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get getAiSuggestions => 'Get AI Suggestions';
 
   @override
-  String get fillAllRequired => 'Please fill in all required info';
+  String get analyzeTrip => 'Analyze with AI';
 
   @override
-  String get plannerPromptRequired =>
-      'Tell AI what kind of trip you would like.';
+  String get analyzingTrip => 'Analyzing...';
 
   @override
-  String get backgroundMusic => 'Background music';
-
-  @override
-  String get backgroundMusicOn => 'On — ambient music is playing';
-
-  @override
-  String get backgroundMusicOff => 'Off — ambient music is paused';
+  String get describeTripRequired => 'Please describe your trip first';
 
   @override
   String get trendingDestinations => 'Trending Destinations';
@@ -349,9 +312,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSuggestions => 'No suggestions found';
-
-  @override
-  String get optional => '(optional)';
 
   @override
   String get plannerGreeting => 'Where do you\nwant to go? 🌍';
@@ -690,69 +650,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find the ideal months to visit any destination based on weather, crowds, and local events.';
 
   @override
-  String get aiCulturalTipsTitle => 'Cultural Tips';
-
-  @override
-  String get aiCulturalTipsSubtitle => 'Local culture';
-
-  @override
-  String get aiCulturalTipsDesc =>
-      'Learn local etiquette, customs, and useful phrases before your trip.';
-
-  @override
-  String get chatQuickPrompts => 'Smart question suggestions';
-
-  @override
-  String get chatQuickPromptWeather =>
-      'What should I do today to avoid the heat?';
-
-  @override
-  String get chatQuickPromptCafe => 'Recommend a beautiful sunset café.';
-
-  @override
-  String get chatQuickPromptBudget =>
-      'Estimate a budget for a 3-day trip for two.';
-
-  @override
-  String get savedFilterAll => 'All';
-
-  @override
-  String get savedFilterTrips => 'Trip plans';
-
-  @override
-  String get savedFilterPlaces => 'Saved places';
-
-  @override
-  String get groupTripsTitle => 'Group trips in planning';
-
-  @override
-  String get groupTripsEmptyTitle => 'No group trip yet';
-
-  @override
-  String get groupTripsEmptyHint =>
-      'Save a trip plan, then invite friends to plan it together.';
-
-  @override
-  String groupTripMembers(int count) {
-    return '$count members';
-  }
-
-  @override
-  String get inviteFriendToTrip => 'Invite a friend';
-
-  @override
-  String inviteFriendToTripTitle(String trip) {
-    return 'Invite to $trip';
-  }
-
-  @override
-  String get inviteFriendNone =>
-      'Add an accepted friend before inviting someone to a trip.';
-
-  @override
-  String get inviteFriendSuccess => 'Invitation added to the trip workspace.';
-
-  @override
   String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
@@ -808,52 +705,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencyCanadianDollar => 'Canadian dollar';
 
   @override
-  String get editDisplayName => 'Edit Display Name';
+  String get aiModel => 'AI model';
 
   @override
-  String get saveDisplayName => 'Save Name';
+  String get aiModelDescription =>
+      'Which Gemini model answers your travel questions. Larger models think longer and may reach the free quota sooner.';
 
   @override
-  String get displayNameSaved => 'Display name updated successfully';
+  String get aiModelSaved => 'AI model saved';
 
   @override
-  String get presetAvatars => 'Preset Avatars';
+  String get chipAiWillSuggest => 'AI will suggest';
 
   @override
-  String get choosePresetAvatar => 'Choose Preset Avatar';
+  String get chipFlexible => 'flexible';
 
   @override
-  String get avatarSelected => 'Avatar selected successfully';
+  String get chipNotSet => 'not set';
 
   @override
-  String get enterDisplayName => 'Enter your display name';
-
-  @override
-  String get tripConsultationTitle => 'AI Trip Consultation';
-
-  @override
-  String get confirmAndSeeSuggestions => 'Confirm & See Suggestions';
-
-  @override
-  String get tripInfo => 'Trip Information';
-
-  @override
-  String get tripInfoUpdated => 'Trip details updated';
-
-  @override
-  String consultationInitialPrompt(String prompt) {
-    return 'Hello! I see you are planning: \"$prompt\". Would you like to refine your preferred pace, transport, or any must-see activities?';
-  }
-
-  @override
-  String get quickChipRelaxed => 'Relaxed & leisurely pace';
-
-  @override
-  String get quickChipFoodie => 'Focus on local food & cuisine';
-
-  @override
-  String get quickChipBudget => 'Budget-friendly options';
-
-  @override
-  String get quickChipReady => 'Looks great, let\'s finalize!';
+  String get quickPromptsLabel => 'Quick ideas:';
 }

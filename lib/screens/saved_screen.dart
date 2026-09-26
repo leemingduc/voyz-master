@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
@@ -10,6 +9,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
+import 'package:voyz/widgets/shared/destination_image.dart';
 
 /// Saved & Wishlist screen — displays saved trips and wishlist items.
 class SavedScreen extends StatefulWidget {
@@ -19,11 +19,7 @@ class SavedScreen extends StatefulWidget {
   State<SavedScreen> createState() => _SavedScreenState();
 }
 
-enum _SavedFilter { all, trips, places }
-
 class _SavedScreenState extends State<SavedScreen> {
-  _SavedFilter _filter = _SavedFilter.all;
-
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -50,11 +46,6 @@ class _SavedScreenState extends State<SavedScreen> {
     final allItems = provider.savedItems;
     final workspaceCount = provider.tripWorkspaces.length;
     final wishlistCount = provider.wishlistItems.length;
-    final visibleItems = switch (_filter) {
-      _SavedFilter.all => allItems,
-      _SavedFilter.trips => provider.tripWorkspaces,
-      _SavedFilter.places => provider.wishlistItems,
-    };
 
     return Scaffold(
       body: Container(
@@ -76,19 +67,9 @@ class _SavedScreenState extends State<SavedScreen> {
 
               // ── Content ──
               Expanded(
-                child: Column(
-                  children: [
-                    _SavedFilterTabs(
-                      selected: _filter,
-                      onChanged: (filter) => setState(() => _filter = filter),
-                    ),
-                    Expanded(
-                      child: _ItemListView(
-                        items: visibleItems,
-                        onRemoved: () => setState(() {}),
-                      ),
-                    ),
-                  ],
+                child: _ItemListView(
+                  items: allItems,
+                  onRemoved: () => setState(() {}),
                 ),
               ),
             ],
@@ -101,42 +82,6 @@ class _SavedScreenState extends State<SavedScreen> {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────
-
-class _SavedFilterTabs extends StatelessWidget {
-  const _SavedFilterTabs({required this.selected, required this.onChanged});
-
-  final _SavedFilter selected;
-  final ValueChanged<_SavedFilter> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final filters = <(_SavedFilter, String)>[
-      (_SavedFilter.all, l10n.savedFilterAll),
-      (_SavedFilter.trips, l10n.savedFilterTrips),
-      (_SavedFilter.places, l10n.savedFilterPlaces),
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Row(
-        children: filters
-            .map(
-              (filter) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(filter.$2),
-                  selected: selected == filter.$1,
-                  onSelected: (_) => onChanged(filter.$1),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
 
 class _Header extends StatelessWidget {
   const _Header({required this.workspaceCount, required this.wishlistCount});
@@ -203,8 +148,10 @@ class _ItemListView extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    DestinationDetailScreen(destinationName: items[index].name),
+                builder: (_) => DestinationDetailScreen(
+                  destinationName: items[index].name,
+                  savedItem: items[index],
+                ),
               ),
             );
           },
@@ -333,17 +280,9 @@ class _SavedItemCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CachedNetworkImage(
+                DestinationImage(
                   imageUrl: item.imageUrl,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, e, s) => Container(
-                    color: const Color(0xFF1E293B),
-                    child: const Icon(
-                      Icons.image,
-                      color: Colors.white24,
-                      size: 48,
-                    ),
-                  ),
+                  destinationName: item.name,
                 ),
                 Positioned(
                   top: 12,
@@ -486,14 +425,18 @@ class _SavedItemCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {
-                      SavedTripsProvider.of(context).removeSavedItem(item);
-                      onRemoved?.call();
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    onTap: () => runSave(context, () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final removedText = AppLocalizations.of(
+                        context,
+                      )!.savedItemRemoved;
+                      await SavedTripsProvider.of(
+                        context,
+                      ).removeSavedItem(item);
+                      if (context.mounted) onRemoved?.call();
+                      messenger.showSnackBar(
                         SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.savedItemRemoved,
-                          ),
+                          content: Text(removedText),
                           backgroundColor: const Color(0xFF475569),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -502,7 +445,7 @@ class _SavedItemCard extends StatelessWidget {
                           duration: const Duration(seconds: 2),
                         ),
                       );
-                    },
+                    }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -569,7 +512,7 @@ class _TrustRow extends StatelessWidget {
   }
 }
 
-class _WorkspacePanel extends StatelessWidget {
+class _WorkspacePanel extends StatefulWidget {
   const _WorkspacePanel({required this.item, required this.showAddDialog});
 
   final SavedItem item;
@@ -582,8 +525,39 @@ class _WorkspacePanel extends StatelessWidget {
   showAddDialog;
 
   @override
+  State<_WorkspacePanel> createState() => _WorkspacePanelState();
+}
+
+class _WorkspacePanelState extends State<_WorkspacePanel> {
+  late String _notesDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesDraft = widget.item.workspaceNotes;
+  }
+
+  @override
+  void didUpdateWidget(_WorkspacePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.workspaceNotes != oldWidget.item.workspaceNotes) {
+      _notesDraft = widget.item.workspaceNotes;
+    }
+  }
+
+  void _saveNotes() {
+    if (_notesDraft == widget.item.workspaceNotes) return;
+    final provider = SavedTripsProvider.of(context);
+    runSave(
+      context,
+      () => provider.updateWorkspaceNotes(widget.item, _notesDraft),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = SavedTripsProvider.of(context);
+    final item = widget.item;
     final doneCount = item.checklist.where((entry) => entry.isDone).length;
 
     return Container(
@@ -632,7 +606,10 @@ class _WorkspacePanel extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               value: entry.isDone,
-              onChanged: (_) => provider.toggleChecklistItem(item, index),
+              onChanged: (_) => runSave(
+                context,
+                () => provider.toggleChecklistItem(item, index),
+              ),
               title: Text(
                 entry.text,
                 style: TextStyle(
@@ -666,7 +643,9 @@ class _WorkspacePanel extends StatelessWidget {
                 ),
               ),
             ),
-            onChanged: (value) => provider.updateWorkspaceNotes(item, value),
+            onChanged: (value) => _notesDraft = value,
+            onFieldSubmitted: (_) => _saveNotes(),
+            onTapOutside: (_) => _saveNotes(),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -676,21 +655,27 @@ class _WorkspacePanel extends StatelessWidget {
               _ActionChipButton(
                 icon: Icons.confirmation_number,
                 label: 'Add booking',
-                onTap: () => showAddDialog(
+                onTap: () => widget.showAddDialog(
                   context,
                   title: 'Add booking',
                   hint: 'Flight, hotel, tour code...',
-                  onSubmit: (value) => provider.addBookingRef(item, value),
+                  onSubmit: (value) => runSave(
+                    context,
+                    () => provider.addBookingRef(item, value),
+                  ),
                 ),
               ),
               _ActionChipButton(
                 icon: Icons.group_add,
                 label: 'Share with',
-                onTap: () => showAddDialog(
+                onTap: () => widget.showAddDialog(
                   context,
                   title: 'Share with',
                   hint: 'Name or email',
-                  onSubmit: (value) => provider.addSharedPerson(item, value),
+                  onSubmit: (value) => runSave(
+                    context,
+                    () => provider.addSharedPerson(item, value),
+                  ),
                 ),
               ),
             ],
@@ -836,6 +821,25 @@ class _ActionChipButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Chạy một thao tác ghi lên cloud; lỗi thì hiện snackbar, không đổi UI.
+Future<void> runSave(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+        backgroundColor: const Color(0xFFB91C1C),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

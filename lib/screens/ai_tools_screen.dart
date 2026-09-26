@@ -3,7 +3,6 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/screens/chat_screen.dart';
 import 'package:voyz/screens/compare_screen.dart';
 import 'package:voyz/screens/best_time_screen.dart';
-import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -130,62 +129,12 @@ class AIToolsScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const BestTimeScreen()),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Cultural tips needs a destination, so the hub asks for it
-            // before opening the destination-specific assistant.
-            _AIToolCard(
-              icon: Icons.diversity_3_outlined,
-              gradient: [AppTheme.violet, AppTheme.magenta],
-              title: AppLocalizations.of(context)!.aiCulturalTipsTitle,
-              subtitle: AppLocalizations.of(context)!.aiCulturalTipsSubtitle,
-              description: AppLocalizations.of(context)!.aiCulturalTipsDesc,
-              onTap: () => _openCulturalTips(context),
-            ),
           ],
         ),
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: 0,
         onTap: (index) => _onNavTap(context, index),
-      ),
-    );
-  }
-
-  Future<void> _openCulturalTips(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    final destination = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.culturalTips),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textInputAction: TextInputAction.go,
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value.trim()),
-          decoration: InputDecoration(hintText: l10n.destinationHint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: Text(l10n.culturalTips),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-
-    if (!context.mounted || destination == null || destination.isEmpty) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CulturalTipsScreen(destinationName: destination),
       ),
     );
   }

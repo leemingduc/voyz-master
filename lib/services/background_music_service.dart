@@ -8,7 +8,7 @@ class BackgroundMusicService {
   static final BackgroundMusicService instance = BackgroundMusicService._();
 
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
+  bool _isPlaying = false;
   bool _isInitialized = false;
   double _volume = 0.3; // Default volume at 30%
 
@@ -44,7 +44,7 @@ class BackgroundMusicService {
 
     try {
       await _audioPlayer.resume();
-      isPlayingNotifier.value = true;
+      _isPlaying = true;
     } catch (e) {
       debugPrint('Error playing background music: $e');
     }
@@ -56,7 +56,7 @@ class BackgroundMusicService {
 
     try {
       await _audioPlayer.pause();
-      isPlayingNotifier.value = false;
+      _isPlaying = false;
     } catch (e) {
       debugPrint('Error pausing background music: $e');
     }
@@ -68,7 +68,7 @@ class BackgroundMusicService {
 
     try {
       await _audioPlayer.stop();
-      isPlayingNotifier.value = false;
+      _isPlaying = false;
     } catch (e) {
       debugPrint('Error stopping background music: $e');
     }
@@ -76,7 +76,7 @@ class BackgroundMusicService {
 
   /// Toggle play/pause state.
   Future<void> toggle() async {
-    if (isPlayingNotifier.value) {
+    if (_isPlaying) {
       await pause();
     } else {
       await play();
@@ -92,7 +92,7 @@ class BackgroundMusicService {
   }
 
   /// Get current playing state.
-  bool get isPlaying => isPlayingNotifier.value;
+  bool get isPlaying => _isPlaying;
 
   /// Get current volume.
   double get volume => _volume;
@@ -101,7 +101,6 @@ class BackgroundMusicService {
   void dispose() {
     _audioPlayer.dispose();
     _isInitialized = false;
-    isPlayingNotifier.value = false;
-    isPlayingNotifier.dispose();
+    _isPlaying = false;
   }
 }

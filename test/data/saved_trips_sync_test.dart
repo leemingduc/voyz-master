@@ -46,6 +46,82 @@ void main() {
       expect(restored.checklist[1].isDone, isFalse);
       expect(restored.bookingRefs, contains('HTL999'));
     });
+    test('SavedItem tu sinh id UUID va giu nguyen qua toMap/fromMap', () {
+      final item = SavedItem(
+        name: 'Hue',
+        imageUrl: '',
+        price: '',
+        matchPercent: 0,
+        rating: 0,
+        reviewCount: 0,
+        aiInsight: '',
+      );
+      expect(item.id, hasLength(36));
+      final restored = SavedItem.fromMap(item.toMap());
+      expect(restored.id, equals(item.id));
+      expect(SavedItem.fromMap(restored.toMap()).id, equals(item.id));
+    });
+
+    test('SavedItem.fromMap thieu id thi sinh id moi', () {
+      final restored = SavedItem.fromMap({'name': 'Hue'});
+      expect(restored.id, hasLength(36));
+    });
+
+    test('hai SavedItem cung name khac id la hai item', () {
+      SavedItem make() => SavedItem(
+        name: 'Da Nang',
+        imageUrl: '',
+        price: '',
+        matchPercent: 0,
+        rating: 0,
+        reviewCount: 0,
+        aiInsight: '',
+        tripData: TripData(destination: 'Da Nang'),
+      );
+      final a = make();
+      final b = make();
+      expect(a.id, isNot(equals(b.id)));
+      expect(a.copyWith(workspaceNotes: 'x').id, equals(a.id));
+    });
+
+    test('ItineraryPlan giu tripId qua toMap/fromJson va copyWith', () {
+      const plan = ItineraryPlan(
+        destinationName: 'Hue',
+        dateRange: '3 days',
+        days: [],
+        proTip: '',
+        tripId: 'trip-123',
+      );
+      expect(ItineraryPlan.fromJson(plan.toMap()).tripId, equals('trip-123'));
+      expect(plan.copyWith(tripId: 'trip-456').tripId, equals('trip-456'));
+      expect(plan.copyWith(tripId: 'trip-456').destinationName, equals('Hue'));
+    });
+
+    test('TripData.dayCount tinh ca ngay di va ngay ve, kep 1..7', () {
+      expect(
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 3),
+        ).dayCount(),
+        equals(3),
+      );
+      expect(TripData().dayCount(), equals(3));
+      expect(TripData().dayCount(fallback: 5), equals(5));
+      expect(
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 20),
+        ).dayCount(),
+        equals(7),
+      );
+      expect(
+        TripData(
+          departDate: DateTime(2026, 6, 1),
+          returnDate: DateTime(2026, 6, 1),
+        ).dayCount(),
+        equals(1),
+      );
+    });
 
     test('SavedItem wishlist card without tripData roundtrip', () {
       final item = SavedItem(
