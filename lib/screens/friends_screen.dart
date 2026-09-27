@@ -267,10 +267,12 @@ class _SearchPanel extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  textAlignVertical: TextAlignVertical.center,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
-                    height: 1.35,
+                    height: 1.45,
+                    letterSpacing: 0.2,
                   ),
                   onSubmitted: (_) => onSearch(),
                   decoration: InputDecoration(
@@ -278,13 +280,15 @@ class _SearchPanel extends StatelessWidget {
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.35),
                       fontSize: 15,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                      horizontal: 18,
+                      vertical: 15,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -571,22 +575,26 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                       controller: _messageController,
                       minLines: 1,
                       maxLines: 4,
+                      textAlignVertical: TextAlignVertical.center,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
-                        height: 1.35,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Message',
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
                           fontSize: 15,
+                          height: 1.45,
+                          letterSpacing: 0.2,
                         ),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.07),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 18,
-                          vertical: 13,
+                          vertical: 14,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),

@@ -227,16 +227,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      height: 1.35,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.chatInputHint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,

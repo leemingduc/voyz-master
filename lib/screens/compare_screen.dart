@@ -152,16 +152,20 @@ class _CompareScreenState extends State<CompareScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _dest1Controller,
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      height: 1.35,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.compareDest1Hint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,
@@ -186,23 +190,27 @@ class _CompareScreenState extends State<CompareScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 18,
-                        vertical: 14,
+                        vertical: 15,
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _dest2Controller,
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      height: 1.35,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.compareDest2Hint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,
@@ -227,23 +235,27 @@ class _CompareScreenState extends State<CompareScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 18,
-                        vertical: 14,
+                        vertical: 15,
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _dest3Controller,
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      height: 1.35,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.compareDest3Hint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,
@@ -268,7 +280,7 @@ class _CompareScreenState extends State<CompareScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 18,
-                        vertical: 14,
+                        vertical: 15,
                       ),
                     ),
                   ),

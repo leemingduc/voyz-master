@@ -141,16 +141,20 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _destinationController,
+                    textAlignVertical: TextAlignVertical.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      height: 1.35,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.bestTimeHint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.2,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,
@@ -175,7 +179,7 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 18,
-                        vertical: 14,
+                        vertical: 15,
                       ),
                     ),
                   ),
