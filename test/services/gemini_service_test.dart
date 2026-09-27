@@ -607,4 +607,49 @@ Please let me know if you need anything else!
       expect(p, contains('English'));
     });
   });
+
+  group('pickOptionImages', () {
+    TripOption opt(String title, String imageStop, List<String> stops) =>
+        TripOption(
+          title: title,
+          destination: 'Côn Đảo, Việt Nam',
+          numDays: 4,
+          stops: stops,
+          imageStop: imageStop,
+          price: '',
+          aiInsight: '',
+        );
+
+    test('three cards never share a photo', () async {
+      final options = [
+        opt('A', 'Hòn Bảy Cạnh', ['Bến Đầm', 'Hòn Bảy Cạnh']),
+        opt('B', 'Hòn Bảy Cạnh', ['Hòn Bảy Cạnh', 'Nhà tù Côn Đảo']),
+        opt('C', 'Bãi Đầm Trầu', ['Bãi Đầm Trầu']),
+      ];
+      const urls = {
+        'Hòn Bảy Cạnh, Côn Đảo, Việt Nam': 'https://img/hon-bay-canh.jpg',
+        'Bến Đầm, Côn Đảo, Việt Nam': 'https://img/ben-dam.jpg',
+        'Nhà tù Côn Đảo, Côn Đảo, Việt Nam': 'https://img/nha-tu.jpg',
+        'Bãi Đầm Trầu, Côn Đảo, Việt Nam': 'https://img/hon-bay-canh.jpg',
+        'Côn Đảo, Việt Nam': 'https://img/con-dao.jpg',
+      };
+      final result = await GeminiService.pickOptionImages(
+        options,
+        (q) async => urls[q] ?? '',
+      );
+      expect(result.map((o) => o.imageUrl), [
+        'https://img/hon-bay-canh.jpg',
+        'https://img/nha-tu.jpg',
+        'https://img/con-dao.jpg',
+      ]);
+      expect(result.map((o) => o.title), ['A', 'B', 'C']);
+    });
+
+    test('lookup errors and misses end with an empty url', () async {
+      final result = await GeminiService.pickOptionImages([
+        opt('A', 'X', ['X', 'Y']),
+      ], (q) async => q.startsWith('Y') ? throw Exception('429') : '');
+      expect(result.single.imageUrl, '');
+    });
+  });
 }

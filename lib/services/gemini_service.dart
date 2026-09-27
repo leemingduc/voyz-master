@@ -401,6 +401,47 @@ Quy tắc:
     );
   }
 
+  /// Tra anh cho tung the phuong an qua ImageService, khong de hai the
+  /// trung anh. Loi anh khong lam hong ket qua AI.
+  Future<List<TripOption>> enrichOptionsWithImages(List<TripOption> options) =>
+      pickOptionImages(options, ImageService.instance.getImageUrl);
+
+  /// Thu tu thu cho moi the: `imageStop`, cac diem dung con lai, roi diem
+  /// den goc. URL dau tien khong rong va chua the nao dung thi lay.
+  @visibleForTesting
+  static Future<List<TripOption>> pickOptionImages(
+    List<TripOption> options,
+    Future<String> Function(String query) lookup,
+  ) async {
+    final used = <String>{};
+    final result = <TripOption>[];
+    for (final option in options) {
+      final candidates = [
+        '${option.imageStop}, ${option.destination}',
+        for (final stop in option.stops)
+          if (stop != option.imageStop) '$stop, ${option.destination}',
+        option.destination,
+      ];
+      var url = '';
+      for (final query in candidates) {
+        String found;
+        try {
+          found = await lookup(query);
+        } catch (e) {
+          debugPrint('Option image lookup failed (non-fatal): $e');
+          found = '';
+        }
+        if (found.isNotEmpty && !used.contains(found)) {
+          url = found;
+          break;
+        }
+      }
+      if (url.isNotEmpty) used.add(url);
+      result.add(option.copyWith(imageUrl: url));
+    }
+    return result;
+  }
+
   // ── Explore (independent, no TripData needed) ─────────────────────────
 
   // Chủ đề ngẫu nhiên dùng khi không truyền category.
