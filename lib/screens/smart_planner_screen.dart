@@ -68,7 +68,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                 .map((style) => style.toLowerCase().replaceAll(' ', '_'))
                 .toList() ??
             const [];
-        _promptController.text = trip.aiPrompt;
       });
     });
   }
@@ -101,22 +100,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         );
         break;
       case 2:
-        _savePrompt();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
           (route) => false,
         );
         break;
     }
-  }
-
-  /// Rời planner khi chưa bắt đầu chat thì giữ lại mô tả đang gõ.
-  void _savePrompt() {
-    if (_inChat) return;
-    final provider = SavedTripsProvider.of(context);
-    provider.updateTrip(
-      provider.currentTrip.copyWith(aiPrompt: _promptController.text),
-    );
   }
 
   /// Gửi tin nhắn đang gõ. "Gợi ý luôn" được bấm khi ô trống: không thêm

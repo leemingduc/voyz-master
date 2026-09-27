@@ -343,7 +343,9 @@ Quy tắc:
     return TripOption(
       title: title,
       destination: destination,
-      numDays: days != null && days > 0 ? days : (trip.numDays ?? 3),
+      numDays: (days != null && days > 0 ? days : (trip.numDays ?? 3))
+          .clamp(1, 7)
+          .toInt(),
       stops: stops,
       imageStop: imageStop.isNotEmpty ? imageStop : stops.first,
       price: _cleanString(map['price']),

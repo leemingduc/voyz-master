@@ -441,6 +441,15 @@ Please let me know if you need anything else!
       expect(turn.options.single.numDays, 3);
     });
 
+    test('option numDays is capped at 7 like the itinerary', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"r","trip":{"numDays":14},"options":['
+        '{"title":"A","destination":"D","numDays":14,"stops":["s"]},'
+        '{"title":"B","destination":"D","stops":["s"]}]}',
+      );
+      expect(turn.options.map((o) => o.numDays), [7, 7]);
+    });
+
     test('missing keys and invalid JSON give an empty turn', () {
       final empty = service.parsePlanTurn('{}');
       expect(empty.reply, '');
