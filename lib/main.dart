@@ -14,7 +14,6 @@ import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
-import 'package:voyz/widgets/shared/aivivu_page_background.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -128,25 +127,21 @@ class _VoyzAppState extends State<VoyzApp> {
                     : const Locale('vi'),
                 home: const AuthGate(),
                 builder: (context, child) {
-                  return AivivuPageBackground(
-                    padding: false,
-                    constrainContent: false,
-                    child: Stack(
-                      children: [
-                        child ?? const SizedBox.shrink(),
-                        Positioned(
-                          right: 16,
-                          // Keeps this shortcut above the bottom navigation and dock send button.
-                          bottom: MediaQuery.of(context).padding.bottom + 124,
-                          child: ValueListenableBuilder<bool>(
-                            valueListenable: AIToolsButtonVisibility.isHidden,
-                            builder: (context, isHidden, _) => isHidden
-                                ? const SizedBox.shrink()
-                                : AIToolsButton(navigatorKey: _navigatorKey),
-                          ),
+                  return Stack(
+                    children: [
+                      child ?? const SizedBox.shrink(),
+                      Positioned(
+                        right: 16,
+                        // Keeps this shortcut above the bottom navigation and dock send button.
+                        bottom: MediaQuery.of(context).padding.bottom + 144,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: AIToolsButtonVisibility.isHidden,
+                          builder: (context, isHidden, _) => isHidden
+                              ? const SizedBox.shrink()
+                              : AIToolsButton(navigatorKey: _navigatorKey),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 },
               );

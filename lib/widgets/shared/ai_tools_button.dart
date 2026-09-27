@@ -60,37 +60,34 @@ class AIToolsButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: l10n?.aiToolsTitle ?? 'AI Tools',
-      child: Tooltip(
-        message: l10n?.aiToolsTitle ?? 'AI Tools',
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _openAITools,
-            borderRadius: BorderRadius.circular(25),
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                gradient: AppTheme.brandGradient,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.cyan.withValues(alpha: 0.55),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryPink.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  ),
-                ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openAITools,
+          borderRadius: BorderRadius.circular(29),
+          child: Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: AppTheme.brandGradient,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.cyan.withValues(alpha: 0.55),
+                width: 1.5,
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.auto_awesome,
-                  color: Colors.white,
-                  size: 22,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryPink.withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  spreadRadius: 1.5,
                 ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 28,
               ),
             ),
           ),
