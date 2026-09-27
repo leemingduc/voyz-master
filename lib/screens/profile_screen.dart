@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,8 +10,10 @@ import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
+import 'package:voyz/widgets/shared/background_music_button.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/utils/error_localizer.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _displayNameController = TextEditingController();
 
   late UserProfile _profile;
   PickedAvatarImage? _pickedImage;
@@ -35,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSavingAvatar = false;
   bool _isChangingPassword = false;
   bool _isSavingContactInfo = false;
+  bool _isSavingDisplayName = false;
   bool _isSavingPreferences = false;
   String _preferredCurrency = 'VND';
   Set<String> _travelStyles = <String>{};
@@ -44,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _profile = ProfileService.instance.currentProfile();
     _phoneController.text = _profile.phoneNumber;
+    _displayNameController.text = _profile.displayName;
     _preferredCurrency = _profile.preferredCurrency;
     _travelStyles = _profile.travelStyles.toSet();
     _loadCloudProfile();
@@ -52,6 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _displayNameController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -63,12 +68,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _profile = profile;
       _phoneController.text = profile.phoneNumber;
+      _displayNameController.text = profile.displayName;
       _preferredCurrency = profile.preferredCurrency;
       _travelStyles = profile.travelStyles.toSet();
     });
     await CurrencyProvider.of(
       context,
     ).setDisplayCurrency(profile.preferredCurrency);
+  }
+
+  Future<void> _saveDisplayName() async {
+    final displayName = _displayNameController.text.trim();
+    if (displayName.isEmpty) {
+      _showMessage('Vui lòng nhập tên hiển thị.', isError: true);
+      return;
+    }
+
+    setState(() => _isSavingDisplayName = true);
+    try {
+      final profile = await ProfileService.instance.updateDisplayName(
+        displayName: displayName,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _displayNameController.text = profile.displayName;
+      });
+      _showMessage('Đã lưu tên hiển thị.');
+    } catch (error) {
+      if (mounted) _showMessage(error.toString(), isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingDisplayName = false);
+    }
   }
 
   Future<void> _savePreferences() async {
@@ -89,6 +120,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _isSavingPreferences = false);
     }
+  }
+
+  Future<void> _showAvatarPicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _AvatarPickerSheet(
+        currentAvatarUrl: _profile.avatarUrl,
+        isSaving: _isSavingAvatar,
+        onUploadPhoto: () {
+          Navigator.of(ctx).pop();
+          _pickImage();
+        },
+        onSelectPreset: (presetId) {
+          Navigator.of(ctx).pop();
+          _savePresetAvatar(presetId);
+        },
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -161,6 +212,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           isError: true,
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSavingAvatar = false);
+    }
+  }
+
+  Future<void> _savePresetAvatar(String presetId) async {
+    setState(() => _isSavingAvatar = true);
+    try {
+      final avatarUrl = await ProfileService.instance.savePresetAvatar(
+        presetId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = _profile.copyWith(avatarUrl: avatarUrl);
+        _pickedImage = null;
+      });
+      _showMessage('Đã lưu ảnh đại diện.');
+    } catch (error) {
+      if (mounted) _showMessage(error.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _isSavingAvatar = false);
     }
@@ -304,6 +374,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                           _buildLanguageCard(theme),
                           const SizedBox(height: 16),
+                          _buildBackgroundMusicCard(),
+                          const SizedBox(height: 16),
                           _buildAiModelCard(),
                           const SizedBox(height: 16),
                           _buildPreferencesCard(theme),
@@ -393,8 +465,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         OutlinedButton.icon(
-          onPressed: _isSavingAvatar ? null : _pickImage,
-          icon: const Icon(Icons.upload_file, size: 18),
+          onPressed: _isSavingAvatar ? null : _showAvatarPicker,
+          icon: const Icon(Icons.add_a_photo_outlined, size: 18),
           label: Text(l10n.uploadPhoto),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
@@ -461,17 +533,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileDetails(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
-    final displayName = _profile.displayName.isEmpty
-        ? l10n.noDisplayName
-        : _profile.displayName;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _InfoRow(
-          icon: Icons.person_outline,
-          label: l10n.displayName,
-          value: displayName,
+        TextField(
+          controller: _displayNameController,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _isSavingDisplayName ? null : _saveDisplayName(),
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+          decoration: InputDecoration(
+            labelText: l10n.displayName,
+            prefixIcon: const Icon(Icons.person_outline),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            width: 180,
+            child: GradientButton(
+              label: _isSavingDisplayName ? l10n.saving : 'Lưu tên',
+              icon: Icons.save,
+              height: 42,
+              onPressed: _isSavingDisplayName ? null : _saveDisplayName,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         _InfoRow(
@@ -596,6 +688,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── AI model card ─────────────────────────────────────────────────────
+
+  Widget _buildBackgroundMusicCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          const Icon(Icons.music_note_rounded, color: Colors.white70, size: 20),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nhạc nền',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Bật hoặc tắt nhạc khi sử dụng ứng dụng',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          BackgroundMusicButton(),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAiModelCard() {
     final l10n = AppLocalizations.of(context)!;
@@ -909,16 +1035,7 @@ class _SavedAvatar extends StatelessWidget {
       );
     }
 
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (_, _) => const Center(child: CircularProgressIndicator()),
-      errorWidget: (_, _, _) => Icon(
-        Icons.person,
-        size: 74,
-        color: Colors.white.withValues(alpha: 0.65),
-      ),
-    );
+    return ProfileAvatar(avatarUrl: url, radius: 88);
   }
 }
 
@@ -1100,6 +1217,321 @@ class _ContactPhoneField extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
         ),
+      ),
+    );
+  }
+}
+
+// ── Avatar picker bottom sheet ────────────────────────────────────────────────
+
+class _AvatarPickerSheet extends StatefulWidget {
+  const _AvatarPickerSheet({
+    required this.currentAvatarUrl,
+    required this.isSaving,
+    required this.onUploadPhoto,
+    required this.onSelectPreset,
+  });
+
+  final String? currentAvatarUrl;
+  final bool isSaving;
+  final VoidCallback onUploadPhoto;
+  final void Function(String presetId) onSelectPreset;
+
+  @override
+  State<_AvatarPickerSheet> createState() => _AvatarPickerSheetState();
+}
+
+class _AvatarPickerSheetState extends State<_AvatarPickerSheet>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F172A),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: Color(0xFF1E293B), width: 1)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Drag handle ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // ── Title ───────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.face_retouching_natural,
+                  color: AppTheme.cyan,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Chọn ảnh đại diện',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(
+                    Icons.close,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Tab bar ─────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: AppTheme.brandGradient,
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: const [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.upload_file, size: 15),
+                        SizedBox(width: 6),
+                        Text('Tải ảnh lên'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 15),
+                        SizedBox(width: 6),
+                        Text('Avatar có sẵn'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Tab views ───────────────────────────────────────────────
+          SizedBox(
+            height: 280,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Upload from device
+                _UploadTab(onUploadPhoto: widget.onUploadPhoto),
+
+                // Tab 2: Preset avatars
+                _PresetTab(
+                  currentAvatarUrl: widget.currentAvatarUrl,
+                  isSaving: widget.isSaving,
+                  onSelectPreset: widget.onSelectPreset,
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: bottomPad + 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _UploadTab extends StatelessWidget {
+  const _UploadTab({required this.onUploadPhoto});
+
+  final VoidCallback onUploadPhoto;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon area
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.brandGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryPink.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.add_a_photo_rounded,
+                    color: Colors.white,
+                    size: 38,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Tải ảnh từ thiết bị',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Hỗ trợ JPG, PNG. Bạn có thể\ncắt và chỉnh sửa sau khi chọn.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 180,
+                  child: GradientButton(
+                    label: 'Chọn ảnh',
+                    icon: Icons.folder_open_rounded,
+                    height: 44,
+                    onPressed: onUploadPhoto,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetTab extends StatelessWidget {
+  const _PresetTab({
+    required this.currentAvatarUrl,
+    required this.isSaving,
+    required this.onSelectPreset,
+  });
+
+  final String? currentAvatarUrl;
+  final bool isSaving;
+  final void Function(String presetId) onSelectPreset;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 14,
+        runSpacing: 16,
+        children: presetAvatarIds.map((presetId) {
+          final isSelected = currentAvatarUrl == 'preset:$presetId';
+          final label = presetAvatarLabels[presetId] ?? presetId;
+          return GestureDetector(
+            onTap: isSaving ? null : () => onSelectPreset(presetId),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.cyan
+                          : Colors.white.withValues(alpha: 0.12),
+                      width: isSelected ? 2.5 : 1.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.cyan.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: ProfileAvatar(
+                    avatarUrl: 'preset:$presetId',
+                    radius: 28,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppTheme.cyan
+                        : Colors.white.withValues(alpha: 0.6),
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }

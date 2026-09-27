@@ -121,12 +121,67 @@ class ProfileService {
     return normalizedPhone;
   }
 
+  Future<UserProfile> updateDisplayName({required String displayName}) async {
+    final user = _requireUser();
+    final normalizedName = displayName.trim();
+    final current = currentProfile();
+
+    await _auth.updateUser(
+      UserAttributes(
+        data: {...?user.userMetadata, 'display_name': normalizedName},
+      ),
+    );
+    await _client.from('profiles').upsert({
+      'user_id': user.id,
+      'email': user.email ?? current.email,
+      'display_name': normalizedName,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+
+    return current.copyWith(displayName: normalizedName);
+  }
+
+  Future<String> savePresetAvatar(String presetId) async {
+    if (!const {
+      'explorer',
+      'beach',
+      'mountain',
+      'camera',
+      'food',
+      'plane',
+      'city',
+      'sun',
+      'art',
+      'music',
+      'sport',
+      'coffee',
+    }.contains(presetId)) {
+      throw ArgumentError.value(presetId, 'presetId', 'Unknown avatar preset');
+    }
+
+    final user = _requireUser();
+    final current = currentProfile();
+    final avatarUrl = 'preset:$presetId';
+    await _auth.updateUser(
+      UserAttributes(data: {...?user.userMetadata, 'avatar_url': avatarUrl}),
+    );
+    await _client.from('profiles').upsert({
+      'user_id': user.id,
+      'email': user.email ?? '',
+      'display_name': current.displayName,
+      'avatar_url': avatarUrl,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    return avatarUrl;
+  }
+
   Future<UserProfile> updateTravelPreferences({
     required List<String> travelStyles,
     required String preferredCurrency,
   }) async {
     final user = _requireUser();
-    final currency = supportedCurrencies.any((item) => item.code == preferredCurrency)
+    final currency =
+        supportedCurrencies.any((item) => item.code == preferredCurrency)
         ? preferredCurrency
         : 'VND';
     final cleanStyles = travelStyles
@@ -187,7 +242,8 @@ class ProfileService {
     final displayName = _displayNameFromMetadata(user);
     final avatarUrl = metadata['avatar_url']?.toString();
     final phoneNumber = metadata['phone_number']?.toString().trim() ?? '';
-    final preferredCurrency = metadata['preferred_currency']?.toString() ?? 'VND';
+    final preferredCurrency =
+        metadata['preferred_currency']?.toString() ?? 'VND';
 
     return UserProfile(
       email: user.email ?? '',
@@ -195,25 +251,27 @@ class ProfileService {
       avatarUrl: avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
       phoneNumber: phoneNumber,
       travelStyles: _stringList(metadata['travel_styles']),
-      preferredCurrency: supportedCurrencies.any((item) => item.code == preferredCurrency)
+      preferredCurrency:
+          supportedCurrencies.any((item) => item.code == preferredCurrency)
           ? preferredCurrency
           : 'VND',
     );
   }
 
-  UserProfile _profileFromRow(
-    Map<String, dynamic> row,
-    UserProfile fallback,
-  ) {
-    final currency = row['preferred_currency']?.toString() ?? fallback.preferredCurrency;
+  UserProfile _profileFromRow(Map<String, dynamic> row, UserProfile fallback) {
+    final currency =
+        row['preferred_currency']?.toString() ?? fallback.preferredCurrency;
     final avatarUrl = row['avatar_url']?.toString();
     return UserProfile(
       email: row['email']?.toString() ?? fallback.email,
       displayName: row['display_name']?.toString() ?? fallback.displayName,
-      avatarUrl: avatarUrl == null || avatarUrl.isEmpty ? fallback.avatarUrl : avatarUrl,
+      avatarUrl: avatarUrl == null || avatarUrl.isEmpty
+          ? fallback.avatarUrl
+          : avatarUrl,
       phoneNumber: row['phone_number']?.toString() ?? fallback.phoneNumber,
       travelStyles: _stringList(row['travel_styles']),
-      preferredCurrency: supportedCurrencies.any((item) => item.code == currency)
+      preferredCurrency:
+          supportedCurrencies.any((item) => item.code == currency)
           ? currency
           : fallback.preferredCurrency,
     );

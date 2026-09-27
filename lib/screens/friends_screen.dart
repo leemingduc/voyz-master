@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -697,16 +698,7 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final value = url;
-    return CircleAvatar(
-      backgroundColor: AppTheme.primaryPink.withValues(alpha: 0.22),
-      backgroundImage: value == null || value.isEmpty
-          ? null
-          : NetworkImage(value),
-      child: value == null || value.isEmpty
-          ? const Icon(Icons.person, color: Colors.white)
-          : null,
-    );
+    return ProfileAvatar(avatarUrl: url, radius: 20);
   }
 }
 
