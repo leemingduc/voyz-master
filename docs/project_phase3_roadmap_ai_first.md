@@ -243,15 +243,15 @@ Làm gì:
 - Mỗi lần đưa 3 phương án, không "xem thêm", không phân trang.
 
 Nghiệm thu:
-- [ ] "Du lịch Côn Đảo" -> AI hỏi độ dài chuyến (hoặc giả định và nói rõ). Cả 3 phương án đều ở Côn Đảo, không có Đà Nẵng hay nơi khác.
-- [ ] "4 ngày 3 đêm Nha Trang" -> có phương án ngay ở lượt đầu, không hỏi lại. Mỗi thẻ ghi 4N3Đ và có lộ trình nhiều điểm dừng.
-- [ ] "Muốn đi biển 1 tuần" -> 3 phương án ở 3 điểm đến khác nhau.
-- [ ] Có phương án rồi nhắn "rẻ hơn" -> ra bộ phương án mới trong cùng chat.
-- [ ] Bấm "Gợi ý luôn" khi AI đang hỏi -> có phương án ở lượt kế tiếp.
-- [ ] 3 thẻ hiện 3 ảnh khác nhau.
-- [ ] "1 tuần Côn Đảo" không nêu ngày -> itinerary 7 ngày. "Từ 10/10 đến 13/10" -> itinerary 4 ngày.
-- [ ] Chọn một thẻ -> mở màn chi tiết như hôm nay; itinerary bám theo lộ trình của thẻ đã chọn.
-- [ ] Test: parser của `planTurn` (lượt hỏi, lượt có phương án, thiếu key); `dayCount` với ngày đi/về, với `numDays`, với không có gì.
+- [x] "Du lịch Côn Đảo" -> AI hỏi độ dài chuyến (hoặc giả định và nói rõ). Cả 3 phương án đều ở Côn Đảo, không có Đà Nẵng hay nơi khác.
+- [x] "4 ngày 3 đêm Nha Trang" -> có phương án ngay ở lượt đầu, không hỏi lại. Mỗi thẻ ghi số ngày ("4 ngày") và có lộ trình nhiều điểm dừng.
+- [x] "Muốn đi biển 1 tuần" -> 3 phương án ở 3 điểm đến khác nhau.
+- [x] Có phương án rồi nhắn "rẻ hơn" -> ra bộ phương án mới trong cùng chat.
+- [x] Bấm "Gợi ý luôn" khi AI đang hỏi -> có phương án ở lượt kế tiếp.
+- [x] 3 thẻ hiện 3 ảnh khác nhau.
+- [x] "1 tuần Côn Đảo" không nêu ngày -> itinerary 7 ngày. "Từ 10/10 đến 13/10" -> itinerary 4 ngày.
+- [x] Chọn một thẻ -> mở màn chi tiết như hôm nay; itinerary bám theo lộ trình của thẻ đã chọn.
+- [x] Test: parser của `planTurn` (lượt hỏi, lượt có phương án, thiếu key); `dayCount` với ngày đi/về, với `numDays`, với không có gì.
 
 ## 3. Thứ tự làm và phụ thuộc
 
