@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
+import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
@@ -443,6 +444,167 @@ Please let me know if you need anything else!
       final filled = GeminiService.fillEmptyLandmarkImages(gallery, '');
 
       expect(filled.single.imageUrl, isEmpty);
+    });
+  });
+
+  group('parsePlanTurn', () {
+    final service = GeminiService.instance;
+
+    test('question turn: reply and trip, no options', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"Bạn đi mấy ngày?","trip":{"destination":"Côn Đảo"},"options":[]}',
+      );
+      expect(turn.reply, 'Bạn đi mấy ngày?');
+      expect(turn.trip.destination, 'Côn Đảo');
+      expect(turn.hasOptions, isFalse);
+      expect(turn.raw, contains('Bạn đi mấy ngày?'));
+    });
+
+    test('options turn: fields mapped, imageStop kept', () {
+      final turn = service.parsePlanTurn('''
+{"reply":"3 phương án cho bạn","trip":{"destination":"Côn Đảo","numDays":4},
+ "options":[{"title":"Biển & lặn","destination":"Côn Đảo, Việt Nam","numDays":4,
+   "stops":["Bến Đầm"," Hòn Bảy Cạnh ",""],"imageStop":"Hòn Bảy Cạnh",
+   "price":"~6.5M VND","aiInsight":"Hợp bạn trẻ"}]}
+''');
+      final option = turn.options.single;
+      expect(option.title, 'Biển & lặn');
+      expect(option.destination, 'Côn Đảo, Việt Nam');
+      expect(option.numDays, 4);
+      expect(option.stops, ['Bến Đầm', 'Hòn Bảy Cạnh']);
+      expect(option.imageStop, 'Hòn Bảy Cạnh');
+      expect(option.price, '~6.5M VND');
+      expect(option.aiInsight, 'Hợp bạn trẻ');
+      expect(option.imageUrl, '');
+    });
+
+    test('bad options dropped, fallbacks applied, at most 3 kept', () {
+      final turn = service.parsePlanTurn('''
+{"reply":"r","trip":{"numDays":5},"options":[
+ {"title":"","destination":"A","stops":["x"]},
+ {"title":"T1","destination":"","stops":["x"]},
+ {"title":"T2","destination":"D","stops":[]},
+ {"title":"T3","destination":"D","stops":["s1","s2"]},
+ {"title":"T4","destination":"D","stops":["a","b","c","d","e","f"],"numDays":2},
+ {"title":"T5","destination":"D","stops":["y"]},
+ {"title":"T6","destination":"D","stops":["z"]}
+]}
+''');
+      expect(turn.options.map((o) => o.title), ['T3', 'T4', 'T5']);
+      expect(turn.options[0].imageStop, 's1');
+      expect(turn.options[0].numDays, 5);
+      expect(turn.options[1].numDays, 2);
+      expect(turn.options[1].stops.length, 5);
+    });
+
+    test('numDays falls back to 3 when neither option nor trip has it', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"r","trip":{},"options":[{"title":"T","destination":"D","stops":["s"]}]}',
+      );
+      expect(turn.options.single.numDays, 3);
+    });
+
+    test('missing keys and invalid JSON give an empty turn', () {
+      final empty = service.parsePlanTurn('{}');
+      expect(empty.reply, '');
+      expect(empty.hasOptions, isFalse);
+      final broken = service.parsePlanTurn('not json at all');
+      expect(broken.reply, '');
+      expect(broken.hasOptions, isFalse);
+    });
+  });
+
+  group('questionsSinceLastOptions', () {
+    PlannerMessage ask() =>
+        PlannerMessage.agent(PlanTurn(reply: 'q', trip: TripData()));
+    PlannerMessage offer() => PlannerMessage.agent(
+      PlanTurn(
+        reply: 'r',
+        trip: TripData(),
+        options: const [
+          TripOption(
+            title: 'T',
+            destination: 'D',
+            numDays: 3,
+            stops: ['s'],
+            imageStop: 's',
+            price: '',
+            aiInsight: '',
+          ),
+        ],
+      ),
+    );
+    final user = PlannerMessage.user('u');
+
+    test('counts agent questions, resets after an options turn', () {
+      expect(GeminiService.questionsSinceLastOptions([]), 0);
+      expect(GeminiService.questionsSinceLastOptions([user, ask(), user]), 1);
+      expect(
+        GeminiService.questionsSinceLastOptions([
+          user,
+          ask(),
+          user,
+          ask(),
+          user,
+        ]),
+        2,
+      );
+      expect(
+        GeminiService.questionsSinceLastOptions([
+          user,
+          ask(),
+          user,
+          ask(),
+          user,
+          offer(),
+          user,
+          ask(),
+          user,
+        ]),
+        1,
+      );
+    });
+  });
+
+  group('buildPlanTurnPrompt', () {
+    final service = GeminiService.instance;
+    final messages = [
+      PlannerMessage.user('Du lịch Côn Đảo'),
+      PlannerMessage.agent(
+        PlanTurn(
+          reply: 'Bạn đi mấy ngày?',
+          trip: TripData(),
+          raw: '{"reply":"Bạn đi mấy ngày?"}',
+        ),
+      ),
+      PlannerMessage.user('1 tuần'),
+    ];
+
+    test('contains today, the transcript and the destination rule', () {
+      final p = service.buildPlanTurnPrompt(
+        messages,
+        forceOptions: false,
+        languageCode: 'vi',
+        today: DateTime(2026, 9, 27),
+      );
+      expect(p, contains('2026-09-27'));
+      expect(p, contains('Người dùng: Du lịch Côn Đảo'));
+      expect(p, contains('AI (JSON): {"reply":"Bạn đi mấy ngày?"}'));
+      expect(p, contains('Người dùng: 1 tuần'));
+      expect(p, contains('PHẢI nằm trong điểm đến đó'));
+      expect(p, contains('Vietnamese'));
+      expect(p, isNot(contains('BẮT BUỘC đưa đúng 3 phương án')));
+    });
+
+    test('forced turn adds the mandatory options rule', () {
+      final p = service.buildPlanTurnPrompt(
+        messages,
+        forceOptions: true,
+        languageCode: 'en',
+        today: DateTime(2026, 9, 27),
+      );
+      expect(p, contains('BẮT BUỘC đưa đúng 3 phương án'));
+      expect(p, contains('English'));
     });
   });
 }

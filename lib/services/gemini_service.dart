@@ -14,6 +14,7 @@ import 'package:voyz/models/destination_comparison.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/models/itinerary_plan.dart';
+import 'package:voyz/models/plan_turn.dart';
 
 import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/image_service.dart';
@@ -209,6 +210,194 @@ Quy tắc:
       ageRange: _cleanString(map['ageRange']),
       aiPrompt: originalPrompt,
       selectedInterests: interests,
+    );
+  }
+
+  // ── Planner chat (roadmap 2.6) ────────────────────────────────────────
+
+  /// Khung JSON cố định cho mọi lượt planner. Có schema thì model không
+  /// thể trả thiếu `reply`, `trip`, `options` hay sai kiểu.
+  static final Schema _planTurnSchema = Schema.object(
+    properties: {
+      'reply': Schema.string(),
+      'trip': Schema.object(
+        properties: {
+          'destination': Schema.string(nullable: true),
+          'departDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
+          'returnDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
+          'numDays': Schema.integer(nullable: true),
+          'budgetTier': Schema.enumString(
+            enumValues: _validTiers,
+            nullable: true,
+          ),
+          'participants': Schema.integer(nullable: true),
+          'ageRange': Schema.string(nullable: true),
+          'interests': Schema.array(
+            items: Schema.enumString(enumValues: MockData.interests),
+          ),
+        },
+      ),
+      'options': Schema.array(
+        items: Schema.object(
+          properties: {
+            'title': Schema.string(),
+            'destination': Schema.string(),
+            'numDays': Schema.integer(),
+            'stops': Schema.array(items: Schema.string()),
+            'imageStop': Schema.string(),
+            'price': Schema.string(),
+            'aiInsight': Schema.string(),
+          },
+          requiredProperties: [
+            'title',
+            'destination',
+            'numDays',
+            'stops',
+            'imageStop',
+            'price',
+            'aiInsight',
+          ],
+        ),
+      ),
+    },
+    requiredProperties: ['reply', 'trip', 'options'],
+  );
+
+  /// Một lượt planner chat. [messages] là cả hội thoại, tin cuối thường là
+  /// của người dùng. Code (không phải model) quyết định lúc nào bắt buộc đưa
+  /// phương án: người dùng bấm "Gợi ý luôn", hoặc AI đã hỏi 2 lượt liền.
+  /// Không cache: mỗi lượt phụ thuộc cả hội thoại.
+  Future<PlanTurn> planTurn(
+    List<PlannerMessage> messages, {
+    bool forceOptions = false,
+    String languageCode = 'vi',
+  }) async {
+    final force = forceOptions || questionsSinceLastOptions(messages) >= 2;
+    final model = _createModel(
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        responseSchema: _planTurnSchema,
+        temperature: 0.7,
+        maxOutputTokens: 12288,
+      ),
+    );
+    final prompt = buildPlanTurnPrompt(
+      messages,
+      forceOptions: force,
+      languageCode: languageCode,
+      today: DateTime.now(),
+    );
+    final text = (await model.generateContent([Content.text(prompt)])).text;
+    if (text == null || text.isEmpty) throw Exception('noAiResponse');
+    return parsePlanTurn(text);
+  }
+
+  /// Số lượt AI hỏi thêm kể từ lượt gần nhất có phương án.
+  static int questionsSinceLastOptions(List<PlannerMessage> messages) {
+    var count = 0;
+    for (final message in messages.reversed) {
+      final turn = message.turn;
+      if (turn == null) continue;
+      if (turn.hasOptions) break;
+      count++;
+    }
+    return count;
+  }
+
+  @visibleForTesting
+  String buildPlanTurnPrompt(
+    List<PlannerMessage> messages, {
+    required bool forceOptions,
+    required String languageCode,
+    required DateTime today,
+  }) {
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    final transcript = messages
+        .map(
+          (m) => m.isUser ? 'Người dùng: ${m.text}' : 'AI (JSON): ${m.turn!.raw}',
+        )
+        .join('\n');
+    final forceRule = forceOptions
+        ? '\n- LƯỢT NÀY BẮT BUỘC đưa đúng 3 phương án, không hỏi thêm. Thiếu thông tin thì tự giả định hợp lý và nói rõ giả định trong "reply" (ví dụ "Mình giả định 3N2Đ, 2 người").'
+        : '';
+
+    return '''
+Bạn là chuyên gia tư vấn du lịch AI, trò chuyện với người dùng để lên phương án chuyến đi. Hôm nay là $todayStr.
+
+Hội thoại đến giờ:
+$transcript
+
+Nhiệm vụ: trả lời lượt tiếp theo bằng JSON theo schema, gồm "reply", "trip", "options".
+
+Quy tắc:
+- "trip" chứa mọi thông tin đã biết từ cả hội thoại. Không bỏ giá trị người dùng đã nêu. Không có thì để null.
+- Độ dài chuyến: người dùng nêu ngày đi và ngày về thì điền "departDate" và "returnDate" (yyyy-MM-dd, tính từ hôm nay nếu nói "tuần sau"). Người dùng nêu thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần") thì điền "numDays" (1 tuần là 7, cuối tuần là 2).
+- Cần đủ hai thứ mới đưa phương án: điểm đến (hoặc kiểu chuyến như "đi biển") và độ dài chuyến. Thiếu thì hỏi đúng 1 câu ngắn trong "reply" và để "options" là mảng rỗng. Đủ thì đưa phương án ngay, không hỏi thêm.
+- Mỗi lượt hỏi tối đa 1 câu.$forceRule
+- Khi đưa phương án: đúng 3 phần tử trong "options"; "reply" là 1 câu giới thiệu ngắn.
+- Người dùng đã nêu điểm đến thì cả 3 phương án PHẢI nằm trong điểm đến đó, khác nhau ở chủ đề hoặc nhịp đi. Không đưa điểm đến khác. Chưa nêu điểm đến thì mỗi phương án có thể là một điểm đến khác nhau.
+- "destination": tên điểm đến gốc dạng "Tên, Quốc gia" (ví dụ "Côn Đảo, Việt Nam").
+- "numDays": số ngày của phương án, khớp với độ dài chuyến người dùng muốn.
+- "stops": 3 đến 5 địa danh có tên riêng, theo thứ tự đi. Không dùng tên chung như "bãi biển", "chợ đêm", "nhà hàng hải sản".
+- "imageStop": một địa danh trong "stops" tiêu biểu nhất cho chủ đề. 3 phương án phải có "imageStop" khác nhau.
+- "price": chi phí ước tính thực tế cho 1 người cả chuyến, ghi kèm mã tiền tệ (ví dụ "~6.5M VND").
+- "aiInsight": 1 câu vì sao phương án này hợp với người dùng.
+- Người dùng muốn chỉnh ("rẻ hơn", "thêm lặn biển") thì đưa bộ 3 phương án mới theo yêu cầu.
+- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng giá trị cho phép, không dịch.
+- ${languageInstruction(languageCode)}
+''';
+  }
+
+  /// Parser thuần cho một lượt planner. JSON hỏng thì trả lượt rỗng,
+  /// màn planner coi đó là lỗi.
+  @visibleForTesting
+  PlanTurn parsePlanTurn(String text) {
+    Map<String, dynamic> map;
+    try {
+      final decoded = safeJsonDecode(text);
+      map = decoded is Map ? Map<String, dynamic>.from(decoded) : {};
+    } catch (_) {
+      map = {};
+    }
+    final tripMap = map['trip'] is Map
+        ? Map<String, dynamic>.from(map['trip'] as Map)
+        : <String, dynamic>{};
+    final trip = parseTripMap(tripMap);
+    final rawOptions = map['options'] is List ? map['options'] as List : [];
+    final options = rawOptions
+        .whereType<Map>()
+        .map((e) => _parseTripOption(Map<String, dynamic>.from(e), trip))
+        .whereType<TripOption>()
+        .take(3)
+        .toList();
+    return PlanTurn(
+      reply: _cleanString(map['reply']),
+      trip: trip,
+      options: options,
+      raw: text.trim(),
+    );
+  }
+
+  /// Phương án thiếu tiêu đề, điểm đến hoặc điểm dừng thì bỏ.
+  TripOption? _parseTripOption(Map<String, dynamic> map, TripData trip) {
+    final title = _cleanString(map['title']);
+    final destination = _cleanString(map['destination']);
+    final stops = TripData.stringList(map['stops'])
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .take(5)
+        .toList();
+    if (title.isEmpty || destination.isEmpty || stops.isEmpty) return null;
+    final imageStop = _cleanString(map['imageStop']);
+    final days = _toInt(map['numDays']);
+    return TripOption(
+      title: title,
+      destination: destination,
+      numDays: days != null && days > 0 ? days : (trip.numDays ?? 3),
+      stops: stops,
+      imageStop: imageStop.isNotEmpty ? imageStop : stops.first,
+      price: _cleanString(map['price']),
+      aiInsight: _cleanString(map['aiInsight']),
     );
   }
 
