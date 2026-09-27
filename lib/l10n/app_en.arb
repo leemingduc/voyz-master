@@ -860,5 +860,19 @@
 
   "aiModelSaved": "AI model saved",
   "@aiModelSaved": {"description": "Snackbar after the AI model is changed"},
-  "quickPromptsLabel": "Quick ideas:"
+  "quickPromptsLabel": "Quick ideas:",
+  "suggestNow": "Suggest now",
+  "@suggestNow": {"description": "Planner chat button that asks the AI for trip options right away"},
+  "plannerChatHint": "Tell the AI more...",
+  "@plannerChatHint": {"description": "Hint of the planner chat input"},
+  "plannerSend": "Send",
+  "@plannerSend": {"description": "Send button of the planner chat"},
+  "newPlannerChat": "New chat",
+  "@newPlannerChat": {"description": "Tooltip of the button that restarts the planner chat"},
+  "aiEstimateLabel": "AI estimate",
+  "@aiEstimateLabel": {"description": "Label under an AI generated price"},
+  "viewDetails": "View details",
+  "@viewDetails": {"description": "Button on a trip option card"},
+  "tripDays": "{n, plural, =1{1 day} other{{n} days}}",
+  "@tripDays": {"description": "Trip duration badge", "placeholders": {"n": {"type": "int"}}}
 }

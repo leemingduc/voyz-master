@@ -713,4 +713,27 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get quickPromptsLabel => 'Gợi ý nhanh:';
+
+  @override
+  String get suggestNow => 'Gợi ý luôn';
+
+  @override
+  String get plannerChatHint => 'Nhắn thêm cho AI...';
+
+  @override
+  String get plannerSend => 'Gửi';
+
+  @override
+  String get newPlannerChat => 'Cuộc trò chuyện mới';
+
+  @override
+  String get aiEstimateLabel => 'Ước tính AI';
+
+  @override
+  String get viewDetails => 'Xem chi tiết';
+
+  @override
+  String tripDays(int n) {
+    return '$n ngày';
+  }
 }

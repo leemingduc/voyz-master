@@ -713,4 +713,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quickPromptsLabel => 'Quick ideas:';
+
+  @override
+  String get suggestNow => 'Suggest now';
+
+  @override
+  String get plannerChatHint => 'Tell the AI more...';
+
+  @override
+  String get plannerSend => 'Send';
+
+  @override
+  String get newPlannerChat => 'New chat';
+
+  @override
+  String get aiEstimateLabel => 'AI estimate';
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String tripDays(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
 }

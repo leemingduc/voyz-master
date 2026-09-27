@@ -1455,6 +1455,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quick ideas:'**
   String get quickPromptsLabel;
+
+  /// Planner chat button that asks the AI for trip options right away
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest now'**
+  String get suggestNow;
+
+  /// Hint of the planner chat input
+  ///
+  /// In en, this message translates to:
+  /// **'Tell the AI more...'**
+  String get plannerChatHint;
+
+  /// Send button of the planner chat
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get plannerSend;
+
+  /// Tooltip of the button that restarts the planner chat
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get newPlannerChat;
+
+  /// Label under an AI generated price
+  ///
+  /// In en, this message translates to:
+  /// **'AI estimate'**
+  String get aiEstimateLabel;
+
+  /// Button on a trip option card
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// Trip duration badge
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 day} other{{n} days}}'**
+  String tripDays(int n);
 }
 
 class _AppLocalizationsDelegate

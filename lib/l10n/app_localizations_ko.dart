@@ -694,4 +694,27 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get quickPromptsLabel => '빠른 아이디어:';
+
+  @override
+  String get suggestNow => '바로 추천';
+
+  @override
+  String get plannerChatHint => 'AI에게 더 알려주세요...';
+
+  @override
+  String get plannerSend => '보내기';
+
+  @override
+  String get newPlannerChat => '새 대화';
+
+  @override
+  String get aiEstimateLabel => 'AI 추정';
+
+  @override
+  String get viewDetails => '자세히 보기';
+
+  @override
+  String tripDays(int n) {
+    return '$n일';
+  }
 }

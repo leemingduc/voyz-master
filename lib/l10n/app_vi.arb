@@ -243,5 +243,12 @@
   "aiModel": "Mô hình AI",
   "aiModelDescription": "Mô hình Gemini trả lời các câu hỏi du lịch của bạn. Mô hình lớn hơn suy nghĩ lâu hơn và có thể hết hạn mức miễn phí sớm hơn.",
   "aiModelSaved": "Đã lưu mô hình AI",
-  "quickPromptsLabel": "Gợi ý nhanh:"
+  "quickPromptsLabel": "Gợi ý nhanh:",
+  "suggestNow": "Gợi ý luôn",
+  "plannerChatHint": "Nhắn thêm cho AI...",
+  "plannerSend": "Gửi",
+  "newPlannerChat": "Cuộc trò chuyện mới",
+  "aiEstimateLabel": "Ước tính AI",
+  "viewDetails": "Xem chi tiết",
+  "tripDays": "{n} ngày"
 }
