@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -5,7 +6,7 @@ import 'package:voyz/theme/app_theme.dart';
 /// Ảnh điểm đến dùng chung cho mọi màn hình.
 ///
 /// Các trạng thái:
-/// - `isLoading` hoặc đang tải: vệt sáng skeleton shimmer chuyển động mượt mà.
+/// - `isLoading` hoặc đang tải: vệt sáng skeleton shimmer chuyển động mượt mà kèm biểu tượng tên lửa AIVIVU.
 /// - Tải xong: hiển thị ảnh với hiệu ứng fade-in 400ms mềm mại.
 /// - Lỗi tải / rỗng: nền gradient tối, thêm icon núi và tên điểm đến mờ.
 class DestinationImage extends StatelessWidget {
@@ -43,7 +44,7 @@ class DestinationImage extends StatelessWidget {
   }
 }
 
-/// Khung shimmer skeleton quét sáng biểu thị ảnh đang được tải lên.
+/// Khung shimmer skeleton quét sáng với dấu ấn tên lửa AIVIVU độc đáo.
 class ShimmerLoadingBox extends StatefulWidget {
   const ShimmerLoadingBox({super.key});
 
@@ -76,8 +77,8 @@ class _ShimmerLoadingBoxState extends State<ShimmerLoadingBox>
       animation: _controller,
       builder: (context, child) {
         final progress = _controller.value;
-        // Shift gradient from -2.0 to 2.0
         final slide = -2.0 + progress * 4.0;
+        final pulse = 0.85 + 0.15 * math.sin(progress * 2 * math.pi).abs();
 
         return Container(
           decoration: BoxDecoration(
@@ -86,24 +87,60 @@ class _ShimmerLoadingBoxState extends State<ShimmerLoadingBox>
               end: Alignment(slide + 1.0, 0.5),
               colors: [
                 AppTheme.surfaceDark,
-                AppTheme.surfaceDark.withValues(alpha: 0.8),
+                AppTheme.surfaceDark.withValues(alpha: 0.85),
                 Colors.white.withValues(alpha: 0.08),
-                AppTheme.surfaceDark.withValues(alpha: 0.8),
+                AppTheme.surfaceDark.withValues(alpha: 0.85),
                 AppTheme.surfaceDark,
               ],
               stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
             ),
           ),
-          child: child,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Transform.scale(
+                  scale: pulse,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceDark.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.cyan.withValues(alpha: 0.4),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.cyan.withValues(alpha: 0.15),
+                          blurRadius: 12,
+                        ),
+                      ],
+                    ),
+                    child: ShaderMask(
+                      shaderCallback: AppTheme.brandGradient.createShader,
+                      child: const Icon(
+                        Icons.rocket_launch_rounded,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'AIVIVU đang nạp ảnh...',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
-      child: Center(
-        child: Icon(
-          Icons.image_outlined,
-          size: 32,
-          color: Colors.white.withValues(alpha: 0.2),
-        ),
-      ),
     );
   }
 }
