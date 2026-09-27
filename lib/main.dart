@@ -46,9 +46,7 @@ Future<void> main() async {
   // Resolve the initial locale before rendering.
   Locale initialLocale;
   try {
-    initialLocale = await LocaleSettingsStore.instance.load(
-      WidgetsBinding.instance.platformDispatcher.locale,
-    );
+    initialLocale = await LocaleSettingsStore.instance.load();
   } catch (e, st) {
     debugPrint('❌ Locale load error: $e\n$st');
     initialLocale = const Locale('vi');

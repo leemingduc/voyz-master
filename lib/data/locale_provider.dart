@@ -19,12 +19,14 @@ class LocaleSettingsStore {
 
   /// Returns the persisted locale, or [deviceLocale] as a fallback.
   ///
-  /// Falls back to Vietnamese if neither is a supported language code.
-  Future<Locale> load(Locale deviceLocale) async {
+  /// Returns the persisted locale, or Vietnamese as the initial default.
+  Future<Locale> load([Locale? deviceLocale]) async {
     final box = await Hive.openBox<String>(_boxName);
     final saved = box.get(_languageCodeKey);
-    final code = saved ?? deviceLocale.languageCode;
-    return Locale(supportedLanguageCodes.contains(code) ? code : 'vi');
+    if (saved != null && supportedLanguageCodes.contains(saved)) {
+      return Locale(saved);
+    }
+    return const Locale('vi');
   }
 
   /// Persists [locale] so it is restored after an app restart.
