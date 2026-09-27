@@ -3,6 +3,7 @@
 > Ngày: 06/09/2026. Baseline: `master` sau merge PR #12 (commit `0e5bb51`).
 > Tài liệu này THAY THẾ ba tài liệu cũ đã xoá khỏi repo: `project_review_supabase_integration.md` (23/08), `SUPABASE_INTEGRATION_ROADMAP.md` (roadmap học sinh), `week1_parallel_assignments.md` (30/08). Cần xem lại thì tra git history trước commit ngày 06/09/2026.
 > Tài liệu nền vẫn còn hiệu lực, chỉ trỏ tới chứ không lặp lại: `project_phase2_core_architecture_alignment.md` (kiến trúc, mục 4.5 về giá thật), `lessons/2026-08-31-image-stability-walkthrough.md` (quy tắc ảnh), `superpowers/specs/2026-09-01-prompt-first-step1-design.md` (bước 1 planner đã làm).
+> Cập nhật 27/09/2026: thêm hướng 2.6 (planner dạng chat, gợi ý theo phương án chuyến đi). Hướng này thay mục "Đủ là dừng" về hội thoại của 2.1.
 
 ## 0. Nguyên tắc của giai đoạn này
 
@@ -28,9 +29,11 @@
 
 Về việc tuần 1 cũ: **chưa có deliverable nào vào master**. Phần còn dùng lại: trip identity theo UUID (mục 2.3). Phần bỏ hẳn: harden RLS cho `ai_generated_cache`, Hive box theo user cho cache Supabase (vì bỏ luôn tầng đó, mục 2.2). Tách interface `AITravelGateway` chuyển thành tuỳ chọn, không bắt buộc.
 
-## 2. Năm hướng hoàn thiện
+## 2. Các hướng hoàn thiện
 
 ### 2.1. Smart Planner AI-first: một ô mô tả và hàng chip xác nhận
+
+> Trạng thái 27/09/2026: đã xong trong PR #15, bản cuối bỏ bước chip (bấm "Gợi ý" là trích xuất rồi mở gợi ý ngay). Luồng planner tiếp theo xem 2.6; dòng "không hội thoại nhiều vòng, không AI hỏi lại" bên dưới không còn áp dụng.
 
 **Mục tiêu:** người dùng chỉ mô tả chuyến đi bằng lời, AI trích ra thông tin có cấu trúc, người dùng liếc qua chip và sửa nếu cần.
 
@@ -175,6 +178,81 @@ Nghiệm thu:
 - [ ] Đổi `pricingProvider = MockProviderAdapter()` ở một dòng, UI không cần sửa và hiện cột "Báo giá đối tác".
 - [ ] Test `HotelOffer.fromJson` và test `AiEstimateAdapter` parse JSON.
 
+### 2.6. Planner dạng chat và gợi ý theo phương án chuyến đi
+
+**Mục tiêu:** planner trở thành trải nghiệm agent-first giống Gemini. Người dùng mô tả chuyến đi, AI hỏi thêm khi thiếu thông tin quan trọng, rồi đưa vài phương án chuyến đi ngay trong chat. Mỗi phương án là một lộ trình tổng quan nhiều điểm dừng, không phải một địa điểm lẻ.
+
+Vì sao:
+- Prompt gợi ý hiện tại bắt AI trả đúng 8 "điểm đến" cấp thành phố, và chỉ coi điểm đến người dùng nêu là "mong muốn". Với điểm đến nhỏ như Côn Đảo, AI lấp chỗ trống bằng Đà Nẵng, Phú Quốc.
+- Người dùng thường đã biết đi đâu ("4 ngày 3 đêm Nha Trang", "1 tuần Côn Đảo"). Họ cần hình dung chuyến đi trông thế nào, không cần danh sách 8 nơi.
+
+Phạm vi: chỉ thay màn planner và màn gợi ý bằng một màn chat. Chạm vào một phương án mở `DestinationDetailScreen` giống như chạm một gợi ý hôm nay. Mọi màn sau đó giữ nguyên.
+
+```text
+Ô prompt -> gửi -> màn chuyển thành chat
+  -> AI hỏi thêm (tối đa 1 câu mỗi lượt, tối đa 2 lượt) hoặc trả phương án ngay
+  -> 3 thẻ phương án trong chat
+  -> người dùng nhắn tiếp để chỉnh ("rẻ hơn", "thêm lặn biển") hoặc chọn 1 thẻ
+  -> DestinationDetailScreen (không đổi) -> itinerary (không đổi)
+```
+
+Làm gì:
+- `lib/services/gemini_service.dart`: thêm `planTurn(List<PlannerMessage> messages, {bool forceOptions, String languageCode})` với `responseSchema`. Mọi lượt trả cùng một JSON:
+
+```json
+{
+  "reply": "câu trả lời hoặc câu hỏi ngắn",
+  "trip": { "destination": null, "departDate": null, "returnDate": null, "numDays": null,
+            "budgetTier": null, "participants": null, "interests": [] },
+  "options": []
+}
+```
+
+  - `options` là mảng rỗng khi AI đang hỏi, là mảng 3 phần tử khi đưa phương án. Mỗi phần tử: `title` (chủ đề), `destination` (điểm đến gốc, dạng "Côn Đảo, Việt Nam"), `numDays`, `stops` (3-5 địa danh theo thứ tự đi), `imageStop` (một địa danh tiêu biểu nhất cho chủ đề), `price` (ước tính), `aiInsight` (một câu).
+  - Lượt của AI đưa lại vào `history` dưới dạng JSON gốc, để lượt sau AI biết mình đã hỏi gì và đã đưa phương án nào.
+  - Parser thuần, test được, dùng lại phần xử lý ngày của `parseExtractedTripData`. Không cache hàm này.
+- Quy tắc trong prompt:
+  - Chỉ cần hai thứ để đưa phương án: điểm đến (hoặc kiểu chuyến như "đi biển") và độ dài chuyến. Thiếu thì hỏi. Đủ thì trả phương án ngay, không hỏi thêm.
+  - Tối đa 1 câu hỏi mỗi lượt, tối đa 2 lượt hỏi. Sau đó bắt buộc đưa phương án và nói rõ đã giả định gì ("Mình giả định 3N2Đ, 2 người").
+  - Người dùng đã nêu điểm đến thì cả 3 phương án phải nằm trong điểm đến đó, khác nhau ở chủ đề hoặc nhịp đi. Chưa nêu thì mỗi phương án có thể là một điểm đến khác.
+  - `stops` và `imageStop` phải là địa danh có tên riêng, không dùng tên chung như "bãi biển", "chợ đêm". `imageStop` của 3 phương án phải khác nhau.
+- Độ dài chuyến lấy từ bất cứ gì người dùng nói: ngày đi và ngày về, hoặc thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần").
+  - `lib/data/trip_data.dart`: `TripData` thêm `int? numDays`, có trong `toMap`, `fromMap`, `copyWith`. `trip_data` trên Supabase là jsonb nên không cần migration.
+  - `dayCount()`: có ngày đi và ngày về thì tính theo ngày; không có thì dùng `numDays`; không có nữa mới dùng fallback. Giữ giới hạn tối đa 7 ngày.
+  - `parseExtractedTripData` đang bỏ `numDays` khi không có ngày đi: sửa để luôn giữ lại.
+- `lib/models/plan_turn.dart` (mới): `TripOption`, `PlanTurn`, `PlannerMessage`. `DestinationSuggestion` giữ nguyên cho Explore. Spec chi tiết: `docs/superpowers/specs/2026-09-27-planner-chat-design.md`.
+- `lib/screens/smart_planner_screen.dart`:
+  - Trạng thái ban đầu giữ ô prompt và quick prompt hiện có. Sau lượt gửi đầu, màn chuyển thành danh sách tin nhắn, ô nhập ở đáy và nút "Gợi ý luôn" (buộc AI đưa phương án ở lượt kế tiếp).
+  - Tin nhắn AI có `options` thì hiện thẻ phương án ngay dưới câu trả lời.
+  - Hội thoại chỉ nằm trong state của màn, không lưu.
+- Thẻ phương án: tiêu đề kèm thời lượng ("Côn Đảo 4N3Đ · Biển & lặn"), một dòng lộ trình nối `stops` bằng "→", giá có nhãn "Ước tính AI", một dòng insight, một ảnh. Không rating, không `reviewCount`, không `matchPercent`.
+- Chọn thẻ:
+  - `updateTrip()` với `TripData` của lượt cuối.
+  - `aiPrompt` = các tin nhắn của người dùng nối lại, cộng "Phương án đã chọn: {title}, lộ trình: {stops}". Code tự ghép, không gọi AI thêm.
+  - `recordTripSearch()`, rồi mở `DestinationDetailScreen(destinationName: option.destination)`. Màn chi tiết và itinerary đã đọc `currentTrip.aiPrompt` nên không phải sửa, và itinerary sẽ bám theo lộ trình đã chọn.
+- Ảnh cho thẻ:
+  - Tra `"{imageStop}, {destination}"` qua `ImageService.getImageUrl`, giống cách `getLandmarkPhotos` đang làm.
+  - Không có ảnh, hoặc URL trùng với thẻ khác, thì thử lần lượt các `stops` còn lại. Hết mới dùng ảnh của `destination`.
+- Xoá sau khi luồng mới chạy: `lib/screens/suggestions_screen.dart`, `getSuggestions`, `buildSuggestionsPrompt`, `extractTripData` (nếu `planTurn` đã thay hết), cùng test và key l10n chỉ phục vụ chúng. Giữ `enrichSuggestionsWithImages` vì Explore còn dùng. Compare vẫn mở được từ AI tools.
+
+Đủ là dừng:
+- Không streaming. Không lưu hội thoại planner, không đụng `chat_history_service`.
+- Không đổi `DestinationDetailScreen` và `DestinationPlanScreen`. Giá trên thẻ và giá ở màn chi tiết có thể lệch nhau (cả hai đều là ước tính), để sửa sau.
+- Không thêm nguồn ảnh mới, không dải ảnh nhiều điểm dừng trên thẻ.
+- Không gộp với `ChatScreen` hiện có.
+- Mỗi lần đưa 3 phương án, không "xem thêm", không phân trang.
+
+Nghiệm thu:
+- [ ] "Du lịch Côn Đảo" -> AI hỏi độ dài chuyến (hoặc giả định và nói rõ). Cả 3 phương án đều ở Côn Đảo, không có Đà Nẵng hay nơi khác.
+- [ ] "4 ngày 3 đêm Nha Trang" -> có phương án ngay ở lượt đầu, không hỏi lại. Mỗi thẻ ghi 4N3Đ và có lộ trình nhiều điểm dừng.
+- [ ] "Muốn đi biển 1 tuần" -> 3 phương án ở 3 điểm đến khác nhau.
+- [ ] Có phương án rồi nhắn "rẻ hơn" -> ra bộ phương án mới trong cùng chat.
+- [ ] Bấm "Gợi ý luôn" khi AI đang hỏi -> có phương án ở lượt kế tiếp.
+- [ ] 3 thẻ hiện 3 ảnh khác nhau.
+- [ ] "1 tuần Côn Đảo" không nêu ngày -> itinerary 7 ngày. "Từ 10/10 đến 13/10" -> itinerary 4 ngày.
+- [ ] Chọn một thẻ -> mở màn chi tiết như hôm nay; itinerary bám theo lộ trình của thẻ đã chọn.
+- [ ] Test: parser của `planTurn` (lượt hỏi, lượt có phương án, thiếu key); `dayCount` với ngày đi/về, với `numDays`, với không có gì.
+
 ## 3. Thứ tự làm và phụ thuộc
 
 | Bước | Hướng | Phụ thuộc | Lý do |
@@ -184,6 +262,7 @@ Nghiệm thu:
 | 2 | 2.1 Planner | Không phụ thuộc 2.3 vì chạm file khác | Làm song song với 2.3 được |
 | 3 | 2.4 Ảnh | Sau 2.1 (để không sửa widget trên form sắp xoá) | |
 | 3 | 2.5 Giá | Sau 2.3 (cần `TripData` restore đúng để tính `HotelQuery`) | |
+| 4 | 2.6 Planner chat | Sau 2.1 | Thay màn planner và màn gợi ý; không chạm màn chi tiết nên làm song song với 2.5 được |
 
 Mỗi hướng một nhánh (tên mô tả việc đang làm là đủ) và một PR. Không gộp hai hướng vào một PR.
 
@@ -203,7 +282,7 @@ Bạn bè, chat xã hội, community reviews, presence. CDN ảnh và upload ả
 
 ## 6. Definition of done cho demo cuối khoá
 
-- [ ] Một mạch demo liền: mô tả chuyến đi bằng lời -> chip -> gợi ý -> chi tiết có hai loại giá -> itinerary -> lưu -> đăng nhập máy khác thấy đúng.
+- [ ] Một mạch demo liền: mô tả chuyến đi bằng lời -> chat (AI hỏi thêm nếu cần) -> chọn phương án -> chi tiết có hai loại giá -> itinerary -> lưu -> đăng nhập máy khác thấy đúng.
 - [ ] Hai chuyến cùng điểm đến khác ngày cùng tồn tại với itinerary riêng.
 - [ ] Xoá trip ở máy A, máy B không thấy sống lại.
 - [ ] Cache chỉ còn Memory + Hive theo user, có TTL; bảng `ai_generated_cache` và `CacheService` đã xoá.
