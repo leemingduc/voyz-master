@@ -126,16 +126,6 @@ class _ShimmerLoadingBoxState extends State<ShimmerLoadingBox>
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'AIVIVU đang nạp ảnh...',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.5),
-                  ),
-                ),
               ],
             ),
           ),

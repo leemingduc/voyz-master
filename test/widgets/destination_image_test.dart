@@ -16,10 +16,10 @@ void main() {
       ),
     );
 
-    // Verify shimmer widget renders when loading
+    // Verify shimmer widget renders when loading with rocket icon
     expect(find.byType(ShimmerLoadingBox), findsOneWidget);
     expect(find.byIcon(Icons.rocket_launch_rounded), findsOneWidget);
-    expect(find.text('AIVIVU đang nạp ảnh...'), findsOneWidget);
+    expect(find.text('AIVIVU đang nạp ảnh...'), findsNothing);
   });
 
   testWidgets('DestinationImage renders Fallback with name when not loading and empty', (tester) async {
