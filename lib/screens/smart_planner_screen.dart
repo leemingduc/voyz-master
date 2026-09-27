@@ -167,6 +167,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _error = e;
         _isSending = false;
       });
+      _scrollToBottom();
     }
   }
 
@@ -188,7 +189,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     setState(() {
       _messages.clear();
       _error = null;
-      _isSending = false;
       _promptController.clear();
     });
   }
@@ -308,7 +308,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
               if (_inChat)
                 IconButton(
                   tooltip: l10n.newPlannerChat,
-                  onPressed: _newChat,
+                  onPressed: _isSending ? null : _newChat,
                   icon: const Icon(
                     Icons.add_comment_outlined,
                     color: Colors.white,
