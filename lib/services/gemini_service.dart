@@ -283,17 +283,17 @@ Quy tắc:
 - "trip" chứa mọi thông tin đã biết từ cả hội thoại. Không bỏ giá trị người dùng đã nêu. Không có thì để null.
 - Độ dài chuyến: người dùng nêu ngày đi và ngày về thì điền "departDate" và "returnDate" (yyyy-MM-dd, tính từ hôm nay nếu nói "tuần sau"). Người dùng nêu thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần") thì điền "numDays" (1 tuần là 7, cuối tuần là 2).
 - Cần đủ hai thứ mới đưa phương án: điểm đến (hoặc kiểu chuyến như "đi biển") và độ dài chuyến. Thiếu thì hỏi đúng 1 câu ngắn trong "reply" và để "options" là mảng rỗng. Đủ thì đưa phương án ngay, không hỏi thêm.
-- Mỗi lượt hỏi tối đa 1 câu.$forceRule
+- Mỗi lượt chỉ hỏi đúng MỘT điều còn thiếu (ưu tiên độ dài chuyến), không gộp hai câu hỏi làm một. Ngân sách, số người và sở thích không bắt buộc: không hỏi, tự giả định.$forceRule
 - Khi đưa phương án: đúng 3 phần tử trong "options"; "reply" là 1 câu giới thiệu ngắn.
 - Người dùng đã nêu điểm đến thì cả 3 phương án PHẢI nằm trong điểm đến đó, khác nhau ở chủ đề hoặc nhịp đi. Không đưa điểm đến khác. Chưa nêu điểm đến thì mỗi phương án có thể là một điểm đến khác nhau.
 - "destination": tên điểm đến gốc dạng "Tên, Quốc gia" (ví dụ "Côn Đảo, Việt Nam").
 - "numDays": số ngày của phương án, khớp với độ dài chuyến người dùng muốn.
 - "stops": 3 đến 5 địa danh có tên riêng, theo thứ tự đi. Không dùng tên chung như "bãi biển", "chợ đêm", "nhà hàng hải sản".
-- "imageStop": một địa danh trong "stops" tiêu biểu nhất cho chủ đề. 3 phương án phải có "imageStop" khác nhau.
+- "imageStop": địa danh tiêu biểu nhất cho chủ đề (một trong các "stops"), nhưng LUÔN viết bằng tên gốc tiếng địa phương có dấu đúng như tên bài Wikipedia (ví dụ "Nhà tù Côn Đảo", "Hòn Bảy Cạnh"), không dịch, dù các trường khác viết bằng ngôn ngữ nào. 3 phương án phải có "imageStop" khác nhau.
 - "price": chi phí ước tính thực tế cho 1 người cả chuyến, ghi kèm mã tiền tệ (ví dụ "~6.5M VND").
 - "aiInsight": 1 câu vì sao phương án này hợp với người dùng.
 - Người dùng muốn chỉnh ("rẻ hơn", "thêm lặn biển") thì đưa bộ 3 phương án mới theo yêu cầu.
-- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng giá trị cho phép, không dịch.
+- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng giá trị cho phép, không dịch. "imageStop" giữ tên gốc tiếng địa phương như quy tắc trên.
 - ${languageInstruction(languageCode)}
 ''';
   }

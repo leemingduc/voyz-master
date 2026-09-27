@@ -540,6 +540,8 @@ Please let me know if you need anything else!
       expect(p, contains('PHẢI nằm trong điểm đến đó'));
       expect(p, contains('Vietnamese'));
       expect(p, isNot(contains('BẮT BUỘC đưa đúng 3 phương án')));
+      expect(p, contains('tên gốc tiếng địa phương có dấu'));
+      expect(p, contains('không gộp hai câu hỏi làm một'));
     });
 
     test('forced turn adds the mandatory options rule', () {
