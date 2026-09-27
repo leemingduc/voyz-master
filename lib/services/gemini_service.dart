@@ -401,13 +401,13 @@ Quy tắc:
     );
   }
 
-  /// Tra anh cho tung the phuong an qua ImageService, khong de hai the
-  /// trung anh. Loi anh khong lam hong ket qua AI.
+  /// Tra ảnh cho từng thẻ phương án qua ImageService, không để hai thẻ
+  /// trùng ảnh. Lỗi ảnh không làm hỏng kết quả AI.
   Future<List<TripOption>> enrichOptionsWithImages(List<TripOption> options) =>
       pickOptionImages(options, ImageService.instance.getImageUrl);
 
-  /// Thu tu thu cho moi the: `imageStop`, cac diem dung con lai, roi diem
-  /// den goc. URL dau tien khong rong va chua the nao dung thi lay.
+  /// Thứ tự thử cho mỗi thẻ: `imageStop`, các điểm dừng còn lại, rồi điểm
+  /// đến gốc. URL đầu tiên không rỗng và chưa thẻ nào dùng thì lấy.
   @visibleForTesting
   static Future<List<TripOption>> pickOptionImages(
     List<TripOption> options,
