@@ -267,20 +267,42 @@ class _SearchPanel extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    height: 1.35,
+                  ),
                   onSubmitted: (_) => onSearch(),
                   decoration: InputDecoration(
                     hintText: 'Email or display name',
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 15,
                     ),
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
                         color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.cyan,
+                        width: 1.5,
                       ),
                     ),
                   ),
@@ -549,17 +571,41 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                       controller: _messageController,
                       minLines: 1,
                       maxLines: 4,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.35,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Message',
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
+                          fontSize: 15,
                         ),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.07),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 13,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                            color: AppTheme.cyan,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                       onSubmitted: (_) => _send(),

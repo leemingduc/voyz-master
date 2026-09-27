@@ -562,16 +562,40 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             controller: _reviewController,
             minLines: 2,
             maxLines: 3,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.4,
+            ),
             decoration: InputDecoration(
               hintText: 'Share a quick tip for other travelers',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 14,
+              ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppTheme.cyan,
+                  width: 1.5,
                 ),
               ),
             ),

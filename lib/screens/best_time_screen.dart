@@ -141,21 +141,41 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _destinationController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.35,
+                    ),
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.bestTimeHint,
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 15,
                       ),
                       filled: true,
                       fillColor: AppTheme.backgroundDark,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: AppTheme.cyan,
+                          width: 1.5,
+                        ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: 18,
+                        vertical: 14,
                       ),
                     ),
                   ),
