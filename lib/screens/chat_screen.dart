@@ -12,6 +12,7 @@ import 'package:voyz/services/chat_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
+import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
 
 /// AI Travel Chatbot screen — chat directly with the AI travel assistant.
 class ChatScreen extends StatefulWidget {
@@ -186,30 +187,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Loading indicator
           if (_isSending)
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.primaryPink,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    AppLocalizations.of(context)!.chatAiReply,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TypingIndicatorBubble(
+                label: AppLocalizations.of(context)!.chatAiReply,
               ),
             ),
 

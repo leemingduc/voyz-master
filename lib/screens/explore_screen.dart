@@ -10,6 +10,7 @@ import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -340,16 +341,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget _buildBody(ThemeData theme) {
     if (_isLoading) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.loadingExplore,
-              style: TextStyle(color: Colors.white54),
-            ),
-          ],
+        child: AivivuLoadingIndicator(
+          message: AppLocalizations.of(context)!.loadingExplore,
+          size: 88,
         ),
       );
     }

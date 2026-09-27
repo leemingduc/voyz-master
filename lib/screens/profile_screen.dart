@@ -8,6 +8,7 @@ import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
+import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
@@ -304,6 +305,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                           _buildLanguageCard(theme),
                           const SizedBox(height: 16),
+                          _buildSoundCard(),
+                          const SizedBox(height: 16),
                           _buildAiModelCard(),
                           const SizedBox(height: 16),
                           _buildPreferencesCard(theme),
@@ -591,6 +594,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  // ── Sound Card ────────────────────────────────────────────────────────
+
+  Widget _buildSoundCard() {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: ValueListenableBuilder<bool>(
+        valueListenable: BackgroundMusicService.instance.isPlayingNotifier,
+        builder: (context, isPlaying, _) {
+          return Row(
+            children: [
+              ShaderMask(
+                shaderCallback: AppTheme.brandGradient.createShader,
+                child: Icon(
+                  isPlaying
+                      ? Icons.music_note_rounded
+                      : Icons.music_off_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nhac nen',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isPlaying ? 'Dang bat' : 'Dang tat',
+                      style: TextStyle(
+                        color: isPlaying
+                            ? AppTheme.cyan
+                            : Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isPlaying,
+                onChanged: (_) => BackgroundMusicService.instance.toggle(),
+                activeColor: AppTheme.cyan,
+                activeTrackColor: AppTheme.cyan.withValues(alpha: 0.3),
+                inactiveThumbColor: Colors.white38,
+                inactiveTrackColor: Colors.white12,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
