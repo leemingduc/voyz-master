@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/trip_data.dart';
@@ -311,20 +313,23 @@ Please let me know if you need anything else!
     });
   });
 
-  group('parseExtractedTripData', () {
+  group('parseTripMap', () {
     final service = GeminiService.instance;
+    Map<String, dynamic> m(String json) =>
+        jsonDecode(json) as Map<String, dynamic>;
 
     test(
       'JSON day du: moi truong vao dung cho, participants so thanh chuoi',
       () {
-        final trip = service.parseExtractedTripData('''
+        final trip = service.parseTripMap(m('''
 {"destination":"Da Lat","departDate":"2026-10-01","returnDate":"2026-10-03",
  "numDays":3,"budgetTier":"economy","participants":4,"ageRange":"30-40",
  "interests":["food","culture"]}
-''', originalPrompt: 'Di Da Lat');
+'''), originalPrompt: 'Di Da Lat');
         expect(trip.destination, 'Da Lat');
         expect(trip.departDate, DateTime(2026, 10, 1));
         expect(trip.returnDate, DateTime(2026, 10, 3));
+        expect(trip.numDays, 3);
         expect(trip.budget, 'economy');
         expect(trip.participants, '4');
         expect(trip.ageRange, '30-40');
@@ -334,10 +339,11 @@ Please let me know if you need anything else!
     );
 
     test('JSON chi co destination: cac truong khac rong', () {
-      final trip = service.parseExtractedTripData('{"destination":"Hue"}');
+      final trip = service.parseTripMap(m('{"destination":"Hue"}'));
       expect(trip.destination, 'Hue');
       expect(trip.departDate, isNull);
       expect(trip.returnDate, isNull);
+      expect(trip.numDays, isNull);
       expect(trip.budget, '');
       expect(trip.participants, '');
       expect(trip.ageRange, '');
@@ -345,45 +351,50 @@ Please let me know if you need anything else!
     });
 
     test('tier la va interest la bi bo, interest hop le giu lai', () {
-      final trip = service.parseExtractedTripData(
-        '{"budgetTier":"cheap","interests":["beach","shopping"]}',
+      final trip = service.parseTripMap(
+        m('{"budgetTier":"cheap","interests":["beach","shopping"]}'),
       );
       expect(trip.budget, '');
       expect(trip.selectedInterests, ['beach']);
     });
 
     test('departDate + numDays khong co returnDate: tinh returnDate', () {
-      final trip = service.parseExtractedTripData(
-        '{"departDate":"2026-10-01","numDays":3}',
+      final trip = service.parseTripMap(
+        m('{"departDate":"2026-10-01","numDays":3}'),
       );
       expect(trip.departDate, DateTime(2026, 10, 1));
       expect(trip.returnDate, DateTime(2026, 10, 3));
     });
 
-    test('chi numDays khong co departDate: ca hai ngay null', () {
-      final trip = service.parseExtractedTripData('{"numDays":5}');
+    test('chi numDays khong co departDate: giu numDays, hai ngay null', () {
+      final trip = service.parseTripMap(m('{"numDays":5}'));
       expect(trip.departDate, isNull);
       expect(trip.returnDate, isNull);
+      expect(trip.numDays, 5);
+      expect(trip.dayCount(), 5);
+    });
+
+    test('numDays dang chuoi van doc duoc, so am bi bo', () {
+      expect(service.parseTripMap(m('{"numDays":"7"}')).numDays, 7);
+      expect(service.parseTripMap(m('{"numDays":-2}')).numDays, isNull);
     });
 
     test('participants khong phai so thi rong', () {
-      final trip = service.parseExtractedTripData(
-        '{"participants":"gia dinh"}',
-      );
+      final trip = service.parseTripMap(m('{"participants":"gia dinh"}'));
       expect(trip.participants, '');
     });
 
     test('chuoi "null" duoc coi la rong', () {
-      final trip = service.parseExtractedTripData(
-        '{"destination":"null","ageRange":"NULL"}',
+      final trip = service.parseTripMap(
+        m('{"destination":"null","ageRange":"NULL"}'),
       );
       expect(trip.destination, '');
       expect(trip.ageRange, '');
     });
 
     test('ngay co gio va Z duoc chuan hoa ve date-only local', () {
-      final trip = service.parseExtractedTripData(
-        '{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}',
+      final trip = service.parseTripMap(
+        m('{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}'),
       );
       expect(trip.departDate, DateTime(2026, 10, 1));
       expect(trip.returnDate, DateTime(2026, 10, 3));

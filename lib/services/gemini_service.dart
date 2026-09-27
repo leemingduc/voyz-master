@@ -115,6 +115,10 @@ class GeminiService {
     final s = value?.toString().trim() ?? '';
     return (s.isEmpty || s.toLowerCase() == 'null') ? '' : s;
   }
+  /// Số nguyên từ JSON (số hoặc chuỗi số). Không đọc được thì null.
+  static int? _toInt(dynamic value) => value is num
+      ? value.toInt()
+      : int.tryParse(value?.toString().trim() ?? '');
 
   /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
   /// người dùng sửa mô tả là phân tích lại.
@@ -126,7 +130,11 @@ class GeminiService {
       Content.text(buildExtractPrompt(prompt, languageCode, DateTime.now())),
     ])).text;
     if (text == null || text.isEmpty) throw Exception('noAiResponse');
-    return parseExtractedTripData(text, originalPrompt: prompt);
+    final decoded = safeJsonDecode(text);
+    return parseTripMap(
+      decoded is Map ? Map<String, dynamic>.from(decoded) : {},
+      originalPrompt: prompt,
+    );
   }
 
   @visibleForTesting
@@ -162,23 +170,21 @@ Quy tắc:
 ''';
   }
 
-  /// Parser thuần cho JSON trích xuất. Key thiếu hoặc sai thì để rỗng.
+  /// Parser thuần cho object `trip` do AI trả. Key thiếu hoặc sai thì để rỗng.
+  /// `numDays` luôn được giữ, kể cả khi không có ngày đi.
   @visibleForTesting
-  TripData parseExtractedTripData(String text, {String originalPrompt = ''}) {
-    final decoded = safeJsonDecode(text);
-    final map = decoded is Map
-        ? Map<String, dynamic>.from(decoded)
-        : <String, dynamic>{};
-
+  TripData parseTripMap(
+    Map<String, dynamic> map, {
+    String originalPrompt = '',
+  }) {
     DateTime? depart = DateTime.tryParse(map['departDate']?.toString() ?? '');
     DateTime? ret = DateTime.tryParse(map['returnDate']?.toString() ?? '');
-    final numDays = map['numDays'] is num
-        ? (map['numDays'] as num).toInt()
-        : int.tryParse(map['numDays']?.toString() ?? '');
-    if (depart != null && ret == null && numDays != null && numDays > 0) {
+    final rawDays = _toInt(map['numDays']);
+    final numDays = rawDays != null && rawDays > 0 ? rawDays : null;
+    if (depart != null && ret == null && numDays != null) {
       ret = depart.add(Duration(days: numDays - 1));
     }
-    // Chỉ có ngày về mà không có ngày đi thì bỏ, form không dùng được.
+    // Chỉ có ngày về mà không có ngày đi thì bỏ, không dùng được.
     if (depart == null) ret = null;
 
     DateTime? dateOnly(DateTime? d) =>
@@ -187,10 +193,7 @@ Quy tắc:
     ret = dateOnly(ret);
 
     final tier = map['budgetTier']?.toString().trim().toLowerCase() ?? '';
-    final participants = map['participants'];
-    final participantsStr = participants is num
-        ? participants.toInt().toString()
-        : (int.tryParse(participants?.toString() ?? '')?.toString() ?? '');
+    final participants = _toInt(map['participants']);
     final interests = TripData.stringList(map['interests'])
         .map((e) => e.trim().toLowerCase())
         .where(MockData.interests.contains)
@@ -200,8 +203,9 @@ Quy tắc:
       destination: _cleanString(map['destination']),
       departDate: depart,
       returnDate: ret,
+      numDays: numDays,
       budget: _validTiers.contains(tier) ? tier : '',
-      participants: participantsStr,
+      participants: participants?.toString() ?? '',
       ageRange: _cleanString(map['ageRange']),
       aiPrompt: originalPrompt,
       selectedInterests: interests,
