@@ -17,6 +17,7 @@ import 'package:voyz/services/community_review_service.dart';
 import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -329,19 +330,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       return Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                AppLocalizations.of(context)!.loadingDetail,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-              ),
-            ],
+          child: AivivuLoadingIndicator(
+            message: AppLocalizations.of(context)!.loadingDetail,
+            size: 88,
           ),
         ),
       );

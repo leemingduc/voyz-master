@@ -4,6 +4,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
@@ -119,19 +120,9 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
   Widget _buildBody(ThemeData theme) {
     if (_isLoading) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: AppTheme.primaryPink),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.loadingCulturalTips,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 14,
-              ),
-            ),
-          ],
+        child: AivivuLoadingIndicator(
+          message: AppLocalizations.of(context)!.loadingCulturalTips,
+          size: 88,
         ),
       );
     }
