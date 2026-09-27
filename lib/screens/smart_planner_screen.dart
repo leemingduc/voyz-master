@@ -1,22 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
-import 'package:voyz/data/trip_data.dart';
+import 'package:voyz/models/plan_turn.dart';
+import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
-import 'package:voyz/screens/suggestions_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/utils/error_localizer.dart';
+import 'package:voyz/widgets/planner/planner_bubble.dart';
+import 'package:voyz/widgets/planner/trip_option_card.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
-/// Planner AI-first: người dùng chỉ mô tả chuyến đi. Bấm nút thì AI bóc
-/// tách mô tả thành [TripData] rồi mở thẳng màn gợi ý.
+/// Planner AI-first dạng chat. Trước lượt gửi đầu là màn hero như cũ; sau đó
+/// là hội thoại với AI, AI hỏi thêm khi thiếu thông tin rồi đưa 3 thẻ phương
+/// án. Chọn thẻ thì mở màn chi tiết như chạm một gợi ý trước đây.
+/// Hội thoại chỉ nằm trong state, không lưu.
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
 
@@ -26,11 +33,19 @@ class SmartPlannerScreen extends StatefulWidget {
 
 class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   final _promptController = TextEditingController();
+  final _scrollController = ScrollController();
 
   /// Sở thích lấy từ profile, dùng khi AI không suy ra được sở thích nào.
   List<String> _profileInterests = const [];
 
-  bool _isAnalyzing = false;
+  final List<PlannerMessage> _messages = [];
+  bool _isSending = false;
+  Object? _error;
+
+  /// Lượt đang chạy có bắt buộc đưa phương án không, để "Thử lại" gọi lại y hệt.
+  bool _lastForce = false;
+
+  bool get _inChat => _messages.isNotEmpty;
 
   @override
   void initState() {
@@ -53,7 +68,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                 .map((style) => style.toLowerCase().replaceAll(' ', '_'))
                 .toList() ??
             const [];
-        _promptController.text = trip.aiPrompt;
       });
     });
   }
@@ -61,21 +75,18 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   void dispose() {
     _promptController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  bool _validateInput() {
-    if (_promptController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.describeTripRequired),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return false;
-    }
-    return true;
+  void _showPromptRequired() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.describeTripRequired),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _onNavTap(int index) {
@@ -89,7 +100,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         );
         break;
       case 2:
-        _savePrompt();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
           (route) => false,
@@ -98,36 +108,88 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     }
   }
 
-  /// Rời planner giữa chừng thì chỉ giữ lại mô tả đang gõ.
-  void _savePrompt() {
-    final provider = SavedTripsProvider.of(context);
-    provider.updateTrip(
-      provider.currentTrip.copyWith(aiPrompt: _promptController.text),
-    );
+  /// Gửi tin nhắn đang gõ. "Gợi ý luôn" được bấm khi ô trống: không thêm
+  /// tin mới, chỉ bắt AI đưa phương án.
+  Future<void> _send({bool forceOptions = false}) async {
+    if (_isSending) return;
+    final text = _promptController.text.trim();
+    if (text.isEmpty && !(forceOptions && _inChat)) {
+      if (!_inChat) _showPromptRequired();
+      return;
+    }
+    setState(() {
+      if (text.isNotEmpty) _messages.add(PlannerMessage.user(text));
+      _promptController.clear();
+    });
+    await _runTurn(forceOptions: forceOptions);
   }
 
-  Future<void> _onGetSuggestions() async {
-    if (!_validateInput() || _isAnalyzing) return;
-    final provider = SavedTripsProvider.of(context);
-    final currency = CurrencyProvider.of(context).value;
+  Future<void> _runTurn({required bool forceOptions}) async {
     final languageCode = LocaleProvider.of(context).value.languageCode;
-    final prompt = _promptController.text.trim();
-    setState(() => _isAnalyzing = true);
-
-    // Mô tả mới thì thay toàn bộ TripData, không giữ giá trị của chuyến cũ.
-    // Trích xuất lỗi thì vẫn đi tiếp chỉ với mô tả, màn gợi ý tự đọc được.
-    TripData trip;
+    setState(() {
+      _isSending = true;
+      _error = null;
+      _lastForce = forceOptions;
+    });
+    _scrollToBottom();
     try {
-      trip = await GeminiService.instance.extractTripData(
-        prompt,
+      final turn = await GeminiService.instance.planTurn(
+        List.of(_messages),
+        forceOptions: forceOptions,
         languageCode: languageCode,
       );
+      if (turn.reply.isEmpty && !turn.hasOptions) {
+        throw Exception('noAiResponse');
+      }
+      if (!mounted) return;
+      final message = PlannerMessage.agent(turn);
+      setState(() {
+        _messages.add(message);
+        _isSending = false;
+      });
+      _scrollToBottom();
+      if (turn.hasOptions) unawaited(_loadImages(message));
     } catch (e) {
-      debugPrint('SmartPlanner: extractTripData failed: $e');
-      trip = TripData(aiPrompt: prompt);
+      debugPrint('SmartPlanner: planTurn failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _isSending = false;
+      });
+      _scrollToBottom();
     }
-    if (!mounted) return;
+  }
 
+  /// Ảnh về sau text: thay đúng tin nhắn đó, bỏ qua nếu chat đã bị làm mới.
+  Future<void> _loadImages(PlannerMessage message) async {
+    final turn = message.turn!;
+    final options = await GeminiService.instance.enrichOptionsWithImages(
+      turn.options,
+    );
+    if (!mounted) return;
+    final index = _messages.indexOf(message);
+    if (index < 0) return;
+    setState(() {
+      _messages[index] = PlannerMessage.agent(turn.copyWith(options: options));
+    });
+  }
+
+  void _newChat() {
+    setState(() {
+      _messages.clear();
+      _error = null;
+      _promptController.clear();
+    });
+  }
+
+  Future<void> _pickOption(PlanTurn turn, TripOption option) async {
+    final provider = SavedTripsProvider.of(context);
+    final currency = CurrencyProvider.of(context).value;
+    final userMessages = [
+      for (final m in _messages)
+        if (m.isUser) m.text,
+    ];
+    final trip = tripForOption(turn, option, userMessages);
     provider.updateTrip(
       trip.copyWith(
         currency: currency,
@@ -138,10 +200,23 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     );
     await SearchHistoryService.instance.recordTripSearch(provider.currentTrip);
     if (!mounted) return;
-    setState(() => _isAnalyzing = false);
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SuggestionsScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            DestinationDetailScreen(destinationName: option.destination),
+      ),
+    );
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -161,57 +236,137 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingLg,
-                  vertical: AppTheme.spacingMd,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const AivivuWordmark(fontSize: 20),
-                        Text(
-                          l10n.smartPlanner,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.7),
+              _buildHeader(l10n),
+              Expanded(
+                child: _inChat
+                    ? _buildChat(l10n)
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingLg,
+                        ),
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1180),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 16),
+                                _buildPlannerHero(theme, l10n),
+                                const SizedBox(height: 100),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                    const AccountMenuButton(),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingLg,
-                  ),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1180),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          _buildPlannerHero(theme, l10n),
-                          const SizedBox(height: 100),
-                        ],
                       ),
-                    ),
-                  ),
-                ),
               ),
+              if (_inChat) _buildChatDock(l10n),
             ],
           ),
         ),
       ),
       bottomSheet: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
+    );
+  }
+
+  Widget _buildHeader(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingMd,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AivivuWordmark(fontSize: 20),
+              Text(
+                l10n.smartPlanner,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_inChat)
+                IconButton(
+                  tooltip: l10n.newPlannerChat,
+                  onPressed: _isSending ? null : _newChat,
+                  icon: const Icon(
+                    Icons.add_comment_outlined,
+                    color: Colors.white,
+                  ),
+                ),
+              const AccountMenuButton(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChat(AppLocalizations l10n) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: ListView(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          children: [
+            for (final message in _messages) ...[
+              if (message.text.isNotEmpty)
+                PlannerBubble(text: message.text, isUser: message.isUser),
+              if (message.turn != null)
+                for (final option in message.turn!.options)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: TripOptionCard(
+                      option: option,
+                      onTap: () => _pickOption(message.turn!, option),
+                    ),
+                  ),
+            ],
+            if (_isSending) _TypingRow(label: l10n.chatAiReply),
+            if (_error != null)
+              _ErrorRow(
+                message: ErrorLocalizer.getLocalizedMessage(_error!, l10n),
+                retryLabel: l10n.retry,
+                onRetry: () => _runTurn(forceOptions: _lastForce),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Ô nhập ở đáy khi đang chat. Chừa chỗ cho thanh điều hướng nổi.
+  Widget _buildChatDock(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 76),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: _AiPromptBox(
+            controller: _promptController,
+            hintText: l10n.plannerChatHint,
+            minLines: 1,
+            maxLines: 3,
+            actionLabel: _isSending ? l10n.analyzingTrip : l10n.plannerSend,
+            actionIcon: Icons.send,
+            onAction: _isSending ? null : _send,
+            secondaryLabel: l10n.suggestNow,
+            secondaryIcon: Icons.auto_awesome_outlined,
+            onSecondary: _isSending ? null : () => _send(forceOptions: true),
+          ),
+        ),
+      ),
     );
   }
 
@@ -269,10 +424,15 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
     final prompt = _AiPromptBox(
       controller: _promptController,
-      actionLabel: _isAnalyzing ? l10n.analyzingTrip : l10n.getAiSuggestions,
+      hintText: l10n.aiPromptHint,
+      minLines: 2,
+      maxLines: 4,
+      actionLabel: _isSending ? l10n.analyzingTrip : l10n.getAiSuggestions,
       actionIcon: Icons.auto_awesome,
-      onAction: _isAnalyzing ? null : _onGetSuggestions,
-      onExplore: () {
+      onAction: _isSending ? null : _send,
+      secondaryLabel: l10n.explore,
+      secondaryIcon: Icons.explore_outlined,
+      onSecondary: () {
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const ExploreScreen()));
@@ -323,27 +483,113 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   }
 }
 
+class _TypingRow extends StatelessWidget {
+  const _TypingRow({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPink),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorRow extends StatelessWidget {
+  const _ErrorRow({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: error, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 13,
+              ),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: Text(retryLabel),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ô prompt dùng cho cả hero và dock chat. Nút phụ viền cyan đổi theo chế
+/// độ: Khám phá ở hero, "Gợi ý luôn" khi đang chat.
 class _AiPromptBox extends StatelessWidget {
   const _AiPromptBox({
     required this.controller,
+    required this.hintText,
+    required this.minLines,
+    required this.maxLines,
     required this.actionLabel,
     required this.actionIcon,
     required this.onAction,
-    required this.onExplore,
+    required this.secondaryLabel,
+    required this.secondaryIcon,
+    required this.onSecondary,
   });
 
   final TextEditingController controller;
+  final String hintText;
+  final int minLines;
+  final int maxLines;
   final String actionLabel;
   final IconData actionIcon;
 
-  /// Null khi đang phân tích.
+  /// Null khi đang chờ AI.
   final VoidCallback? onAction;
-  final VoidCallback onExplore;
+  final String secondaryLabel;
+  final IconData secondaryIcon;
+
+  /// Null khi đang chờ AI.
+  final VoidCallback? onSecondary;
 
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -371,11 +617,11 @@ class _AiPromptBox extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  maxLines: 4,
-                  minLines: 2,
+                  maxLines: maxLines,
+                  minLines: minLines,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
-                    hintText: l10n.aiPromptHint,
+                    hintText: hintText,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.42),
                       fontSize: 16,
@@ -402,9 +648,9 @@ class _AiPromptBox extends StatelessWidget {
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(
-                    onPressed: onExplore,
-                    icon: const Icon(Icons.explore_outlined, size: 19),
-                    label: Text(l10n.explore),
+                    onPressed: onSecondary,
+                    icon: Icon(secondaryIcon, size: 19),
+                    label: Text(secondaryLabel),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.cyan,
                       backgroundColor: AppTheme.cyan.withValues(alpha: 0.08),

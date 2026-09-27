@@ -14,6 +14,7 @@ import 'package:voyz/models/destination_comparison.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/models/destination_suggestion.dart';
 import 'package:voyz/models/itinerary_plan.dart';
+import 'package:voyz/models/plan_turn.dart';
 
 import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/image_service.dart';
@@ -106,7 +107,7 @@ class GeminiService {
     }
   }
 
-  // ── Trích xuất TripData từ mô tả (planner hai bước) ──────────────────
+  // ── Đọc TripData từ JSON của AI ──────────────────────────────────────
 
   static const _validTiers = ['economy', 'moderate', 'premium', 'luxury'];
 
@@ -115,70 +116,26 @@ class GeminiService {
     final s = value?.toString().trim() ?? '';
     return (s.isEmpty || s.toLowerCase() == 'null') ? '' : s;
   }
+  /// Số nguyên từ JSON (số hoặc chuỗi số). Không đọc được thì null.
+  static int? _toInt(dynamic value) => value is num
+      ? value.toInt()
+      : int.tryParse(value?.toString().trim() ?? '');
 
-  /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
-  /// người dùng sửa mô tả là phân tích lại.
-  Future<TripData> extractTripData(
-    String prompt, {
-    String languageCode = 'vi',
-  }) async {
-    final text = (await _gemini.generateContent([
-      Content.text(buildExtractPrompt(prompt, languageCode, DateTime.now())),
-    ])).text;
-    if (text == null || text.isEmpty) throw Exception('noAiResponse');
-    return parseExtractedTripData(text, originalPrompt: prompt);
-  }
-
+  /// Parser thuần cho object `trip` do AI trả. Key thiếu hoặc sai thì để rỗng.
+  /// `numDays` luôn được giữ, kể cả khi không có ngày đi.
   @visibleForTesting
-  String buildExtractPrompt(
-    String prompt,
-    String languageCode,
-    DateTime today,
-  ) {
-    final todayStr = DateFormat('yyyy-MM-dd').format(today);
-    return '''
-Bạn là trợ lý du lịch. Hôm nay là $todayStr. Đọc mô tả chuyến đi của người dùng và bóc tách thông tin.
-
-Mô tả: "$prompt"
-
-Trả về JSON đúng các key sau, không thêm key khác:
-{
-  "destination": "tên điểm đến, hoặc null nếu không nêu",
-  "departDate": "yyyy-MM-dd hoặc null (chỉ khi mô tả nêu ngày hoặc mốc thời gian đủ rõ để tính từ hôm nay)",
-  "returnDate": "yyyy-MM-dd hoặc null",
-  "numDays": "số nguyên hoặc null",
-  "budgetTier": "một trong: economy | moderate | premium | luxury, hoặc null",
-  "participants": "số người, số nguyên hoặc null",
-  "ageRange": "khoảng tuổi dạng chuỗi, hoặc null",
-  "interests": ["chỉ dùng các giá trị: beach, adventure, culture, food, wellness"]
-}
-
-Quy tắc:
-- Không đoán bừa: không có thông tin thì để null hoặc mảng rỗng.
-- "tiết kiệm", "rẻ" là economy; "sang", "5 sao" là luxury; "cao cấp" là premium.
-- CHỈ trả về JSON, KHÔNG thêm markdown hay text khác.
-- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng danh sách trên, không dịch.
-- ${languageInstruction(languageCode)}
-''';
-  }
-
-  /// Parser thuần cho JSON trích xuất. Key thiếu hoặc sai thì để rỗng.
-  @visibleForTesting
-  TripData parseExtractedTripData(String text, {String originalPrompt = ''}) {
-    final decoded = safeJsonDecode(text);
-    final map = decoded is Map
-        ? Map<String, dynamic>.from(decoded)
-        : <String, dynamic>{};
-
+  TripData parseTripMap(
+    Map<String, dynamic> map, {
+    String originalPrompt = '',
+  }) {
     DateTime? depart = DateTime.tryParse(map['departDate']?.toString() ?? '');
     DateTime? ret = DateTime.tryParse(map['returnDate']?.toString() ?? '');
-    final numDays = map['numDays'] is num
-        ? (map['numDays'] as num).toInt()
-        : int.tryParse(map['numDays']?.toString() ?? '');
-    if (depart != null && ret == null && numDays != null && numDays > 0) {
+    final rawDays = _toInt(map['numDays']);
+    final numDays = rawDays != null && rawDays > 0 ? rawDays : null;
+    if (depart != null && ret == null && numDays != null) {
       ret = depart.add(Duration(days: numDays - 1));
     }
-    // Chỉ có ngày về mà không có ngày đi thì bỏ, form không dùng được.
+    // Chỉ có ngày về mà không có ngày đi thì bỏ, không dùng được.
     if (depart == null) ret = null;
 
     DateTime? dateOnly(DateTime? d) =>
@@ -187,10 +144,7 @@ Quy tắc:
     ret = dateOnly(ret);
 
     final tier = map['budgetTier']?.toString().trim().toLowerCase() ?? '';
-    final participants = map['participants'];
-    final participantsStr = participants is num
-        ? participants.toInt().toString()
-        : (int.tryParse(participants?.toString() ?? '')?.toString() ?? '');
+    final participants = _toInt(map['participants']);
     final interests = TripData.stringList(map['interests'])
         .map((e) => e.trim().toLowerCase())
         .where(MockData.interests.contains)
@@ -200,12 +154,244 @@ Quy tắc:
       destination: _cleanString(map['destination']),
       departDate: depart,
       returnDate: ret,
+      numDays: numDays,
       budget: _validTiers.contains(tier) ? tier : '',
-      participants: participantsStr,
+      participants: participants?.toString() ?? '',
       ageRange: _cleanString(map['ageRange']),
       aiPrompt: originalPrompt,
       selectedInterests: interests,
     );
+  }
+
+  // ── Planner chat (roadmap 2.6) ────────────────────────────────────────
+
+  /// Khung JSON cố định cho mọi lượt planner. Có schema thì model không
+  /// thể trả thiếu `reply`, `trip`, `options` hay sai kiểu.
+  static final Schema _planTurnSchema = Schema.object(
+    properties: {
+      'reply': Schema.string(),
+      'trip': Schema.object(
+        properties: {
+          'destination': Schema.string(nullable: true),
+          'departDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
+          'returnDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
+          'numDays': Schema.integer(nullable: true),
+          'budgetTier': Schema.enumString(
+            enumValues: _validTiers,
+            nullable: true,
+          ),
+          'participants': Schema.integer(nullable: true),
+          'ageRange': Schema.string(nullable: true),
+          'interests': Schema.array(
+            items: Schema.enumString(enumValues: MockData.interests),
+          ),
+        },
+      ),
+      'options': Schema.array(
+        items: Schema.object(
+          properties: {
+            'title': Schema.string(),
+            'destination': Schema.string(),
+            'numDays': Schema.integer(),
+            'stops': Schema.array(items: Schema.string()),
+            'imageStop': Schema.string(),
+            'price': Schema.string(),
+            'aiInsight': Schema.string(),
+          },
+          requiredProperties: [
+            'title',
+            'destination',
+            'numDays',
+            'stops',
+            'imageStop',
+            'price',
+            'aiInsight',
+          ],
+        ),
+      ),
+    },
+    requiredProperties: ['reply', 'trip', 'options'],
+  );
+
+  /// Một lượt planner chat. [messages] là cả hội thoại, tin cuối thường là
+  /// của người dùng. Code (không phải model) quyết định lúc nào bắt buộc đưa
+  /// phương án: người dùng bấm "Gợi ý luôn", hoặc AI đã hỏi 2 lượt liền.
+  /// Không cache: mỗi lượt phụ thuộc cả hội thoại.
+  Future<PlanTurn> planTurn(
+    List<PlannerMessage> messages, {
+    bool forceOptions = false,
+    String languageCode = 'vi',
+  }) async {
+    final force = forceOptions || questionsSinceLastOptions(messages) >= 2;
+    final model = _createModel(
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        responseSchema: _planTurnSchema,
+        temperature: 0.7,
+        maxOutputTokens: 12288,
+      ),
+    );
+    final prompt = buildPlanTurnPrompt(
+      messages,
+      forceOptions: force,
+      languageCode: languageCode,
+      today: DateTime.now(),
+    );
+    final text = (await model.generateContent([Content.text(prompt)])).text;
+    if (text == null || text.isEmpty) throw Exception('noAiResponse');
+    return parsePlanTurn(text);
+  }
+
+  /// Số lượt AI hỏi thêm kể từ lượt gần nhất có phương án.
+  static int questionsSinceLastOptions(List<PlannerMessage> messages) {
+    var count = 0;
+    for (final message in messages.reversed) {
+      final turn = message.turn;
+      if (turn == null) continue;
+      if (turn.hasOptions) break;
+      count++;
+    }
+    return count;
+  }
+
+  @visibleForTesting
+  String buildPlanTurnPrompt(
+    List<PlannerMessage> messages, {
+    required bool forceOptions,
+    required String languageCode,
+    required DateTime today,
+  }) {
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    final transcript = messages
+        .map(
+          (m) => m.isUser ? 'Người dùng: ${m.text}' : 'AI (JSON): ${m.turn!.raw}',
+        )
+        .join('\n');
+    final forceRule = forceOptions
+        ? '\n- LƯỢT NÀY BẮT BUỘC đưa đúng 3 phương án, không hỏi thêm. Thiếu thông tin thì tự giả định hợp lý và nói rõ giả định trong "reply" (ví dụ "Mình giả định 3N2Đ, 2 người").'
+        : '';
+
+    return '''
+Bạn là chuyên gia tư vấn du lịch AI, trò chuyện với người dùng để lên phương án chuyến đi. Hôm nay là $todayStr.
+
+Hội thoại đến giờ:
+$transcript
+
+Nhiệm vụ: trả lời lượt tiếp theo bằng JSON theo schema, gồm "reply", "trip", "options".
+
+Quy tắc:
+- "trip" chứa mọi thông tin đã biết từ cả hội thoại. Không bỏ giá trị người dùng đã nêu. Không có thì để null.
+- Độ dài chuyến: người dùng nêu ngày đi và ngày về thì điền "departDate" và "returnDate" (yyyy-MM-dd, tính từ hôm nay nếu nói "tuần sau"). Người dùng nêu thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần") thì điền "numDays" (1 tuần là 7, cuối tuần là 2).
+- Cần đủ hai thứ mới đưa phương án: điểm đến (hoặc kiểu chuyến như "đi biển") và độ dài chuyến. Thiếu thì hỏi đúng 1 câu ngắn trong "reply" và để "options" là mảng rỗng. Đủ thì đưa phương án ngay, không hỏi thêm.
+- Mỗi lượt chỉ hỏi đúng MỘT điều còn thiếu (ưu tiên độ dài chuyến), không gộp hai câu hỏi làm một. Ngân sách, số người và sở thích không bắt buộc: không hỏi, tự giả định.$forceRule
+- Khi đưa phương án: đúng 3 phần tử trong "options"; "reply" là 1 câu giới thiệu ngắn.
+- Người dùng đã nêu điểm đến thì cả 3 phương án PHẢI nằm trong điểm đến đó, khác nhau ở chủ đề hoặc nhịp đi. Không đưa điểm đến khác. Chưa nêu điểm đến thì mỗi phương án có thể là một điểm đến khác nhau.
+- "destination": tên điểm đến gốc dạng "Tên, Quốc gia" (ví dụ "Côn Đảo, Việt Nam").
+- "numDays": số ngày của phương án, khớp với độ dài chuyến người dùng muốn.
+- "stops": 3 đến 5 địa danh có tên riêng, theo thứ tự đi. Không dùng tên chung như "bãi biển", "chợ đêm", "nhà hàng hải sản".
+- "imageStop": địa danh tiêu biểu nhất cho chủ đề (một trong các "stops"), nhưng LUÔN viết bằng tên gốc tiếng địa phương có dấu đúng như tên bài Wikipedia (ví dụ "Nhà tù Côn Đảo", "Hòn Bảy Cạnh"), không dịch, dù các trường khác viết bằng ngôn ngữ nào. 3 phương án phải có "imageStop" khác nhau.
+- "price": chi phí ước tính thực tế cho 1 người cả chuyến, ghi kèm mã tiền tệ (ví dụ "~6.5M VND").
+- "aiInsight": 1 câu vì sao phương án này hợp với người dùng.
+- Người dùng muốn chỉnh ("rẻ hơn", "thêm lặn biển") thì đưa bộ 3 phương án mới theo yêu cầu.
+- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng giá trị cho phép, không dịch. "imageStop" giữ tên gốc tiếng địa phương như quy tắc trên.
+- ${languageInstruction(languageCode)}
+''';
+  }
+
+  /// Parser thuần cho một lượt planner. JSON hỏng thì trả lượt rỗng,
+  /// màn planner coi đó là lỗi.
+  @visibleForTesting
+  PlanTurn parsePlanTurn(String text) {
+    Map<String, dynamic> map;
+    try {
+      final decoded = safeJsonDecode(text);
+      map = decoded is Map ? Map<String, dynamic>.from(decoded) : {};
+    } catch (_) {
+      map = {};
+    }
+    final tripMap = map['trip'] is Map
+        ? Map<String, dynamic>.from(map['trip'] as Map)
+        : <String, dynamic>{};
+    final trip = parseTripMap(tripMap);
+    final rawOptions = map['options'] is List ? map['options'] as List : [];
+    final options = rawOptions
+        .whereType<Map>()
+        .map((e) => _parseTripOption(Map<String, dynamic>.from(e), trip))
+        .whereType<TripOption>()
+        .take(3)
+        .toList();
+    return PlanTurn(
+      reply: _cleanString(map['reply']),
+      trip: trip,
+      options: options,
+      raw: text.trim(),
+    );
+  }
+
+  /// Phương án thiếu tiêu đề, điểm đến hoặc điểm dừng thì bỏ.
+  TripOption? _parseTripOption(Map<String, dynamic> map, TripData trip) {
+    final title = _cleanString(map['title']);
+    final destination = _cleanString(map['destination']);
+    final stops = TripData.stringList(map['stops'])
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .take(5)
+        .toList();
+    if (title.isEmpty || destination.isEmpty || stops.isEmpty) return null;
+    final imageStop = _cleanString(map['imageStop']);
+    final days = _toInt(map['numDays']);
+    return TripOption(
+      title: title,
+      destination: destination,
+      numDays: (days != null && days > 0 ? days : (trip.numDays ?? 3))
+          .clamp(1, 7)
+          .toInt(),
+      stops: stops,
+      imageStop: imageStop.isNotEmpty ? imageStop : stops.first,
+      price: _cleanString(map['price']),
+      aiInsight: _cleanString(map['aiInsight']),
+    );
+  }
+
+  /// Tra ảnh cho từng thẻ phương án qua ImageService, không để hai thẻ
+  /// trùng ảnh. Lỗi ảnh không làm hỏng kết quả AI.
+  Future<List<TripOption>> enrichOptionsWithImages(List<TripOption> options) =>
+      pickOptionImages(options, ImageService.instance.getImageUrl);
+
+  /// Thứ tự thử cho mỗi thẻ: `imageStop`, các điểm dừng còn lại, rồi điểm
+  /// đến gốc. URL đầu tiên không rỗng và chưa thẻ nào dùng thì lấy.
+  @visibleForTesting
+  static Future<List<TripOption>> pickOptionImages(
+    List<TripOption> options,
+    Future<String> Function(String query) lookup,
+  ) async {
+    final used = <String>{};
+    final result = <TripOption>[];
+    for (final option in options) {
+      final candidates = [
+        '${option.imageStop}, ${option.destination}',
+        for (final stop in option.stops)
+          if (stop != option.imageStop) '$stop, ${option.destination}',
+        option.destination,
+      ];
+      var url = '';
+      for (final query in candidates) {
+        String found;
+        try {
+          found = await lookup(query);
+        } catch (e) {
+          debugPrint('Option image lookup failed (non-fatal): $e');
+          found = '';
+        }
+        if (found.isNotEmpty && !used.contains(found)) {
+          url = found;
+          break;
+        }
+      }
+      if (url.isNotEmpty) used.add(url);
+      result.add(option.copyWith(imageUrl: url));
+    }
+    return result;
   }
 
   // ── Explore (independent, no TripData needed) ─────────────────────────
@@ -298,57 +484,9 @@ Quy tắc:
 
   // ── Suggestions ──────────────────────────────────────────────────────────
 
-  /// Get AI travel suggestions based on user's trip preferences.
+  /// Back-fill image URLs into an existing list of suggestions.
   ///
-  /// **Phase 1 (fast, ~1-2s or <100ms on cache):** Returns suggestions immediately.
-  ///
-  /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
-  /// image URLs asynchronously if not already cached.
-  ///
-  /// [trip] contains destination, budget, interests, dates, etc.
-  /// [limit] controls the number of suggestions returned (default 10).
-  /// [forceRefresh] if true, bypasses the cache and calls the API.
-  Future<List<DestinationSuggestion>> getSuggestions(
-    TripData trip, {
-    int limit = 10,
-    bool forceRefresh = false,
-    String languageCode = 'vi',
-  }) async {
-    // Build cache key from the inputs that actually affect the result
-    final cacheKey = _aiCache.buildKey('suggestions', {
-      'destination': trip.destination,
-      'budget': trip.budget,
-      'currency': trip.currency,
-      'interests': trip.selectedInterests,
-      'limit': limit,
-      'lang': languageCode,
-      'aiPrompt': trip.aiPrompt.trim(),
-      'notes': trip.additionalNotes.trim(),
-      'depart': trip.departDate?.toIso8601String() ?? '',
-      'return': trip.returnDate?.toIso8601String() ?? '',
-      'participants': trip.participants.trim(),
-      'ageRange': trip.ageRange.trim(),
-    });
-
-    if (!forceRefresh) {
-      final cached = _aiCache.get(cacheKey);
-      if (cached != null) return parseSuggestionsSync(cached);
-    }
-
-    // Cache miss — call Gemini API
-    final prompt = buildSuggestionsPrompt(trip, limit, languageCode);
-    final response = await _gemini.generateContent([Content.text(prompt)]);
-    final text = response.text;
-    if (text == null || text.isEmpty) return [];
-
-    await _aiCache.put(cacheKey, text);
-    return parseSuggestionsSync(text);
-  }
-
-  /// Phase 2: Back-fill image URLs into an existing list of suggestions.
-  ///
-  /// Call this after [getSuggestions] to enrich results with images in the
-  /// background. All images are fetched in parallel via [ImageService].
+  /// All images are fetched in parallel via [ImageService].
   Future<List<DestinationSuggestion>> enrichSuggestionsWithImages(
     List<DestinationSuggestion> suggestions,
   ) async {
@@ -475,77 +613,6 @@ Quy tắc:
         'Lựa chọn khách sạn 3 sao / boutique hotel tiện nghi, nhà hàng đặc sản địa phương sạch sẽ, '
         'di chuyển taxi / xe công nghệ thuận tiện. Ước tính chi phí thực tế: ~4M - 8M $currency cho chuyến 3 ngày trong nước, '
         'hoặc tương đương \$450-\$850 $currency cho chuyến quốc tế.';
-  }
-
-  /// Builds the suggestions prompt. Public for testing only.
-  @visibleForTesting
-  String buildSuggestionsPrompt(TripData trip, int limit, String languageCode) {
-    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
-
-    final interests = trip.selectedInterests.isNotEmpty
-        ? trip.selectedInterests.join(', ')
-        : 'du lịch tổng hợp';
-
-    final destination = trip.destination.isNotEmpty
-        ? trip.destination
-        : hasTripDescription
-        ? 'chưa xác định, hãy tự suy ra điểm đến phù hợp từ mô tả chuyến đi bên dưới'
-        : 'Việt Nam';
-
-    final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
-
-    final dateInfo = trip.departDate != null && trip.returnDate != null
-        ? 'từ ${_formatDate(trip.departDate!)} đến ${_formatDate(trip.returnDate!)}'
-        : hasTripDescription
-        ? 'linh hoạt (nếu mô tả chuyến đi nêu thời gian, hãy dùng thời gian đó)'
-        : 'linh hoạt';
-
-    final unknownHint = hasTripDescription
-        ? 'không rõ (suy ra từ mô tả chuyến đi nếu có)'
-        : 'không rõ';
-
-    final additionalNotes = trip.additionalNotes.isNotEmpty
-        ? '\nYêu cầu thêm: ${trip.additionalNotes}'
-        : '';
-
-    final aiPromptExtra = hasTripDescription
-        ? '\nMô tả chuyến đi: ${trip.aiPrompt.trim()}'
-        : '';
-
-    final langInst = languageInstruction(languageCode);
-
-    return '''
-Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý $limit điểm đến du lịch phù hợp nhất dựa trên thông tin thực tế.
-
-Thông tin người dùng:
-- Điểm đến mong muốn: $destination
-- Mức ngân sách: $budgetDescription
-- Sở thích: $interests
-- Thời gian: $dateInfo
-- Số người: ${trip.participants.isNotEmpty ? trip.participants : unknownHint}
-- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : unknownHint}$additionalNotes$aiPromptExtra
-
-Trả về JSON array với đúng $limit phần tử, mỗi phần tử có cấu trúc:
-{
-  "name": "Tên địa điểm, Quốc gia",
-  "matchPercent": 85,
-  "rating": 4.6,
-  "reviewCount": 1420,
-  "price": "~4.5M ${trip.currency}",
-  "aiInsight": "Nhận xét thực tế và hữu ích về sự phù hợp với chuyến đi của người dùng",
-  "isTopMatch": false
-}
-
-Quy tắc quan trọng:
-- price: Phải là con số thực tế theo giá thị trường hiện tại (ước tính chi phí tổng cho 1 người/chuyến đi) tương ứng với phân khúc ngân sách đã chọn và vị trí địa lý của điểm đến (ghi kèm đơn vị ${trip.currency}).
-- matchPercent: Từ 65-98, sắp xếp giảm dần theo matchPercent.
-- rating: Đánh giá thực tế từ 4.1 - 4.9 sao.
-- reviewCount: Số lượng đánh giá thực tế ước tính (thường từ 250 đến 4500 đánh giá).
-- aiInsight: Viết cô đọng, sắc sảo, nêu rõ điểm nổi bật vì sao điểm đến này đáng đi trong mùa/phân khúc này.
-- Chỉ có đúng 1 phần tử đầu tiên có isTopMatch = true.
-- CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác.
-- $langInst
-''';
   }
 
   // ── Destination Detail ────────────────────────────────────────────────
@@ -1172,24 +1239,6 @@ Quy tắc:
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'Tháng 1',
-      'Tháng 2',
-      'Tháng 3',
-      'Tháng 4',
-      'Tháng 5',
-      'Tháng 6',
-      'Tháng 7',
-      'Tháng 8',
-      'Tháng 9',
-      'Tháng 10',
-      'Tháng 11',
-      'Tháng 12',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
 
   String _formatDateShort(DateTime date) {
     const months = [

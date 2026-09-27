@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
+import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/services/gemini_service.dart';
 
 void main() {
@@ -198,54 +201,6 @@ Please let me know if you need anything else!
     });
   });
 
-  group('buildSuggestionsPrompt - prompt-first behavior', () {
-    test('prompt-only trip asks AI to infer the destination, not Vietnam', () {
-      final trip = TripData(aiPrompt: 'Đi biển 5 ngày cùng gia đình 4 người');
-      final prompt = GeminiService.instance.buildSuggestionsPrompt(
-        trip,
-        5,
-        'vi',
-      );
-      expect(prompt, contains('suy ra điểm đến'));
-      expect(prompt, isNot(contains('Điểm đến mong muốn: Việt Nam')));
-      expect(
-        prompt,
-        contains('Mô tả chuyến đi: Đi biển 5 ngày cùng gia đình 4 người'),
-      );
-    });
-
-    test('explicit destination field still wins over inference', () {
-      final trip = TripData(destination: 'Đà Lạt', aiPrompt: 'nghỉ dưỡng');
-      final prompt = GeminiService.instance.buildSuggestionsPrompt(
-        trip,
-        5,
-        'vi',
-      );
-      expect(prompt, contains('Điểm đến mong muốn: Đà Lạt'));
-      expect(prompt, isNot(contains('suy ra điểm đến')));
-    });
-
-    test('fully empty trip keeps the Vietnam fallback', () {
-      final prompt = GeminiService.instance.buildSuggestionsPrompt(
-        TripData(),
-        5,
-        'vi',
-      );
-      expect(prompt, contains('Điểm đến mong muốn: Việt Nam'));
-    });
-
-    test('missing dates and party size point the AI at the description', () {
-      final trip = TripData(aiPrompt: 'Đi 5 ngày, 4 người lớn');
-      final prompt = GeminiService.instance.buildSuggestionsPrompt(
-        trip,
-        5,
-        'vi',
-      );
-      expect(prompt, contains('nếu mô tả chuyến đi nêu thời gian'));
-      expect(prompt, contains('suy ra từ mô tả chuyến đi'));
-    });
-  });
-
   group('buildDetailPrompt - prompt-first behavior', () {
     test('includes the trip description and drops the fake date fallback', () {
       final trip = TripData(aiPrompt: 'Đi 5 ngày với bố mẹ, thích ẩm thực');
@@ -311,20 +266,23 @@ Please let me know if you need anything else!
     });
   });
 
-  group('parseExtractedTripData', () {
+  group('parseTripMap', () {
     final service = GeminiService.instance;
+    Map<String, dynamic> m(String json) =>
+        jsonDecode(json) as Map<String, dynamic>;
 
     test(
       'JSON day du: moi truong vao dung cho, participants so thanh chuoi',
       () {
-        final trip = service.parseExtractedTripData('''
+        final trip = service.parseTripMap(m('''
 {"destination":"Da Lat","departDate":"2026-10-01","returnDate":"2026-10-03",
  "numDays":3,"budgetTier":"economy","participants":4,"ageRange":"30-40",
  "interests":["food","culture"]}
-''', originalPrompt: 'Di Da Lat');
+'''), originalPrompt: 'Di Da Lat');
         expect(trip.destination, 'Da Lat');
         expect(trip.departDate, DateTime(2026, 10, 1));
         expect(trip.returnDate, DateTime(2026, 10, 3));
+        expect(trip.numDays, 3);
         expect(trip.budget, 'economy');
         expect(trip.participants, '4');
         expect(trip.ageRange, '30-40');
@@ -334,10 +292,11 @@ Please let me know if you need anything else!
     );
 
     test('JSON chi co destination: cac truong khac rong', () {
-      final trip = service.parseExtractedTripData('{"destination":"Hue"}');
+      final trip = service.parseTripMap(m('{"destination":"Hue"}'));
       expect(trip.destination, 'Hue');
       expect(trip.departDate, isNull);
       expect(trip.returnDate, isNull);
+      expect(trip.numDays, isNull);
       expect(trip.budget, '');
       expect(trip.participants, '');
       expect(trip.ageRange, '');
@@ -345,63 +304,53 @@ Please let me know if you need anything else!
     });
 
     test('tier la va interest la bi bo, interest hop le giu lai', () {
-      final trip = service.parseExtractedTripData(
-        '{"budgetTier":"cheap","interests":["beach","shopping"]}',
+      final trip = service.parseTripMap(
+        m('{"budgetTier":"cheap","interests":["beach","shopping"]}'),
       );
       expect(trip.budget, '');
       expect(trip.selectedInterests, ['beach']);
     });
 
     test('departDate + numDays khong co returnDate: tinh returnDate', () {
-      final trip = service.parseExtractedTripData(
-        '{"departDate":"2026-10-01","numDays":3}',
+      final trip = service.parseTripMap(
+        m('{"departDate":"2026-10-01","numDays":3}'),
       );
       expect(trip.departDate, DateTime(2026, 10, 1));
       expect(trip.returnDate, DateTime(2026, 10, 3));
     });
 
-    test('chi numDays khong co departDate: ca hai ngay null', () {
-      final trip = service.parseExtractedTripData('{"numDays":5}');
+    test('chi numDays khong co departDate: giu numDays, hai ngay null', () {
+      final trip = service.parseTripMap(m('{"numDays":5}'));
       expect(trip.departDate, isNull);
       expect(trip.returnDate, isNull);
+      expect(trip.numDays, 5);
+      expect(trip.dayCount(), 5);
+    });
+
+    test('numDays dang chuoi van doc duoc, so am bi bo', () {
+      expect(service.parseTripMap(m('{"numDays":"7"}')).numDays, 7);
+      expect(service.parseTripMap(m('{"numDays":-2}')).numDays, isNull);
     });
 
     test('participants khong phai so thi rong', () {
-      final trip = service.parseExtractedTripData(
-        '{"participants":"gia dinh"}',
-      );
+      final trip = service.parseTripMap(m('{"participants":"gia dinh"}'));
       expect(trip.participants, '');
     });
 
     test('chuoi "null" duoc coi la rong', () {
-      final trip = service.parseExtractedTripData(
-        '{"destination":"null","ageRange":"NULL"}',
+      final trip = service.parseTripMap(
+        m('{"destination":"null","ageRange":"NULL"}'),
       );
       expect(trip.destination, '');
       expect(trip.ageRange, '');
     });
 
     test('ngay co gio va Z duoc chuan hoa ve date-only local', () {
-      final trip = service.parseExtractedTripData(
-        '{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}',
+      final trip = service.parseTripMap(
+        m('{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}'),
       );
       expect(trip.departDate, DateTime(2026, 10, 1));
       expect(trip.returnDate, DateTime(2026, 10, 3));
-    });
-  });
-
-  group('buildExtractPrompt', () {
-    test('chua mo ta, ngay hom nay va danh sach interest hop le', () {
-      final p = GeminiService.instance.buildExtractPrompt(
-        'Di bien voi ban',
-        'vi',
-        DateTime(2026, 9, 7),
-      );
-      expect(p, contains('Di bien voi ban'));
-      expect(p, contains('2026-09-07'));
-      expect(p, contains('beach, adventure, culture, food, wellness'));
-      expect(p, contains('economy | moderate | premium | luxury'));
-      expect(p, contains('không dịch'));
     });
   });
 
@@ -432,6 +381,223 @@ Please let me know if you need anything else!
       final filled = GeminiService.fillEmptyLandmarkImages(gallery, '');
 
       expect(filled.single.imageUrl, isEmpty);
+    });
+  });
+
+  group('parsePlanTurn', () {
+    final service = GeminiService.instance;
+
+    test('question turn: reply and trip, no options', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"Bạn đi mấy ngày?","trip":{"destination":"Côn Đảo"},"options":[]}',
+      );
+      expect(turn.reply, 'Bạn đi mấy ngày?');
+      expect(turn.trip.destination, 'Côn Đảo');
+      expect(turn.hasOptions, isFalse);
+      expect(turn.raw, contains('Bạn đi mấy ngày?'));
+    });
+
+    test('options turn: fields mapped, imageStop kept', () {
+      final turn = service.parsePlanTurn('''
+{"reply":"3 phương án cho bạn","trip":{"destination":"Côn Đảo","numDays":4},
+ "options":[{"title":"Biển & lặn","destination":"Côn Đảo, Việt Nam","numDays":4,
+   "stops":["Bến Đầm"," Hòn Bảy Cạnh ",""],"imageStop":"Hòn Bảy Cạnh",
+   "price":"~6.5M VND","aiInsight":"Hợp bạn trẻ"}]}
+''');
+      final option = turn.options.single;
+      expect(option.title, 'Biển & lặn');
+      expect(option.destination, 'Côn Đảo, Việt Nam');
+      expect(option.numDays, 4);
+      expect(option.stops, ['Bến Đầm', 'Hòn Bảy Cạnh']);
+      expect(option.imageStop, 'Hòn Bảy Cạnh');
+      expect(option.price, '~6.5M VND');
+      expect(option.aiInsight, 'Hợp bạn trẻ');
+      expect(option.imageUrl, '');
+    });
+
+    test('bad options dropped, fallbacks applied, at most 3 kept', () {
+      final turn = service.parsePlanTurn('''
+{"reply":"r","trip":{"numDays":5},"options":[
+ {"title":"","destination":"A","stops":["x"]},
+ {"title":"T1","destination":"","stops":["x"]},
+ {"title":"T2","destination":"D","stops":[]},
+ {"title":"T3","destination":"D","stops":["s1","s2"]},
+ {"title":"T4","destination":"D","stops":["a","b","c","d","e","f"],"numDays":2},
+ {"title":"T5","destination":"D","stops":["y"]},
+ {"title":"T6","destination":"D","stops":["z"]}
+]}
+''');
+      expect(turn.options.map((o) => o.title), ['T3', 'T4', 'T5']);
+      expect(turn.options[0].imageStop, 's1');
+      expect(turn.options[0].numDays, 5);
+      expect(turn.options[1].numDays, 2);
+      expect(turn.options[1].stops.length, 5);
+    });
+
+    test('numDays falls back to 3 when neither option nor trip has it', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"r","trip":{},"options":[{"title":"T","destination":"D","stops":["s"]}]}',
+      );
+      expect(turn.options.single.numDays, 3);
+    });
+
+    test('option numDays is capped at 7 like the itinerary', () {
+      final turn = service.parsePlanTurn(
+        '{"reply":"r","trip":{"numDays":14},"options":['
+        '{"title":"A","destination":"D","numDays":14,"stops":["s"]},'
+        '{"title":"B","destination":"D","stops":["s"]}]}',
+      );
+      expect(turn.options.map((o) => o.numDays), [7, 7]);
+    });
+
+    test('missing keys and invalid JSON give an empty turn', () {
+      final empty = service.parsePlanTurn('{}');
+      expect(empty.reply, '');
+      expect(empty.hasOptions, isFalse);
+      final broken = service.parsePlanTurn('not json at all');
+      expect(broken.reply, '');
+      expect(broken.hasOptions, isFalse);
+    });
+  });
+
+  group('questionsSinceLastOptions', () {
+    PlannerMessage ask() =>
+        PlannerMessage.agent(PlanTurn(reply: 'q', trip: TripData()));
+    PlannerMessage offer() => PlannerMessage.agent(
+      PlanTurn(
+        reply: 'r',
+        trip: TripData(),
+        options: const [
+          TripOption(
+            title: 'T',
+            destination: 'D',
+            numDays: 3,
+            stops: ['s'],
+            imageStop: 's',
+            price: '',
+            aiInsight: '',
+          ),
+        ],
+      ),
+    );
+    final user = PlannerMessage.user('u');
+
+    test('counts agent questions, resets after an options turn', () {
+      expect(GeminiService.questionsSinceLastOptions([]), 0);
+      expect(GeminiService.questionsSinceLastOptions([user, ask(), user]), 1);
+      expect(
+        GeminiService.questionsSinceLastOptions([
+          user,
+          ask(),
+          user,
+          ask(),
+          user,
+        ]),
+        2,
+      );
+      expect(
+        GeminiService.questionsSinceLastOptions([
+          user,
+          ask(),
+          user,
+          ask(),
+          user,
+          offer(),
+          user,
+          ask(),
+          user,
+        ]),
+        1,
+      );
+    });
+  });
+
+  group('buildPlanTurnPrompt', () {
+    final service = GeminiService.instance;
+    final messages = [
+      PlannerMessage.user('Du lịch Côn Đảo'),
+      PlannerMessage.agent(
+        PlanTurn(
+          reply: 'Bạn đi mấy ngày?',
+          trip: TripData(),
+          raw: '{"reply":"Bạn đi mấy ngày?"}',
+        ),
+      ),
+      PlannerMessage.user('1 tuần'),
+    ];
+
+    test('contains today, the transcript and the destination rule', () {
+      final p = service.buildPlanTurnPrompt(
+        messages,
+        forceOptions: false,
+        languageCode: 'vi',
+        today: DateTime(2026, 9, 27),
+      );
+      expect(p, contains('2026-09-27'));
+      expect(p, contains('Người dùng: Du lịch Côn Đảo'));
+      expect(p, contains('AI (JSON): {"reply":"Bạn đi mấy ngày?"}'));
+      expect(p, contains('Người dùng: 1 tuần'));
+      expect(p, contains('PHẢI nằm trong điểm đến đó'));
+      expect(p, contains('Vietnamese'));
+      expect(p, isNot(contains('BẮT BUỘC đưa đúng 3 phương án')));
+      expect(p, contains('tên gốc tiếng địa phương có dấu'));
+      expect(p, contains('không gộp hai câu hỏi làm một'));
+    });
+
+    test('forced turn adds the mandatory options rule', () {
+      final p = service.buildPlanTurnPrompt(
+        messages,
+        forceOptions: true,
+        languageCode: 'en',
+        today: DateTime(2026, 9, 27),
+      );
+      expect(p, contains('BẮT BUỘC đưa đúng 3 phương án'));
+      expect(p, contains('English'));
+    });
+  });
+
+  group('pickOptionImages', () {
+    TripOption opt(String title, String imageStop, List<String> stops) =>
+        TripOption(
+          title: title,
+          destination: 'Côn Đảo, Việt Nam',
+          numDays: 4,
+          stops: stops,
+          imageStop: imageStop,
+          price: '',
+          aiInsight: '',
+        );
+
+    test('three cards never share a photo', () async {
+      final options = [
+        opt('A', 'Hòn Bảy Cạnh', ['Bến Đầm', 'Hòn Bảy Cạnh']),
+        opt('B', 'Hòn Bảy Cạnh', ['Hòn Bảy Cạnh', 'Nhà tù Côn Đảo']),
+        opt('C', 'Bãi Đầm Trầu', ['Bãi Đầm Trầu']),
+      ];
+      const urls = {
+        'Hòn Bảy Cạnh, Côn Đảo, Việt Nam': 'https://img/hon-bay-canh.jpg',
+        'Bến Đầm, Côn Đảo, Việt Nam': 'https://img/ben-dam.jpg',
+        'Nhà tù Côn Đảo, Côn Đảo, Việt Nam': 'https://img/nha-tu.jpg',
+        'Bãi Đầm Trầu, Côn Đảo, Việt Nam': 'https://img/hon-bay-canh.jpg',
+        'Côn Đảo, Việt Nam': 'https://img/con-dao.jpg',
+      };
+      final result = await GeminiService.pickOptionImages(
+        options,
+        (q) async => urls[q] ?? '',
+      );
+      expect(result.map((o) => o.imageUrl), [
+        'https://img/hon-bay-canh.jpg',
+        'https://img/nha-tu.jpg',
+        'https://img/con-dao.jpg',
+      ]);
+      expect(result.map((o) => o.title), ['A', 'B', 'C']);
+    });
+
+    test('lookup errors and misses end with an empty url', () async {
+      final result = await GeminiService.pickOptionImages([
+        opt('A', 'X', ['X', 'Y']),
+      ], (q) async => q.startsWith('Y') ? throw Exception('429') : '');
+      expect(result.single.imageUrl, '');
     });
   });
 }

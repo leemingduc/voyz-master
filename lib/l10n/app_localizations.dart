@@ -724,30 +724,6 @@ abstract class AppLocalizations {
   /// **'No data'**
   String get noData;
 
-  /// Suggestions screen heading
-  ///
-  /// In en, this message translates to:
-  /// **'Travel Suggestions'**
-  String get travelSuggestions;
-
-  /// Detailed loading message on suggestions screen
-  ///
-  /// In en, this message translates to:
-  /// **'AI is searching destinations...'**
-  String get loadingSuggestionsDetail;
-
-  /// Error heading on suggestions screen
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot load suggestions'**
-  String get cannotLoadSuggestions;
-
-  /// Empty state on suggestions screen
-  ///
-  /// In en, this message translates to:
-  /// **'No suggestions found.'**
-  String get noSuggestionsFound;
-
   /// Saved screen heading
   ///
   /// In en, this message translates to:
@@ -765,12 +741,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wishlist'**
   String get wishlist;
-
-  /// Label after review count e.g. '(120 reviews)'
-  ///
-  /// In en, this message translates to:
-  /// **'reviews'**
-  String get reviewsCount;
 
   /// Snackbar suffix when item is removed
   ///
@@ -879,24 +849,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Book Now'**
   String get bookNow;
-
-  /// Add to wishlist button label
-  ///
-  /// In en, this message translates to:
-  /// **'Add to Wishlist'**
-  String get addToWishlist;
-
-  /// Snackbar message when item added to wishlist
-  ///
-  /// In en, this message translates to:
-  /// **'added to wishlist!'**
-  String get addedToWishlist;
-
-  /// Snackbar message when item already saved
-  ///
-  /// In en, this message translates to:
-  /// **'is already saved!'**
-  String get alreadySaved;
 
   /// Hot badge label for trending destinations
   ///
@@ -1324,12 +1276,6 @@ abstract class AppLocalizations {
   /// **'Find the ideal months to visit any destination based on weather, crowds, and local events.'**
   String get aiBestTimeDesc;
 
-  /// Action to compare the current destination suggestions
-  ///
-  /// In en, this message translates to:
-  /// **'Compare these suggestions'**
-  String get contextCompareSuggestions;
-
   /// Action to analyze the best time for the current destination
   ///
   /// In en, this message translates to:
@@ -1455,6 +1401,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quick ideas:'**
   String get quickPromptsLabel;
+
+  /// Planner chat button that asks the AI for trip options right away
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest now'**
+  String get suggestNow;
+
+  /// Hint of the planner chat input
+  ///
+  /// In en, this message translates to:
+  /// **'Tell the AI more...'**
+  String get plannerChatHint;
+
+  /// Send button of the planner chat
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get plannerSend;
+
+  /// Tooltip of the button that restarts the planner chat
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get newPlannerChat;
+
+  /// Label under an AI generated price
+  ///
+  /// In en, this message translates to:
+  /// **'AI estimate'**
+  String get aiEstimateLabel;
+
+  /// Button on a trip option card
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// Trip duration badge
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 day} other{{n} days}}'**
+  String tripDays(int n);
 }
 
 class _AppLocalizationsDelegate

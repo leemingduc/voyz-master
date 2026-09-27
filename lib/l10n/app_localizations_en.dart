@@ -329,18 +329,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noData => 'No data';
 
   @override
-  String get travelSuggestions => 'Travel Suggestions';
-
-  @override
-  String get loadingSuggestionsDetail => 'AI is searching destinations...';
-
-  @override
-  String get cannotLoadSuggestions => 'Cannot load suggestions';
-
-  @override
-  String get noSuggestionsFound => 'No suggestions found.';
-
-  @override
   String get saved => 'Saved';
 
   @override
@@ -348,9 +336,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wishlist => 'Wishlist';
-
-  @override
-  String get reviewsCount => 'reviews';
 
   @override
   String get removed => 'removed';
@@ -410,15 +395,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bookNow => 'Book Now';
-
-  @override
-  String get addToWishlist => 'Add to Wishlist';
-
-  @override
-  String get addedToWishlist => 'added to wishlist!';
-
-  @override
-  String get alreadySaved => 'is already saved!';
 
   @override
   String get hot => 'HOT';
@@ -647,9 +623,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Find the ideal months to visit any destination based on weather, crowds, and local events.';
 
   @override
-  String get contextCompareSuggestions => 'Compare these suggestions';
-
-  @override
   String get contextBestTime => 'When should I go?';
 
   @override
@@ -713,4 +686,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quickPromptsLabel => 'Quick ideas:';
+
+  @override
+  String get suggestNow => 'Suggest now';
+
+  @override
+  String get plannerChatHint => 'Tell the AI more...';
+
+  @override
+  String get plannerSend => 'Send';
+
+  @override
+  String get newPlannerChat => 'New chat';
+
+  @override
+  String get aiEstimateLabel => 'AI estimate';
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String tripDays(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
 }

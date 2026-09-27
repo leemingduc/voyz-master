@@ -23,7 +23,7 @@
 
 ## Phạm vi công việc
 
-- Việc được giao nằm trong `docs/project_phase3_roadmap_ai_first.md` (roadmap 5 hướng, mỗi hướng có mục "Đủ là dừng" và tiêu chí nghiệm thu). Mỗi hướng một nhánh, một PR. Không làm việc ngoài danh sách.
+- Việc được giao nằm trong `docs/project_phase3_roadmap_ai_first.md` (roadmap 6 hướng, mỗi hướng có mục "Đủ là dừng" và tiêu chí nghiệm thu). Mỗi hướng một nhánh, một PR. Không làm việc ngoài danh sách.
 - Kiến trúc nền: `docs/project_phase2_core_architecture_alignment.md`. Bài học bắt buộc đọc trước khi đụng vào ảnh: `docs/lessons/2026-08-31-image-stability-walkthrough.md`.
 - Không thêm URL ảnh viết tay vào code. Mọi URL ảnh trong seed phải pass `dart run tool/verify_image_urls.dart`.
 - Mọi lời gọi AI đi qua `GeminiService`. Screens không import `google_generative_ai` hay `supabase_flutter` trực tiếp.
