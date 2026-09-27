@@ -328,18 +328,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noData => 'Không có dữ liệu';
 
   @override
-  String get travelSuggestions => 'Gợi ý du lịch';
-
-  @override
-  String get loadingSuggestionsDetail => 'AI đang tìm kiếm điểm đến...';
-
-  @override
-  String get cannotLoadSuggestions => 'Không thể tải gợi ý';
-
-  @override
-  String get noSuggestionsFound => 'Không tìm thấy gợi ý nào.';
-
-  @override
   String get saved => 'Đã lưu';
 
   @override
@@ -347,9 +335,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get wishlist => 'Yêu thích';
-
-  @override
-  String get reviewsCount => 'đánh giá';
 
   @override
   String get removed => 'đã xóa';
@@ -410,15 +395,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get bookNow => 'Đặt ngay';
-
-  @override
-  String get addToWishlist => 'Thêm vào yêu thích';
-
-  @override
-  String get addedToWishlist => 'đã thêm vào yêu thích!';
-
-  @override
-  String get alreadySaved => 'đã được lưu trước đó!';
 
   @override
   String get hot => 'HOT';
@@ -645,9 +621,6 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get aiBestTimeDesc =>
       'Tìm tháng lý tưởng để đến bất kỳ điểm đến nào dựa trên thời tiết, lượng khách và sự kiện địa phương.';
-
-  @override
-  String get contextCompareSuggestions => 'So sánh các gợi ý này';
 
   @override
   String get contextBestTime => 'Khi nào nên đi?';

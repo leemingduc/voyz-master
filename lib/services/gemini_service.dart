@@ -107,7 +107,7 @@ class GeminiService {
     }
   }
 
-  // ── Trích xuất TripData từ mô tả (planner hai bước) ──────────────────
+  // ── Đọc TripData từ JSON của AI ──────────────────────────────────────
 
   static const _validTiers = ['economy', 'moderate', 'premium', 'luxury'];
 
@@ -120,56 +120,6 @@ class GeminiService {
   static int? _toInt(dynamic value) => value is num
       ? value.toInt()
       : int.tryParse(value?.toString().trim() ?? '');
-
-  /// Bóc tách thông tin có cấu trúc từ mô tả chuyến đi. Không cache:
-  /// người dùng sửa mô tả là phân tích lại.
-  Future<TripData> extractTripData(
-    String prompt, {
-    String languageCode = 'vi',
-  }) async {
-    final text = (await _gemini.generateContent([
-      Content.text(buildExtractPrompt(prompt, languageCode, DateTime.now())),
-    ])).text;
-    if (text == null || text.isEmpty) throw Exception('noAiResponse');
-    final decoded = safeJsonDecode(text);
-    return parseTripMap(
-      decoded is Map ? Map<String, dynamic>.from(decoded) : {},
-      originalPrompt: prompt,
-    );
-  }
-
-  @visibleForTesting
-  String buildExtractPrompt(
-    String prompt,
-    String languageCode,
-    DateTime today,
-  ) {
-    final todayStr = DateFormat('yyyy-MM-dd').format(today);
-    return '''
-Bạn là trợ lý du lịch. Hôm nay là $todayStr. Đọc mô tả chuyến đi của người dùng và bóc tách thông tin.
-
-Mô tả: "$prompt"
-
-Trả về JSON đúng các key sau, không thêm key khác:
-{
-  "destination": "tên điểm đến, hoặc null nếu không nêu",
-  "departDate": "yyyy-MM-dd hoặc null (chỉ khi mô tả nêu ngày hoặc mốc thời gian đủ rõ để tính từ hôm nay)",
-  "returnDate": "yyyy-MM-dd hoặc null",
-  "numDays": "số nguyên hoặc null",
-  "budgetTier": "một trong: economy | moderate | premium | luxury, hoặc null",
-  "participants": "số người, số nguyên hoặc null",
-  "ageRange": "khoảng tuổi dạng chuỗi, hoặc null",
-  "interests": ["chỉ dùng các giá trị: beach, adventure, culture, food, wellness"]
-}
-
-Quy tắc:
-- Không đoán bừa: không có thông tin thì để null hoặc mảng rỗng.
-- "tiết kiệm", "rẻ" là economy; "sang", "5 sao" là luxury; "cao cấp" là premium.
-- CHỈ trả về JSON, KHÔNG thêm markdown hay text khác.
-- "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng danh sách trên, không dịch.
-- ${languageInstruction(languageCode)}
-''';
-  }
 
   /// Parser thuần cho object `trip` do AI trả. Key thiếu hoặc sai thì để rỗng.
   /// `numDays` luôn được giữ, kể cả khi không có ngày đi.
@@ -532,57 +482,9 @@ Quy tắc:
 
   // ── Suggestions ──────────────────────────────────────────────────────────
 
-  /// Get AI travel suggestions based on user's trip preferences.
+  /// Back-fill image URLs into an existing list of suggestions.
   ///
-  /// **Phase 1 (fast, ~1-2s or <100ms on cache):** Returns suggestions immediately.
-  ///
-  /// **Phase 2 (background):** Call [enrichSuggestionsWithImages] to back-fill
-  /// image URLs asynchronously if not already cached.
-  ///
-  /// [trip] contains destination, budget, interests, dates, etc.
-  /// [limit] controls the number of suggestions returned (default 10).
-  /// [forceRefresh] if true, bypasses the cache and calls the API.
-  Future<List<DestinationSuggestion>> getSuggestions(
-    TripData trip, {
-    int limit = 10,
-    bool forceRefresh = false,
-    String languageCode = 'vi',
-  }) async {
-    // Build cache key from the inputs that actually affect the result
-    final cacheKey = _aiCache.buildKey('suggestions', {
-      'destination': trip.destination,
-      'budget': trip.budget,
-      'currency': trip.currency,
-      'interests': trip.selectedInterests,
-      'limit': limit,
-      'lang': languageCode,
-      'aiPrompt': trip.aiPrompt.trim(),
-      'notes': trip.additionalNotes.trim(),
-      'depart': trip.departDate?.toIso8601String() ?? '',
-      'return': trip.returnDate?.toIso8601String() ?? '',
-      'participants': trip.participants.trim(),
-      'ageRange': trip.ageRange.trim(),
-    });
-
-    if (!forceRefresh) {
-      final cached = _aiCache.get(cacheKey);
-      if (cached != null) return parseSuggestionsSync(cached);
-    }
-
-    // Cache miss — call Gemini API
-    final prompt = buildSuggestionsPrompt(trip, limit, languageCode);
-    final response = await _gemini.generateContent([Content.text(prompt)]);
-    final text = response.text;
-    if (text == null || text.isEmpty) return [];
-
-    await _aiCache.put(cacheKey, text);
-    return parseSuggestionsSync(text);
-  }
-
-  /// Phase 2: Back-fill image URLs into an existing list of suggestions.
-  ///
-  /// Call this after [getSuggestions] to enrich results with images in the
-  /// background. All images are fetched in parallel via [ImageService].
+  /// All images are fetched in parallel via [ImageService].
   Future<List<DestinationSuggestion>> enrichSuggestionsWithImages(
     List<DestinationSuggestion> suggestions,
   ) async {
@@ -709,77 +611,6 @@ Quy tắc:
         'Lựa chọn khách sạn 3 sao / boutique hotel tiện nghi, nhà hàng đặc sản địa phương sạch sẽ, '
         'di chuyển taxi / xe công nghệ thuận tiện. Ước tính chi phí thực tế: ~4M - 8M $currency cho chuyến 3 ngày trong nước, '
         'hoặc tương đương \$450-\$850 $currency cho chuyến quốc tế.';
-  }
-
-  /// Builds the suggestions prompt. Public for testing only.
-  @visibleForTesting
-  String buildSuggestionsPrompt(TripData trip, int limit, String languageCode) {
-    final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
-
-    final interests = trip.selectedInterests.isNotEmpty
-        ? trip.selectedInterests.join(', ')
-        : 'du lịch tổng hợp';
-
-    final destination = trip.destination.isNotEmpty
-        ? trip.destination
-        : hasTripDescription
-        ? 'chưa xác định, hãy tự suy ra điểm đến phù hợp từ mô tả chuyến đi bên dưới'
-        : 'Việt Nam';
-
-    final budgetDescription = _describeBudgetTier(trip.budget, trip.currency);
-
-    final dateInfo = trip.departDate != null && trip.returnDate != null
-        ? 'từ ${_formatDate(trip.departDate!)} đến ${_formatDate(trip.returnDate!)}'
-        : hasTripDescription
-        ? 'linh hoạt (nếu mô tả chuyến đi nêu thời gian, hãy dùng thời gian đó)'
-        : 'linh hoạt';
-
-    final unknownHint = hasTripDescription
-        ? 'không rõ (suy ra từ mô tả chuyến đi nếu có)'
-        : 'không rõ';
-
-    final additionalNotes = trip.additionalNotes.isNotEmpty
-        ? '\nYêu cầu thêm: ${trip.additionalNotes}'
-        : '';
-
-    final aiPromptExtra = hasTripDescription
-        ? '\nMô tả chuyến đi: ${trip.aiPrompt.trim()}'
-        : '';
-
-    final langInst = languageInstruction(languageCode);
-
-    return '''
-Bạn là chuyên gia tư vấn du lịch AI hàng đầu. Hãy gợi ý $limit điểm đến du lịch phù hợp nhất dựa trên thông tin thực tế.
-
-Thông tin người dùng:
-- Điểm đến mong muốn: $destination
-- Mức ngân sách: $budgetDescription
-- Sở thích: $interests
-- Thời gian: $dateInfo
-- Số người: ${trip.participants.isNotEmpty ? trip.participants : unknownHint}
-- Độ tuổi: ${trip.ageRange.isNotEmpty ? trip.ageRange : unknownHint}$additionalNotes$aiPromptExtra
-
-Trả về JSON array với đúng $limit phần tử, mỗi phần tử có cấu trúc:
-{
-  "name": "Tên địa điểm, Quốc gia",
-  "matchPercent": 85,
-  "rating": 4.6,
-  "reviewCount": 1420,
-  "price": "~4.5M ${trip.currency}",
-  "aiInsight": "Nhận xét thực tế và hữu ích về sự phù hợp với chuyến đi của người dùng",
-  "isTopMatch": false
-}
-
-Quy tắc quan trọng:
-- price: Phải là con số thực tế theo giá thị trường hiện tại (ước tính chi phí tổng cho 1 người/chuyến đi) tương ứng với phân khúc ngân sách đã chọn và vị trí địa lý của điểm đến (ghi kèm đơn vị ${trip.currency}).
-- matchPercent: Từ 65-98, sắp xếp giảm dần theo matchPercent.
-- rating: Đánh giá thực tế từ 4.1 - 4.9 sao.
-- reviewCount: Số lượng đánh giá thực tế ước tính (thường từ 250 đến 4500 đánh giá).
-- aiInsight: Viết cô đọng, sắc sảo, nêu rõ điểm nổi bật vì sao điểm đến này đáng đi trong mùa/phân khúc này.
-- Chỉ có đúng 1 phần tử đầu tiên có isTopMatch = true.
-- CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác.
-- $langInst
-''';
   }
 
   // ── Destination Detail ────────────────────────────────────────────────
@@ -1406,24 +1237,6 @@ Quy tắc:
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'Tháng 1',
-      'Tháng 2',
-      'Tháng 3',
-      'Tháng 4',
-      'Tháng 5',
-      'Tháng 6',
-      'Tháng 7',
-      'Tháng 8',
-      'Tháng 9',
-      'Tháng 10',
-      'Tháng 11',
-      'Tháng 12',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
 
   String _formatDateShort(DateTime date) {
     const months = [

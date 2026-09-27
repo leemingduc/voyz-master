@@ -322,18 +322,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noData => '데이터 없음';
 
   @override
-  String get travelSuggestions => '여행 추천';
-
-  @override
-  String get loadingSuggestionsDetail => 'AI가 여행지를 검색하고 있습니다...';
-
-  @override
-  String get cannotLoadSuggestions => '추천을 로드할 수 없습니다';
-
-  @override
-  String get noSuggestionsFound => '추천을 찾을 수 없습니다.';
-
-  @override
   String get saved => '저장됨';
 
   @override
@@ -341,9 +329,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get wishlist => '위시리스트';
-
-  @override
-  String get reviewsCount => '리뷰';
 
   @override
   String get removed => '제거됨';
@@ -402,15 +387,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bookNow => '지금 예약';
-
-  @override
-  String get addToWishlist => '위시리스트에 추가';
-
-  @override
-  String get addedToWishlist => '위시리스트에 추가됨!';
-
-  @override
-  String get alreadySaved => '이미 저장되어 있습니다!';
 
   @override
   String get hot => '인기';
@@ -627,9 +603,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
-
-  @override
-  String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
   String get contextBestTime => 'When should I go?';

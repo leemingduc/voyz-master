@@ -325,17 +325,9 @@
   "noData": "No data",
   "@noData": {"description": "Empty state when no data is available"},
 
-  "travelSuggestions": "Travel Suggestions",
-  "@travelSuggestions": {"description": "Suggestions screen heading"},
 
-  "loadingSuggestionsDetail": "AI is searching destinations...",
-  "@loadingSuggestionsDetail": {"description": "Detailed loading message on suggestions screen"},
 
-  "cannotLoadSuggestions": "Cannot load suggestions",
-  "@cannotLoadSuggestions": {"description": "Error heading on suggestions screen"},
 
-  "noSuggestionsFound": "No suggestions found.",
-  "@noSuggestionsFound": {"description": "Empty state on suggestions screen"},
 
   "saved": "Saved",
   "@saved": {"description": "Saved screen heading"},
@@ -346,8 +338,6 @@
   "wishlist": "Wishlist",
   "@wishlist": {"description": "Badge label for wishlist item"},
 
-  "reviewsCount": "reviews",
-  "@reviewsCount": {"description": "Label after review count e.g. '(120 reviews)'"},
 
   "removed": "removed",
   "@removed": {"description": "Snackbar suffix when item is removed"},
@@ -403,14 +393,8 @@
   "bookNow": "Book Now",
   "@bookNow": {"description": "Book now button label"},
 
-  "addToWishlist": "Add to Wishlist",
-  "@addToWishlist": {"description": "Add to wishlist button label"},
 
-  "addedToWishlist": "added to wishlist!",
-  "@addedToWishlist": {"description": "Snackbar message when item added to wishlist"},
 
-  "alreadySaved": "is already saved!",
-  "@alreadySaved": {"description": "Snackbar message when item already saved"},
 
   "hot": "HOT",
   "@hot": {"description": "Hot badge label for trending destinations"},
@@ -598,14 +582,8 @@
   "bookNow": "Book Now",
   "@bookNow": {"description": "Book now button label"},
 
-  "addToWishlist": "Add to Wishlist",
-  "@addToWishlist": {"description": "Add to wishlist button label"},
 
-  "addedToWishlist": "added to wishlist!",
-  "@addedToWishlist": {"description": "Snackbar message when item added to wishlist"},
 
-  "alreadySaved": "is already saved!",
-  "@alreadySaved": {"description": "Snackbar message when item already saved"},
 
   "hot": "HOT",
   "@hot": {"description": "Hot badge label for trending destinations"},
@@ -820,8 +798,6 @@
   "aiBestTimeDesc": "Find the ideal months to visit any destination based on weather, crowds, and local events.",
   "@aiBestTimeDesc": {"description": "Best time tool card description"},
 
-  "contextCompareSuggestions": "Compare these suggestions",
-  "@contextCompareSuggestions": {"description": "Action to compare the current destination suggestions"},
 
   "contextBestTime": "When should I go?",
   "@contextBestTime": {"description": "Action to analyze the best time for the current destination"},

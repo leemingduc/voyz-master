@@ -329,18 +329,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noData => 'No data';
 
   @override
-  String get travelSuggestions => 'Travel Suggestions';
-
-  @override
-  String get loadingSuggestionsDetail => 'AI is searching destinations...';
-
-  @override
-  String get cannotLoadSuggestions => 'Cannot load suggestions';
-
-  @override
-  String get noSuggestionsFound => 'No suggestions found.';
-
-  @override
   String get saved => 'Saved';
 
   @override
@@ -348,9 +336,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wishlist => 'Wishlist';
-
-  @override
-  String get reviewsCount => 'reviews';
 
   @override
   String get removed => 'removed';
@@ -410,15 +395,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bookNow => 'Book Now';
-
-  @override
-  String get addToWishlist => 'Add to Wishlist';
-
-  @override
-  String get addedToWishlist => 'added to wishlist!';
-
-  @override
-  String get alreadySaved => 'is already saved!';
 
   @override
   String get hot => 'HOT';
@@ -645,9 +621,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiBestTimeDesc =>
       'Find the ideal months to visit any destination based on weather, crowds, and local events.';
-
-  @override
-  String get contextCompareSuggestions => 'Compare these suggestions';
 
   @override
   String get contextBestTime => 'When should I go?';
