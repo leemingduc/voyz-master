@@ -123,6 +123,34 @@ void main() {
       );
     });
 
+    test('TripData.dayCount dung numDays khi khong co ngay', () {
+      expect(TripData(numDays: 7).dayCount(), equals(7));
+      expect(TripData(numDays: 4).dayCount(), equals(4));
+      expect(TripData(numDays: 10).dayCount(), equals(7));
+      expect(TripData(numDays: 0).dayCount(), equals(3));
+    });
+
+    test('TripData.dayCount uu tien ngay di/ve hon numDays', () {
+      expect(
+        TripData(
+          departDate: DateTime(2026, 10, 10),
+          returnDate: DateTime(2026, 10, 13),
+          numDays: 7,
+        ).dayCount(),
+        equals(4),
+      );
+    });
+
+    test('TripData numDays di qua toMap/fromMap/copyWith', () {
+      final trip = TripData(destination: 'Con Dao', numDays: 5);
+      final restored = TripData.fromMap(trip.toMap());
+      expect(restored.numDays, equals(5));
+      expect(TripData.fromMap({'numDays': '6'}).numDays, equals(6));
+      expect(TripData.fromMap({}).numDays, isNull);
+      expect(trip.copyWith(destination: 'Hue').numDays, equals(5));
+      expect(trip.copyWith(numDays: 2).numDays, equals(2));
+    });
+
     test('SavedItem wishlist card without tripData roundtrip', () {
       final item = SavedItem(
         name: 'Con Dao, Vietnam',

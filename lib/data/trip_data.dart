@@ -12,6 +12,9 @@ class TripData {
   String ageRange;
   String additionalNotes;
   String aiPrompt;
+  /// Số ngày người dùng nêu bằng thời lượng ("1 tuần", "4 ngày 3 đêm")
+  /// khi không có ngày đi/về cụ thể. Null là không rõ.
+  int? numDays;
   List<String> selectedInterests;
 
   TripData({
@@ -24,6 +27,7 @@ class TripData {
     this.ageRange = '',
     this.additionalNotes = '',
     this.aiPrompt = '',
+    this.numDays,
     this.selectedInterests = const [],
   });
 
@@ -38,6 +42,7 @@ class TripData {
       ageRange: map['ageRange']?.toString() ?? '',
       additionalNotes: map['additionalNotes']?.toString() ?? '',
       aiPrompt: map['aiPrompt']?.toString() ?? '',
+      numDays: int.tryParse(map['numDays']?.toString() ?? ''),
       selectedInterests: stringList(map['selectedInterests']),
     );
   }
@@ -52,6 +57,7 @@ class TripData {
     String? ageRange,
     String? additionalNotes,
     String? aiPrompt,
+    int? numDays,
     List<String>? selectedInterests,
   }) {
     return TripData(
@@ -64,6 +70,7 @@ class TripData {
       ageRange: ageRange ?? this.ageRange,
       additionalNotes: additionalNotes ?? this.additionalNotes,
       aiPrompt: aiPrompt ?? this.aiPrompt,
+      numDays: numDays ?? this.numDays,
       selectedInterests: selectedInterests ?? this.selectedInterests,
     );
   }
@@ -78,13 +85,22 @@ class TripData {
     'ageRange': ageRange,
     'additionalNotes': additionalNotes,
     'aiPrompt': aiPrompt,
+    'numDays': numDays,
     'selectedInterests': selectedInterests,
   };
 
-  /// Số ngày của chuyến đi, tính cả ngày đi và ngày về. Không có ngày thì dùng fallback.
+  /// Số ngày của chuyến đi, tối đa 7. Có ngày đi và ngày về thì tính cả hai
+  /// ngày; không có thì dùng [numDays]; không có nữa mới dùng [fallback].
   int dayCount({int fallback = 3}) {
-    if (departDate == null || returnDate == null) return fallback;
-    return (returnDate!.difference(departDate!).inDays + 1).clamp(1, 7).toInt();
+    final int days;
+    if (departDate != null && returnDate != null) {
+      days = returnDate!.difference(departDate!).inDays + 1;
+    } else if (numDays != null && numDays! > 0) {
+      days = numDays!;
+    } else {
+      days = fallback;
+    }
+    return days.clamp(1, 7).toInt();
   }
 
   static DateTime? _parseDate(dynamic value) {
