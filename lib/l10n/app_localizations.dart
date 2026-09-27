@@ -436,41 +436,11 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get update;
 
-  /// Section heading for planner detail fields, all optional since the AI prompt became the only required input
-  ///
-  /// In en, this message translates to:
-  /// **'TRIP DETAILS (OPTIONAL)'**
-  String get requiredInfo;
-
-  /// Section heading for optional planner fields
-  ///
-  /// In en, this message translates to:
-  /// **'OPTIONAL INFO'**
-  String get optionalInfo;
-
   /// Destination input field label
   ///
   /// In en, this message translates to:
   /// **'Destination'**
   String get destination;
-
-  /// Destination field hint text
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Phu Quoc, Paris, Bali...'**
-  String get destinationHint;
-
-  /// Departure date field label
-  ///
-  /// In en, this message translates to:
-  /// **'Departure'**
-  String get departDate;
-
-  /// Return date field label
-  ///
-  /// In en, this message translates to:
-  /// **'Return'**
-  String get returnDate;
 
   /// Placeholder when no date is selected
   ///
@@ -532,41 +502,11 @@ abstract class AppLocalizations {
   /// **'Participants'**
   String get participants;
 
-  /// Participants field hint
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. 2 adults'**
-  String get participantsHint;
-
-  /// Age range field label
-  ///
-  /// In en, this message translates to:
-  /// **'Age range'**
-  String get ageRange;
-
-  /// Age range field hint
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. 25-35'**
-  String get ageRangeHint;
-
   /// Interests section heading
   ///
   /// In en, this message translates to:
   /// **'Interests'**
   String get interests;
-
-  /// Additional notes field label
-  ///
-  /// In en, this message translates to:
-  /// **'Additional notes'**
-  String get additionalNotes;
-
-  /// Notes field hint
-  ///
-  /// In en, this message translates to:
-  /// **'Any special requests, accessibility needs...'**
-  String get notesHint;
 
   /// AI prompt field label
   ///
@@ -586,35 +526,11 @@ abstract class AppLocalizations {
   /// **'Get AI Suggestions'**
   String get getAiSuggestions;
 
-  /// Planner primary button before the AI has extracted trip details from the prompt
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze with AI'**
-  String get analyzeTrip;
-
   /// Planner primary button label while the extraction request is in flight
   ///
   /// In en, this message translates to:
   /// **'Analyzing...'**
   String get analyzingTrip;
-
-  /// Snackbar after AI extraction filled some form fields
-  ///
-  /// In en, this message translates to:
-  /// **'AI filled {count} fields. Review, then tap Get AI Suggestions.'**
-  String aiFilledFields(int count);
-
-  /// Snackbar after AI extraction filled nothing
-  ///
-  /// In en, this message translates to:
-  /// **'AI could not extract details from your description. Fill the form, then continue.'**
-  String get aiFilledNothing;
-
-  /// Validation snackbar when required fields are empty
-  ///
-  /// In en, this message translates to:
-  /// **'Please fill in all required info'**
-  String get fillAllRequired;
 
   /// Validation snackbar when the AI prompt box is empty
   ///
@@ -771,12 +687,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No suggestions found'**
   String get noSuggestions;
-
-  /// Optional field marker
-  ///
-  /// In en, this message translates to:
-  /// **'(optional)'**
-  String get optional;
 
   /// Greeting headline on smart planner screen
   ///
@@ -1539,6 +1449,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI model saved'**
   String get aiModelSaved;
+
+  /// No description provided for @quickPromptsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick ideas:'**
+  String get quickPromptsLabel;
 }
 
 class _AppLocalizationsDelegate

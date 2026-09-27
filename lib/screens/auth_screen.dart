@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/utils/error_localizer.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
 
@@ -132,7 +132,7 @@ class _AuthScreenState extends State<AuthScreen> {
           gradient: RadialGradient(
             center: Alignment.topRight,
             radius: 1.5,
-            colors: [Color(0xFF1A1C2E), AppTheme.backgroundDark],
+            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
           ),
         ),
         child: SafeArea(
@@ -144,19 +144,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppTheme.brandGradient.createShader(bounds),
-                      child: Text(
-                        MockData.appName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 42,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0,
-                        ),
-                      ),
+                    const AivivuWordmark(
+                      fontSize: 42,
+                      alignment: Alignment.center,
                     ),
                     const SizedBox(height: 8),
                     Text(

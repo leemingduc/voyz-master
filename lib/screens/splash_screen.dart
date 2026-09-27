@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_page_background.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
 /// Splash screen — full-screen black with gradient "AIVIVU" logo text.
 ///
@@ -61,67 +63,60 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: FadeTransition(
-        opacity: _fadeIn,
-        child: SizedBox.expand(
-          child: Column(
-            children: [
-              const Spacer(),
-              // ── Logo ──
-              ShaderMask(
-                shaderCallback: (bounds) =>
-                    AppTheme.splashTextGradient.createShader(bounds),
-                child: Text(
-                  AppLocalizations.of(context)!.appName,
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 64,
-                    letterSpacing: -1,
-                    color: Colors.white, // masked by shader
+      backgroundColor: AppTheme.backgroundDark,
+      body: AivivuPageBackground(
+        padding: false,
+        child: FadeTransition(
+          opacity: _fadeIn,
+          child: SizedBox.expand(
+            child: Column(
+              children: [
+                const Spacer(),
+                // ── Logo ──
+                const AivivuWordmark(fontSize: 60, alignment: Alignment.center),
+                const SizedBox(height: 24),
+                // ── Subtitle ──
+                Text(
+                  AppLocalizations.of(context)!.aiPowered,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 3,
+                    color: Colors.white.withValues(alpha: 0.35),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              // ── Subtitle ──
-              Text(
-                AppLocalizations.of(context)!.aiPowered,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 3,
-                  color: Colors.white.withValues(alpha: 0.35),
+                const Spacer(),
+                // ── Dots ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(3, (i) {
+                    return Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(
+                          alpha: 0.15 + (i * 0.08),
+                        ),
+                      ),
+                    );
+                  }),
                 ),
-              ),
-              const Spacer(),
-              // ── Dots ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (i) {
-                  return Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.15 + (i * 0.08)),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 40),
-              // ── Version ──
-              Text(
-                AppLocalizations.of(context)!.appVersion,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 4,
-                  color: Colors.white.withValues(alpha: 0.15),
+                const SizedBox(height: 40),
+                // ── Version ──
+                Text(
+                  AppLocalizations.of(context)!.appVersion,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 4,
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 48),
-            ],
+                const SizedBox(height: 48),
+              ],
+            ),
           ),
         ),
       ),

@@ -32,13 +32,13 @@ class GlassCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor ?? Colors.white.withValues(alpha: 0.1),
+          color: borderColor ?? Colors.white.withValues(alpha: 0.14),
         ),
         boxShadow: glowColor != null
             ? [
                 BoxShadow(
-                  color: glowColor!.withValues(alpha: 0.15),
-                  blurRadius: 20,
+                  color: glowColor!.withValues(alpha: 0.10),
+                  blurRadius: 14,
                   spreadRadius: 0,
                 ),
               ]
@@ -47,11 +47,11 @@ class GlassCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
+              color: const Color(0xFF10131A).withValues(alpha: 0.82),
               borderRadius: BorderRadius.circular(borderRadius),
             ),
             child: child,
