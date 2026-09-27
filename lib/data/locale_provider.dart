@@ -24,7 +24,7 @@ class LocaleSettingsStore {
     final box = await Hive.openBox<String>(_boxName);
     final saved = box.get(_languageCodeKey);
     final code = saved ?? deviceLocale.languageCode;
-    return Locale(supportedLanguageCodes.contains(code) ? code : 'en');
+    return Locale(supportedLanguageCodes.contains(code) ? code : 'vi');
   }
 
   /// Persists [locale] so it is restored after an app restart.

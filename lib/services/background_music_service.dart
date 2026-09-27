@@ -12,6 +12,8 @@ class BackgroundMusicService {
   bool _isInitialized = false;
   double _volume = 0.3; // Default volume at 30%
 
+  final ValueNotifier<bool> isPlayingNotifier = ValueNotifier<bool>(false);
+
   /// Initialize the music service and start playing background music.
   Future<void> init() async {
     if (_isInitialized) return;
@@ -45,6 +47,7 @@ class BackgroundMusicService {
     try {
       await _audioPlayer.resume();
       _isPlaying = true;
+      isPlayingNotifier.value = true;
     } catch (e) {
       debugPrint('Error playing background music: $e');
     }
@@ -57,6 +60,7 @@ class BackgroundMusicService {
     try {
       await _audioPlayer.pause();
       _isPlaying = false;
+      isPlayingNotifier.value = false;
     } catch (e) {
       debugPrint('Error pausing background music: $e');
     }
@@ -69,6 +73,7 @@ class BackgroundMusicService {
     try {
       await _audioPlayer.stop();
       _isPlaying = false;
+      isPlayingNotifier.value = false;
     } catch (e) {
       debugPrint('Error stopping background music: $e');
     }
@@ -102,5 +107,6 @@ class BackgroundMusicService {
     _audioPlayer.dispose();
     _isInitialized = false;
     _isPlaying = false;
+    isPlayingNotifier.value = false;
   }
 }

@@ -14,7 +14,6 @@ import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
-import 'package:voyz/widgets/shared/background_music_button.dart';
 import 'package:voyz/widgets/shared/aivivu_page_background.dart';
 
 Future<void> main() async {
@@ -53,7 +52,7 @@ Future<void> main() async {
     );
   } catch (e, st) {
     debugPrint('❌ Locale load error: $e\n$st');
-    initialLocale = const Locale('en');
+    initialLocale = const Locale('vi');
   }
 
   runApp(
@@ -126,7 +125,7 @@ class _VoyzAppState extends State<VoyzApp> {
                       (s) => s.languageCode == deviceLocale?.languageCode,
                     )
                     ? deviceLocale
-                    : const Locale('en'),
+                    : const Locale('vi'),
                 home: const AuthGate(),
                 builder: (context, child) {
                   return AivivuPageBackground(
@@ -135,12 +134,6 @@ class _VoyzAppState extends State<VoyzApp> {
                     child: Stack(
                       children: [
                         child ?? const SizedBox.shrink(),
-                        // Persistent background music toggle button
-                        Positioned(
-                          left: 12,
-                          bottom: MediaQuery.of(context).padding.bottom + 92,
-                          child: const BackgroundMusicButton(),
-                        ),
                         Positioned(
                           right: 16,
                           // Keeps this shortcut above the bottom navigation and dock send button.
