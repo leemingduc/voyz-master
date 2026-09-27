@@ -143,8 +143,8 @@ class _VoyzAppState extends State<VoyzApp> {
                         ),
                         Positioned(
                           right: 16,
-                          // Keeps this shortcut above the bottom navigation.
-                          bottom: MediaQuery.of(context).padding.bottom + 92,
+                          // Keeps this shortcut above the bottom navigation and dock send button.
+                          bottom: MediaQuery.of(context).padding.bottom + 124,
                           child: ValueListenableBuilder<bool>(
                             valueListenable: AIToolsButtonVisibility.isHidden,
                             builder: (context, isHidden, _) => isHidden
