@@ -150,7 +150,7 @@ class AppTheme {
         fillColor: surfaceDark.withValues(alpha: 0.78),
         hintStyle: const TextStyle(color: textMuted),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
+          horizontal: 18,
           vertical: 15,
         ),
         border: OutlineInputBorder(
