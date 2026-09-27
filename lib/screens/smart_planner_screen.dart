@@ -606,36 +606,48 @@ class _AiPromptBox extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.search, color: primaryColor, size: 30),
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Icon(Icons.search, color: primaryColor, size: 26),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: controller,
                   maxLines: maxLines,
                   minLines: minLines,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.4,
+                    letterSpacing: 0.2,
+                  ),
                   decoration: InputDecoration(
                     hintText: hintText,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.42),
                       fontSize: 16,
-                      height: 1.25,
+                      height: 1.4,
+                      letterSpacing: 0.2,
                     ),
                     border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                    isDense: false,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Divider(color: primaryColor.withValues(alpha: 0.1), height: 1),
           const SizedBox(height: 12),
           Align(
