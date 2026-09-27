@@ -622,10 +622,11 @@ class _AiPromptBox extends StatelessWidget {
                   controller: controller,
                   maxLines: maxLines,
                   minLines: minLines,
+                  textAlignVertical: TextAlignVertical.top,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
-                    height: 1.4,
+                    height: 1.45,
                     letterSpacing: 0.2,
                   ),
                   decoration: InputDecoration(
@@ -633,7 +634,7 @@ class _AiPromptBox extends StatelessWidget {
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.42),
                       fontSize: 16,
-                      height: 1.4,
+                      height: 1.45,
                       letterSpacing: 0.2,
                     ),
                     border: InputBorder.none,

@@ -14,10 +14,11 @@ void main() {
                 controller: controller,
                 maxLines: 4,
                 minLines: 2,
+                textAlignVertical: TextAlignVertical.top,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
-                  height: 1.4,
+                  height: 1.45,
                   letterSpacing: 0.2,
                 ),
                 decoration: const InputDecoration(
@@ -32,7 +33,8 @@ void main() {
     );
 
     final textField = tester.widget<TextField>(find.byType(TextField));
-    expect(textField.style?.height, 1.4);
+    expect(textField.style?.height, 1.45);
+    expect(textField.textAlignVertical, TextAlignVertical.top);
     expect(textField.decoration?.contentPadding, const EdgeInsets.symmetric(horizontal: 4, vertical: 4));
   });
 }
