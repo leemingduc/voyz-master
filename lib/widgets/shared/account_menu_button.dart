@@ -4,6 +4,7 @@ import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/screens/profile_screen.dart';
 import 'package:voyz/services/supabase_service.dart';
+import 'package:voyz/widgets/shared/profile_avatar.dart';
 
 class AccountMenuButton extends StatefulWidget {
   const AccountMenuButton({super.key});
@@ -62,9 +63,19 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
     final user = SupabaseService.instance.auth.currentUser;
     final email = user?.email ?? l10n.signIn;
     final avatarUrl = user?.userMetadata?['avatar_url']?.toString();
+    final displayName =
+        (user?.userMetadata?['display_name'] ??
+                user?.userMetadata?['username'] ??
+                '')
+            .toString()
+            .trim();
+    // Tooltip vẫn hiện email, nhưng text cạnh avatar chỉ hiện tên.
+    final tooltipLabel = displayName.isEmpty ? email : displayName;
+    // Trong popup menu vẫn hiện email để nhận biết tài khoản.
+    final menuHeaderLabel = email;
 
     return PopupMenuButton<String>(
-      tooltip: email,
+      tooltip: tooltipLabel,
       onSelected: (value) {
         if (value == 'profile') _openProfile(context);
         if (value == 'friends') _openFriends(context);
@@ -75,10 +86,31 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
           enabled: false,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
-            child: Text(
-              email,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (displayName.isNotEmpty)
+                  Text(
+                    displayName,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                Text(
+                  menuHeaderLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: displayName.isNotEmpty ? 12 : 14,
+                    color: displayName.isNotEmpty
+                        ? const Color(0xFF94A3B8)
+                        : null,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -117,31 +149,22 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 150),
-            child: Text(
-              email,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+          if (displayName.isNotEmpty) ...[
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                displayName,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.25),
-            backgroundImage: avatarUrl == null || avatarUrl.isEmpty
-                ? null
-                : NetworkImage(avatarUrl),
-            child: avatarUrl == null || avatarUrl.isEmpty
-                ? const Icon(Icons.person, color: Colors.white, size: 20)
-                : null,
-          ),
+            const SizedBox(width: 8),
+          ],
+          ProfileAvatar(avatarUrl: avatarUrl, radius: 20),
         ],
       ),
     );
