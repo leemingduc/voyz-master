@@ -19,7 +19,7 @@ class LocaleSettingsStore {
 
   /// Returns the persisted locale, or [deviceLocale] as a fallback.
   ///
-  /// Falls back to English if neither is a supported language code.
+  /// Falls back to Vietnamese if neither is a supported language code.
   Future<Locale> load(Locale deviceLocale) async {
     final box = await Hive.openBox<String>(_boxName);
     final saved = box.get(_languageCodeKey);

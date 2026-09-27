@@ -28,10 +28,10 @@ void main() {
   });
 
   group('LocaleSettingsStore', () {
-    test('uses English for an unsupported device language', () async {
+    test('uses Vietnamese for an unsupported device language', () async {
       expect(
         await LocaleSettingsStore.instance.load(const Locale('fr')),
-        const Locale('en'),
+        const Locale('vi'),
       );
     });
 
