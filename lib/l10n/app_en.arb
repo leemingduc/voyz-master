@@ -224,8 +224,6 @@
   "getAiSuggestions": "Get AI Suggestions",
   "@getAiSuggestions": {"description": "Main CTA button on smart planner"},
 
-  "analyzeTrip": "Analyze with AI",
-  "@analyzeTrip": {"description": "Planner primary button before the AI has extracted trip details from the prompt"},
   "analyzingTrip": "Analyzing...",
   "@analyzingTrip": {"description": "Planner primary button label while the extraction request is in flight"},
 
@@ -862,8 +860,5 @@
 
   "aiModelSaved": "AI model saved",
   "@aiModelSaved": {"description": "Snackbar after the AI model is changed"},
-  "chipAiWillSuggest": "AI will suggest",
-  "chipFlexible": "flexible",
-  "chipNotSet": "not set",
   "quickPromptsLabel": "Quick ideas:"
 }

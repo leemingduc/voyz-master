@@ -526,12 +526,6 @@ abstract class AppLocalizations {
   /// **'Get AI Suggestions'**
   String get getAiSuggestions;
 
-  /// Planner primary button before the AI has extracted trip details from the prompt
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze with AI'**
-  String get analyzeTrip;
-
   /// Planner primary button label while the extraction request is in flight
   ///
   /// In en, this message translates to:
@@ -1455,24 +1449,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI model saved'**
   String get aiModelSaved;
-
-  /// No description provided for @chipAiWillSuggest.
-  ///
-  /// In en, this message translates to:
-  /// **'AI will suggest'**
-  String get chipAiWillSuggest;
-
-  /// No description provided for @chipFlexible.
-  ///
-  /// In en, this message translates to:
-  /// **'flexible'**
-  String get chipFlexible;
-
-  /// No description provided for @chipNotSet.
-  ///
-  /// In en, this message translates to:
-  /// **'not set'**
-  String get chipNotSet;
 
   /// No description provided for @quickPromptsLabel.
   ///

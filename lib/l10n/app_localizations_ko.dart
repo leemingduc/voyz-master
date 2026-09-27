@@ -223,9 +223,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get getAiSuggestions => 'AI 추천 받기';
 
   @override
-  String get analyzeTrip => 'AI로 분석';
-
-  @override
   String get analyzingTrip => '분석 중...';
 
   @override
@@ -694,15 +691,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'AI 모델이 저장되었습니다';
-
-  @override
-  String get chipAiWillSuggest => 'AI가 추천해요';
-
-  @override
-  String get chipFlexible => '유연하게';
-
-  @override
-  String get chipNotSet => '미정';
 
   @override
   String get quickPromptsLabel => '빠른 아이디어:';

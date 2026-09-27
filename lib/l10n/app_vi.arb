@@ -71,7 +71,6 @@
   "aiPrompt": "Mô tả chuyến đi trong mơ",
   "aiPromptHint": "Hãy nói với AI về chuyến đi bạn muốn...",
   "getAiSuggestions": "Nhận gợi ý AI",
-  "analyzeTrip": "Phân tích bằng AI",
   "analyzingTrip": "Đang phân tích...",
   "describeTripRequired": "Hãy mô tả chuyến đi của bạn trước",
   "trendingDestinations": "Điểm đến thịnh hành",
@@ -244,8 +243,5 @@
   "aiModel": "Mô hình AI",
   "aiModelDescription": "Mô hình Gemini trả lời các câu hỏi du lịch của bạn. Mô hình lớn hơn suy nghĩ lâu hơn và có thể hết hạn mức miễn phí sớm hơn.",
   "aiModelSaved": "Đã lưu mô hình AI",
-  "chipAiWillSuggest": "AI sẽ gợi ý",
-  "chipFlexible": "linh hoạt",
-  "chipNotSet": "chưa rõ",
   "quickPromptsLabel": "Gợi ý nhanh:"
 }

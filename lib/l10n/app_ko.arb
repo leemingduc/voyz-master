@@ -71,7 +71,6 @@
   "aiPrompt": "꿈의 여행을 설명하세요",
   "aiPromptHint": "원하는 여행에 대해 AI에게 알려주세요...",
   "getAiSuggestions": "AI 추천 받기",
-  "analyzeTrip": "AI로 분석",
   "analyzingTrip": "분석 중...",
   "describeTripRequired": "먼저 여행을 설명해 주세요",
   "trendingDestinations": "인기 여행지",
@@ -226,8 +225,5 @@
   "aiModel": "AI 모델",
   "aiModelDescription": "여행 질문에 답하는 Gemini 모델입니다. 큰 모델은 더 오래 생각하며 무료 한도에 더 빨리 도달할 수 있습니다.",
   "aiModelSaved": "AI 모델이 저장되었습니다",
-  "chipAiWillSuggest": "AI가 추천해요",
-  "chipFlexible": "유연하게",
-  "chipNotSet": "미정",
   "quickPromptsLabel": "빠른 아이디어:"
 }

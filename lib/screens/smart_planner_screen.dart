@@ -14,10 +14,9 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
-import 'package:voyz/widgets/shared/trip_chips.dart';
 
-/// Planner AI-first: người dùng chỉ mô tả chuyến đi, AI bóc tách thành
-/// [TripData] và hiện dưới dạng chip để sửa nhanh trước khi xem gợi ý.
+/// Planner AI-first: người dùng chỉ mô tả chuyến đi. Bấm nút thì AI bóc
+/// tách mô tả thành [TripData] rồi mở thẳng màn gợi ý.
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
 
@@ -28,27 +27,14 @@ class SmartPlannerScreen extends StatefulWidget {
 class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   final _promptController = TextEditingController();
 
-  /// Thông tin chuyến đi hiện trên hàng chip.
-  TripData _trip = TripData();
-
   /// Sở thích lấy từ profile, dùng khi AI không suy ra được sở thích nào.
   List<String> _profileInterests = const [];
 
-  /// Mô tả đã phân tích gần nhất. Rỗng thì chưa có chip.
-  String _analyzedPrompt = '';
   bool _isAnalyzing = false;
-
-  bool get _analyzed =>
-      _analyzedPrompt.isNotEmpty &&
-      _promptController.text.trim() == _analyzedPrompt;
 
   @override
   void initState() {
     super.initState();
-    // Sửa mô tả thì nút quay về "Phân tích".
-    _promptController.addListener(() {
-      if (mounted) setState(() {});
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
       final currency = CurrencyProvider.of(context);
@@ -67,10 +53,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                 .map((style) => style.toLowerCase().replaceAll(' ', '_'))
                 .toList() ??
             const [];
-        _trip = trip;
         _promptController.text = trip.aiPrompt;
-        // Mở lại planner thì hiện lại chip của lần trước.
-        _analyzedPrompt = trip.aiPrompt.trim();
       });
     });
   }
@@ -95,38 +78,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     return true;
   }
 
-  Future<void> _onAnalyze() async {
-    if (!_validateInput() || _isAnalyzing) return;
-    final languageCode = LocaleProvider.of(context).value.languageCode;
-    final prompt = _promptController.text.trim();
-    setState(() => _isAnalyzing = true);
-    try {
-      final ai = await GeminiService.instance.extractTripData(
-        prompt,
-        languageCode: languageCode,
-      );
-      if (!mounted) return;
-      setState(() {
-        // Mô tả mới thì thay toàn bộ chip, không giữ giá trị của chuyến cũ.
-        _trip = ai.selectedInterests.isEmpty
-            ? ai.copyWith(selectedInterests: _profileInterests)
-            : ai;
-        _analyzedPrompt = prompt;
-        _isAnalyzing = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isAnalyzing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -138,7 +89,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         );
         break;
       case 2:
-        _saveCurrentState();
+        _savePrompt();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
           (route) => false,
@@ -147,23 +98,47 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     }
   }
 
-  void _saveCurrentState() {
-    SavedTripsProvider.of(context).updateTrip(
-      _trip.copyWith(
-        aiPrompt: _promptController.text,
-        currency: CurrencyProvider.of(context).value,
-      ),
+  /// Rời planner giữa chừng thì chỉ giữ lại mô tả đang gõ.
+  void _savePrompt() {
+    final provider = SavedTripsProvider.of(context);
+    provider.updateTrip(
+      provider.currentTrip.copyWith(aiPrompt: _promptController.text),
     );
   }
 
   Future<void> _onGetSuggestions() async {
-    if (!_validateInput()) return;
-    _saveCurrentState();
-    await SearchHistoryService.instance.recordTripSearch(
-      SavedTripsProvider.of(context).currentTrip,
-    );
+    if (!_validateInput() || _isAnalyzing) return;
+    final provider = SavedTripsProvider.of(context);
+    final currency = CurrencyProvider.of(context).value;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    final prompt = _promptController.text.trim();
+    setState(() => _isAnalyzing = true);
 
+    // Mô tả mới thì thay toàn bộ TripData, không giữ giá trị của chuyến cũ.
+    // Trích xuất lỗi thì vẫn đi tiếp chỉ với mô tả, màn gợi ý tự đọc được.
+    TripData trip;
+    try {
+      trip = await GeminiService.instance.extractTripData(
+        prompt,
+        languageCode: languageCode,
+      );
+    } catch (e) {
+      debugPrint('SmartPlanner: extractTripData failed: $e');
+      trip = TripData(aiPrompt: prompt);
+    }
     if (!mounted) return;
+
+    provider.updateTrip(
+      trip.copyWith(
+        currency: currency,
+        selectedInterests: trip.selectedInterests.isEmpty
+            ? _profileInterests
+            : null,
+      ),
+    );
+    await SearchHistoryService.instance.recordTripSearch(provider.currentTrip);
+    if (!mounted) return;
+    setState(() => _isAnalyzing = false);
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const SuggestionsScreen()));
@@ -294,13 +269,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
     final prompt = _AiPromptBox(
       controller: _promptController,
-      actionLabel: _isAnalyzing
-          ? l10n.analyzingTrip
-          : (_analyzed ? l10n.getAiSuggestions : l10n.analyzeTrip),
-      actionIcon: _analyzed ? Icons.arrow_forward : Icons.auto_awesome,
-      onAction: _isAnalyzing
-          ? null
-          : (_analyzed ? _onGetSuggestions : _onAnalyze),
+      actionLabel: _isAnalyzing ? l10n.analyzingTrip : l10n.getAiSuggestions,
+      actionIcon: Icons.auto_awesome,
+      onAction: _isAnalyzing ? null : _onGetSuggestions,
       onExplore: () {
         Navigator.of(
           context,
@@ -314,17 +285,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        prompt,
-        const SizedBox(height: 12),
-        if (_analyzedPrompt.isEmpty)
-          quickPrompts
-        else
-          TripChips(
-            trip: _trip,
-            onChanged: (trip) => setState(() => _trip = trip),
-          ),
-      ],
+      children: [prompt, const SizedBox(height: 12), quickPrompts],
     );
 
     return LayoutBuilder(

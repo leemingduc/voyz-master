@@ -229,9 +229,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get getAiSuggestions => 'Get AI Suggestions';
 
   @override
-  String get analyzeTrip => 'Analyze with AI';
-
-  @override
   String get analyzingTrip => 'Analyzing...';
 
   @override
@@ -713,15 +710,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'AI model saved';
-
-  @override
-  String get chipAiWillSuggest => 'AI will suggest';
-
-  @override
-  String get chipFlexible => 'flexible';
-
-  @override
-  String get chipNotSet => 'not set';
 
   @override
   String get quickPromptsLabel => 'Quick ideas:';

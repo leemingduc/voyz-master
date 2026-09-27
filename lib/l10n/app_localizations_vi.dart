@@ -228,9 +228,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get getAiSuggestions => 'Nhận gợi ý AI';
 
   @override
-  String get analyzeTrip => 'Phân tích bằng AI';
-
-  @override
   String get analyzingTrip => 'Đang phân tích...';
 
   @override
@@ -713,15 +710,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get aiModelSaved => 'Đã lưu mô hình AI';
-
-  @override
-  String get chipAiWillSuggest => 'AI sẽ gợi ý';
-
-  @override
-  String get chipFlexible => 'linh hoạt';
-
-  @override
-  String get chipNotSet => 'chưa rõ';
 
   @override
   String get quickPromptsLabel => 'Gợi ý nhanh:';
