@@ -693,6 +693,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               prefixIcon: const Icon(Icons.payments_outlined),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.06),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 15,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               ),
@@ -1023,12 +1027,22 @@ class _PasswordField extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: true,
-      style: const TextStyle(color: Colors.white),
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        height: 1.45,
+        letterSpacing: 0.2,
+      ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: const Icon(Icons.lock_outline),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -1036,6 +1050,10 @@ class _PasswordField extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
         ),
       ),
     );
@@ -1053,13 +1071,23 @@ class _ContactPhoneField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.phone,
-      style: const TextStyle(color: Colors.white),
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        height: 1.45,
+        letterSpacing: 0.2,
+      ),
       decoration: InputDecoration(
         labelText: l10n.phoneNumber,
         hintText: l10n.phoneHint,
         prefixIcon: const Icon(Icons.phone_outlined),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -1067,6 +1095,10 @@ class _ContactPhoneField extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
         ),
       ),
     );
