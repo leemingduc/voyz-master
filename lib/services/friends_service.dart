@@ -75,7 +75,7 @@ class FriendMessage {
       friendshipId: map['friendship_id']?.toString() ?? '',
       senderId: map['sender_id']?.toString() ?? '',
       body: map['body']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
           DateTime.now(),
     );
   }
@@ -233,7 +233,7 @@ class FriendsService {
           requesterId: requester,
           addresseeId: addressee,
           status: map['status']?.toString() ?? 'pending',
-          createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
               DateTime.now(),
           friend: profiles[friendId] ??
               SocialProfile(

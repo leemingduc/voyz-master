@@ -541,27 +541,33 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   }
 
   String _formatTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final local = dt.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
 
   String _formatDateHeader(DateTime dt) {
+    final local = dt.toLocal();
     final now = DateTime.now();
-    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
-      return 'Today';
+    if (local.year == now.year && local.month == now.month && local.day == now.day) {
+      return 'Hôm nay';
     }
     final yesterday = now.subtract(const Duration(days: 1));
-    if (dt.year == yesterday.year &&
-        dt.month == yesterday.month &&
-        dt.day == yesterday.day) {
-      return 'Yesterday';
+    if (local.year == yesterday.year &&
+        local.month == yesterday.month &&
+        local.day == yesterday.day) {
+      return 'Hôm qua';
     }
-    return '${dt.day}/${dt.month}/${dt.year}';
+    final dayStr = local.day.toString().padLeft(2, '0');
+    final monthStr = local.month.toString().padLeft(2, '0');
+    return '$dayStr/$monthStr/${local.year}';
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    final locA = a.toLocal();
+    final locB = b.toLocal();
+    return locA.year == locB.year && locA.month == locB.month && locA.day == locB.day;
   }
 
   @override
