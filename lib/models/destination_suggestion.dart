@@ -24,12 +24,14 @@ class DestinationSuggestion {
     Map<String, dynamic> json,
     String imageUrl,
   ) {
+    final rawRating = (json['rating'] as num?)?.toDouble() ?? 0.0;
+    final rawReviewCount = (json['reviewCount'] as num?)?.toInt() ?? 0;
     return DestinationSuggestion(
       name: json['name'] as String? ?? '',
       imageUrl: imageUrl,
       matchPercent: (json['matchPercent'] as num?)?.toInt() ?? 0,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      rating: rawRating > 0 ? rawRating : 5.0,
+      reviewCount: rawReviewCount > 0 ? rawReviewCount : 100,
       price: json['price'] as String? ?? '',
       aiInsight: json['aiInsight'] as String? ?? '',
       isTopMatch: json['isTopMatch'] as bool? ?? false,
@@ -40,6 +42,8 @@ class DestinationSuggestion {
     Map<String, dynamic> row, {
     bool isTopMatch = false,
   }) {
+    final rawRating = (row['rating'] as num?)?.toDouble() ?? 0.0;
+    final rawReviewCount = (row['review_count'] as num?)?.toInt() ?? 0;
     return DestinationSuggestion(
       name: row['name']?.toString() ?? '',
       imageUrl: _resolvedImageUrl(
@@ -48,8 +52,8 @@ class DestinationSuggestion {
         category: row['category']?.toString(),
       ),
       matchPercent: (row['match_percent'] as num?)?.toInt() ?? 0,
-      rating: (row['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: (row['review_count'] as num?)?.toInt() ?? 0,
+      rating: rawRating > 0 ? rawRating : 5.0,
+      reviewCount: rawReviewCount > 0 ? rawReviewCount : 100,
       price: row['price']?.toString() ?? '',
       aiInsight: row['ai_insight']?.toString() ?? '',
       isTopMatch: isTopMatch,
@@ -68,6 +72,8 @@ class DestinationSuggestion {
     'isTopMatch': isTopMatch,
   };
   factory DestinationSuggestion.fromMap(Map<dynamic, dynamic> map) {
+    final rawRating = (map['rating'] as num?)?.toDouble() ?? 0.0;
+    final rawReviewCount = (map['reviewCount'] as num?)?.toInt() ?? 0;
     return DestinationSuggestion(
       name: map['name']?.toString() ?? '',
       imageUrl: _resolvedImageUrl(
@@ -75,8 +81,8 @@ class DestinationSuggestion {
         map['name']?.toString() ?? '',
       ),
       matchPercent: (map['matchPercent'] as num?)?.toInt() ?? 0,
-      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: (map['reviewCount'] as num?)?.toInt() ?? 0,
+      rating: rawRating > 0 ? rawRating : 5.0,
+      reviewCount: rawReviewCount > 0 ? rawReviewCount : 100,
       price: map['price']?.toString() ?? '',
       aiInsight: map['aiInsight']?.toString() ?? '',
       isTopMatch: map['isTopMatch'] == true,
