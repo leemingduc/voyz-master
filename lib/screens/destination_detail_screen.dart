@@ -460,6 +460,36 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               color: Colors.white,
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Color(0xFFFBBF24),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                DestinationRatingCalculator.calculateAverageRating(
+                                  _reviews.map((r) => r.rating),
+                                ).toStringAsFixed(1),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '(${DestinationRatingCalculator.calculateReviewCount(_reviews.length)} • 100 ảo + ${_reviews.length} thật)',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
                           _TagsRow(tags: d.tags),
                           if (d.gallery.isNotEmpty) ...[
@@ -547,13 +577,21 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               const Spacer(),
               Text(
-                '${average.toStringAsFixed(1)} ($totalVotes)',
+                '${average.toStringAsFixed(1)} ($totalVotes • 100 ảo + ${_reviews.length} thật)',
                 style: const TextStyle(
                   color: Color(0xFFFBBF24),
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Bao gồm 100 lượt vote gốc (5.0★) và ${_reviews.length} đánh giá cộng đồng',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 12),
           Row(

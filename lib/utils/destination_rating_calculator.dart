@@ -12,6 +12,11 @@ class DestinationRatingCalculator {
     return baseVotes + userReviewCount;
   }
 
+  /// Tính số vote thật từ tổng số vote (đã có 100 vote ảo).
+  static int calculateRealVotes(int totalVotes) {
+    return totalVotes >= baseVotes ? (totalVotes - baseVotes) : 0;
+  }
+
   /// Tính điểm sao trung bình sau khi cộng dồn các lượt đánh giá [ratings] từ người dùng.
   static double calculateAverageRating(Iterable<int> ratings) {
     if (ratings.isEmpty) return baseRating;
@@ -19,4 +24,17 @@ class DestinationRatingCalculator {
     final totalCount = baseVotes + ratings.length;
     return totalScore / totalCount;
   }
+
+  /// Định dạng tóm tắt: "100 (100 ảo + 0 thật)" hoặc "102 (100 ảo + 2 thật)"
+  static String formatVotesSummary(int totalVotes) {
+    final real = calculateRealVotes(totalVotes);
+    return '$totalVotes • $baseVotes ảo + $real thật';
+  }
+
+  /// Định dạng ngắn gọn: "100 ảo + 0 thật" hoặc "100 ảo + 2 thật"
+  static String formatVotesShort(int totalVotes) {
+    final real = calculateRealVotes(totalVotes);
+    return '$baseVotes ảo + $real thật';
+  }
 }
+

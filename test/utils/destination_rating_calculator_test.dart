@@ -20,6 +20,25 @@ void main() {
       final avg5 = DestinationRatingCalculator.calculateAverageRating([1, 1, 1, 1, 1]);
       expect(avg5, closeTo(4.81, 0.01));
     });
+
+    test('calculates real votes and formats vote breakdown strings', () {
+      expect(DestinationRatingCalculator.calculateRealVotes(100), 0);
+      expect(DestinationRatingCalculator.calculateRealVotes(103), 3);
+      expect(DestinationRatingCalculator.calculateRealVotes(50), 0);
+
+      expect(
+        DestinationRatingCalculator.formatVotesSummary(100),
+        '100 • 100 ảo + 0 thật',
+      );
+      expect(
+        DestinationRatingCalculator.formatVotesSummary(105),
+        '105 • 100 ảo + 5 thật',
+      );
+      expect(
+        DestinationRatingCalculator.formatVotesShort(102),
+        '100 ảo + 2 thật',
+      );
+    });
   });
 
   group('DestinationSuggestion defaults', () {
@@ -33,6 +52,27 @@ void main() {
       });
       expect(suggestion.reviewCount, 100);
       expect(suggestion.rating, 5.0);
+      expect(suggestion.baseVotes, 100);
+      expect(suggestion.realVotes, 0);
+    });
+
+    test('computes rating and votes from embedded community_reviews if present', () {
+      final suggestion = DestinationSuggestion.fromSupabase({
+        'name': 'Da Nang',
+        'image_url': '',
+        'match_percent': 90,
+        'rating': 0,
+        'review_count': 0,
+        'community_reviews': [
+          {'rating': 4},
+          {'rating': 4},
+        ],
+      });
+      // 100 base + 2 real = 102
+      expect(suggestion.reviewCount, 102);
+      expect(suggestion.realVotes, 2);
+      // (500 + 8) / 102 = 4.98039...
+      expect(suggestion.rating, closeTo(4.98, 0.01));
     });
   });
 }
