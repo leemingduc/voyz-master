@@ -526,11 +526,22 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   @override
   Widget build(BuildContext context) {
     final currentId = FriendsService.instance.currentUserId;
+    final friend = widget.friendship.friend;
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      appBar: const AivivuHeader(),
+      appBar: AivivuHeader(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: Column(
         children: [
+          _FriendChatHeaderBar(
+            friend: friend,
+            onClose: () => Navigator.of(context).pop(),
+          ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -777,3 +788,68 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+class _FriendChatHeaderBar extends StatelessWidget {
+  const _FriendChatHeaderBar({
+    required this.friend,
+    required this.onClose,
+  });
+
+  final SocialProfile friend;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName =
+        friend.displayName.isEmpty ? friend.email : friend.displayName;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark.withValues(alpha: 0.85),
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+      ),
+      child: Row(
+        children: [
+          _Avatar(url: friend.avatarUrl),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  friend.email,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Thoát',
+            onPressed: onClose,
+            icon: const Icon(Icons.close, color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
