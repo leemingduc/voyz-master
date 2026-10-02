@@ -538,10 +538,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       ),
       body: Column(
         children: [
-          _FriendChatHeaderBar(
-            friend: friend,
-            onClose: () => Navigator.of(context).pop(),
-          ),
+          _FriendChatHeaderBar(friend: friend),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -792,11 +789,9 @@ class _ErrorState extends StatelessWidget {
 class _FriendChatHeaderBar extends StatelessWidget {
   const _FriendChatHeaderBar({
     required this.friend,
-    required this.onClose,
   });
 
   final SocialProfile friend;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -841,11 +836,6 @@ class _FriendChatHeaderBar extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          IconButton(
-            tooltip: 'Thoát',
-            onPressed: onClose,
-            icon: const Icon(Icons.close, color: Colors.white70),
           ),
         ],
       ),
