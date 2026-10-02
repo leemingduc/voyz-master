@@ -5,6 +5,7 @@ import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -582,6 +583,23 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: 'Back',
           onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AivivuWordmark(fontSize: 21),
+            SizedBox(width: 8),
+            Text(
+              'CHAT',
+              style: TextStyle(
+                color: AppTheme.cyan,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
         ),
       ),
       body: Container(
