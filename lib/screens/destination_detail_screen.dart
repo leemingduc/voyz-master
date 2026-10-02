@@ -17,6 +17,7 @@ import 'package:voyz/services/community_review_service.dart';
 import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/utils/destination_rating_calculator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -217,13 +218,19 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
   Future<SavedItem> _saveCurrentDetail() {
     final d = _detail!;
+    final totalVotes = DestinationRatingCalculator.calculateReviewCount(
+      _reviews.length,
+    );
+    final average = DestinationRatingCalculator.calculateAverageRating(
+      _reviews.map((r) => r.rating),
+    );
     return SavedTripsProvider.of(context).saveFullTrip(
       name: d.name,
       imageUrl: d.imageUrl,
       price: d.totalBudget,
       matchPercent: 98,
-      rating: 4.5,
-      reviewCount: 120,
+      rating: average,
+      reviewCount: totalVotes,
       aiInsight: AppLocalizations.of(context)!.defaultAiInsight,
       tripData: _trip,
     );
@@ -453,6 +460,36 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               color: Colors.white,
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Color(0xFFFBBF24),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                DestinationRatingCalculator.calculateAverageRating(
+                                  _reviews.map((r) => r.rating),
+                                ).toStringAsFixed(1),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '(${DestinationRatingCalculator.calculateReviewCount(_reviews.length)} lượt)',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
                           _TagsRow(tags: d.tags),
                           if (d.gallery.isNotEmpty) ...[
@@ -509,10 +546,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   Widget _buildReviewsSection(ThemeData theme) {
-    final average = _reviews.isEmpty
-        ? null
-        : _reviews.map((r) => r.rating).reduce((a, b) => a + b) /
-              _reviews.length;
+    final totalVotes = DestinationRatingCalculator.calculateReviewCount(
+      _reviews.length,
+    );
+    final average = DestinationRatingCalculator.calculateAverageRating(
+      _reviews.map((r) => r.rating),
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -537,11 +576,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
               ),
               const Spacer(),
-              if (average != null)
-                Text(
-                  '${average.toStringAsFixed(1)} (${_reviews.length})',
-                  style: const TextStyle(color: Color(0xFFFBBF24)),
+              Text(
+                '${average.toStringAsFixed(1)} ($totalVotes lượt đánh giá)',
+                style: const TextStyle(
+                  color: Color(0xFFFBBF24),
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 12),

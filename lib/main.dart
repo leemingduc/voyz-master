@@ -141,16 +141,11 @@ class _VoyzAppState extends State<VoyzApp> {
                           bottom: MediaQuery.of(context).padding.bottom + 92,
                           child: const BackgroundMusicButton(),
                         ),
-                        Positioned(
-                          right: 16,
-                          // Keeps this shortcut above the bottom navigation.
-                          bottom: MediaQuery.of(context).padding.bottom + 92,
-                          child: ValueListenableBuilder<bool>(
-                            valueListenable: AIToolsButtonVisibility.isHidden,
-                            builder: (context, isHidden, _) => isHidden
-                                ? const SizedBox.shrink()
-                                : AIToolsButton(navigatorKey: _navigatorKey),
-                          ),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: AIToolsButtonVisibility.isHidden,
+                          builder: (context, isHidden, _) => isHidden
+                              ? const SizedBox.shrink()
+                              : AIToolsButton(navigatorKey: _navigatorKey),
                         ),
                       ],
                     ),
