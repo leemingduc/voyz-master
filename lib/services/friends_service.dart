@@ -290,6 +290,17 @@ class FriendsService {
     });
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    final currentId = currentUserId;
+    await _guardSchema(() async {
+      await _client
+          .from('friend_messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('sender_id', currentId);
+    });
+  }
+
   Future<Map<String, SocialProfile>> _profilesById(List<String> ids) async {
     if (ids.isEmpty) return const {};
     final rows = await _client

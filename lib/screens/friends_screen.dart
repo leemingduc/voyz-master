@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
@@ -571,6 +572,89 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     return locA.year == locB.year && locA.month == locB.month && locA.day == locB.day;
   }
 
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : const Color(0xFF475569),
+      ),
+    );
+  }
+
+  Future<void> _deleteMessage(FriendMessage message) async {
+    try {
+      await FriendsService.instance.deleteMessage(message.id);
+      if (!mounted) return;
+      setState(() {
+        _messages.removeWhere((m) => m.id == message.id);
+      });
+      _showMessage('Đã thu hồi tin nhắn');
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString(), isError: true);
+    }
+  }
+
+  void _showOptionsSheet(FriendMessage message, bool isMine) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy, color: Colors.white70),
+                title: const Text(
+                  'Sao chép tin nhắn',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Clipboard.setData(ClipboardData(text: message.body));
+                  _showMessage('Đã sao chép tin nhắn');
+                },
+              ),
+              if (isMine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.undo_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text(
+                    'Thu hồi tin nhắn',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMessage(message);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentId = FriendsService.instance.currentUserId;
@@ -584,23 +668,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           tooltip: 'Back',
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            AivivuWordmark(fontSize: 21),
-            SizedBox(width: 8),
-            Text(
-              'CHAT',
-              style: TextStyle(
-                color: AppTheme.cyan,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ],
-        ),
+        title: const AivivuWordmark(text: 'AIVIVU CHAT', fontSize: 21),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -651,6 +719,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                               isMine: isMine,
                               friend: friend,
                               timeString: _formatTime(message.createdAt),
+                              onLongPress: () =>
+                                  _showOptionsSheet(message, isMine),
                             ),
                           ],
                         );
@@ -713,12 +783,14 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.isMine,
     required this.friend,
     required this.timeString,
+    this.onLongPress,
   });
 
   final FriendMessage message;
   final bool isMine;
   final SocialProfile friend;
   final String timeString;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -734,71 +806,75 @@ class _ChatMessageBubble extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 290),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                gradient: isMine
-                    ? const LinearGradient(
-                        colors: [AppTheme.primaryPink, AppTheme.cyan],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isMine ? null : Colors.white.withValues(alpha: 0.08),
-                boxShadow: isMine
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.primaryPink.withValues(alpha: 0.25),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-                border: isMine
-                    ? null
-                    : Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isMine ? 18 : 4),
-                  bottomRight: Radius.circular(isMine ? 4 : 18),
+            child: GestureDetector(
+              onLongPress: onLongPress,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 290),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  gradient: isMine
+                      ? const LinearGradient(
+                          colors: [AppTheme.primaryPink, AppTheme.cyan],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isMine ? null : Colors.white.withValues(alpha: 0.08),
+                  boxShadow: isMine
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primaryPink.withValues(alpha: 0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                  border: isMine
+                      ? null
+                      : Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isMine ? 18 : 4),
+                    bottomRight: Radius.circular(isMine ? 4 : 18),
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    message.body,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        timeString,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.65),
-                          fontSize: 11,
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message.body,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.4,
                       ),
-                      if (isMine) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.done_all,
-                          size: 14,
-                          color: Colors.white70,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          timeString,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            fontSize: 11,
+                          ),
                         ),
+                        if (isMine) ...[
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.done_all,
+                            size: 14,
+                            color: Colors.white70,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
