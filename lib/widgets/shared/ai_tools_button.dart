@@ -31,7 +31,6 @@ class _AIToolsButtonState extends State<AIToolsButton> {
   static const double _margin = 8.0;
 
   Offset? _offset;
-  double _dragDistance = 0.0;
 
   void _openAITools() {
     widget.navigatorKey.currentState?.push(
@@ -98,11 +97,7 @@ class _AIToolsButtonState extends State<AIToolsButton> {
     final content = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _openAITools,
-      onPanStart: (details) {
-        _dragDistance = 0.0;
-      },
       onPanUpdate: (details) {
-        _dragDistance += details.delta.distance;
         final nextPos = _clampPosition(
           Offset(currentPos.dx + details.delta.dx, currentPos.dy + details.delta.dy),
           size,
