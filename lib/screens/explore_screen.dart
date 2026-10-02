@@ -630,7 +630,7 @@ class _DestinationCard extends StatelessWidget {
                       ),
                       Flexible(
                         child: Text(
-                          ' (${destination.reviewCount} • 100 ảo + ${destination.realVotes} thật)',
+                          ' (${destination.reviewCount} lượt)',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

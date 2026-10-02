@@ -481,7 +481,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '(${DestinationRatingCalculator.calculateReviewCount(_reviews.length)} • 100 ảo + ${_reviews.length} thật)',
+                                '(${DestinationRatingCalculator.calculateReviewCount(_reviews.length)} lượt)',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 13,
@@ -577,21 +577,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               const Spacer(),
               Text(
-                '${average.toStringAsFixed(1)} ($totalVotes • 100 ảo + ${_reviews.length} thật)',
+                '${average.toStringAsFixed(1)} ($totalVotes lượt đánh giá)',
                 style: const TextStyle(
                   color: Color(0xFFFBBF24),
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Bao gồm 100 lượt vote gốc (5.0★) và ${_reviews.length} đánh giá cộng đồng',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 12,
-            ),
           ),
           const SizedBox(height: 12),
           Row(
