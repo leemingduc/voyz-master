@@ -21,23 +21,9 @@ void main() {
       expect(avg5, closeTo(4.81, 0.01));
     });
 
-    test('calculates real votes and formats vote breakdown strings', () {
-      expect(DestinationRatingCalculator.calculateRealVotes(100), 0);
-      expect(DestinationRatingCalculator.calculateRealVotes(103), 3);
-      expect(DestinationRatingCalculator.calculateRealVotes(50), 0);
-
-      expect(
-        DestinationRatingCalculator.formatVotesSummary(100),
-        '100 • 100 ảo + 0 thật',
-      );
-      expect(
-        DestinationRatingCalculator.formatVotesSummary(105),
-        '105 • 100 ảo + 5 thật',
-      );
-      expect(
-        DestinationRatingCalculator.formatVotesShort(102),
-        '100 ảo + 2 thật',
-      );
+    test('formatVotes returns readable string', () {
+      expect(DestinationRatingCalculator.formatVotes(100), '100 lượt');
+      expect(DestinationRatingCalculator.formatVotes(105), '105 lượt');
     });
   });
 
@@ -52,11 +38,9 @@ void main() {
       });
       expect(suggestion.reviewCount, 100);
       expect(suggestion.rating, 5.0);
-      expect(suggestion.baseVotes, 100);
-      expect(suggestion.realVotes, 0);
     });
 
-    test('computes rating and votes from embedded community_reviews if present', () {
+    test('computes rating and count from embedded community_reviews if present', () {
       final suggestion = DestinationSuggestion.fromSupabase({
         'name': 'Da Nang',
         'image_url': '',
@@ -70,7 +54,6 @@ void main() {
       });
       // 100 base + 2 real = 102
       expect(suggestion.reviewCount, 102);
-      expect(suggestion.realVotes, 2);
       // (500 + 8) / 102 = 4.98039...
       expect(suggestion.rating, closeTo(4.98, 0.01));
     });

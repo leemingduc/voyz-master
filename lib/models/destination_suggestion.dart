@@ -22,8 +22,6 @@ class DestinationSuggestion {
     this.isTopMatch = false,
   });
 
-  int get realVotes => DestinationRatingCalculator.calculateRealVotes(reviewCount);
-  int get baseVotes => DestinationRatingCalculator.baseVotes;
 
   factory DestinationSuggestion.fromJson(
     Map<String, dynamic> json,
