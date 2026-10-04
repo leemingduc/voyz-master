@@ -251,12 +251,22 @@ class _AuthField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      style: const TextStyle(color: Colors.white),
+      textAlignVertical: TextAlignVertical.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 15,
+        height: 1.45,
+        letterSpacing: 0.2,
+      ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -264,6 +274,10 @@ class _AuthField extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
         ),
       ),
     );

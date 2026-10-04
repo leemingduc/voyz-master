@@ -247,7 +247,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1180),
+                            constraints: const BoxConstraints(maxWidth: 1260),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -425,8 +425,15 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     final prompt = _AiPromptBox(
       controller: _promptController,
       hintText: l10n.aiPromptHint,
-      minLines: 2,
-      maxLines: 4,
+      minLines: 3,
+      maxLines: 5,
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+      actionHeight: 52,
+      searchIconSize: 28,
+      innerContentPadding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 6,
+      ),
       actionLabel: _isSending ? l10n.analyzingTrip : l10n.getAiSuggestions,
       actionIcon: Icons.auto_awesome,
       onAction: _isSending ? null : _send,
@@ -445,7 +452,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [prompt, const SizedBox(height: 12), quickPrompts],
+      children: [prompt, const SizedBox(height: 16), quickPrompts],
     );
 
     return LayoutBuilder(
@@ -468,12 +475,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Expanded(flex: 9, child: _CosmicEarthArtwork()),
-            const SizedBox(width: 42),
+            const SizedBox(width: 44),
             Expanded(
-              flex: 10,
+              flex: 11,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [intro, const SizedBox(height: 22), content],
+                children: [intro, const SizedBox(height: 24), content],
               ),
             ),
           ],
@@ -570,6 +577,13 @@ class _AiPromptBox extends StatelessWidget {
     required this.secondaryLabel,
     required this.secondaryIcon,
     required this.onSecondary,
+    this.padding = const EdgeInsets.fromLTRB(18, 18, 18, 16),
+    this.actionHeight = 48,
+    this.searchIconSize = 26,
+    this.innerContentPadding = const EdgeInsets.symmetric(
+      horizontal: 4,
+      vertical: 4,
+    ),
   });
 
   final TextEditingController controller;
@@ -586,6 +600,11 @@ class _AiPromptBox extends StatelessWidget {
 
   /// Null khi đang chờ AI.
   final VoidCallback? onSecondary;
+
+  final EdgeInsetsGeometry padding;
+  final double actionHeight;
+  final double searchIconSize;
+  final EdgeInsetsGeometry innerContentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -606,36 +625,46 @@ class _AiPromptBox extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.search, color: primaryColor, size: 30),
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Icon(Icons.search, color: primaryColor, size: searchIconSize),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: controller,
                   maxLines: maxLines,
                   minLines: minLines,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlignVertical: TextAlignVertical.top,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.45,
+                    letterSpacing: 0.2,
+                  ),
                   decoration: InputDecoration(
                     hintText: hintText,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.42),
                       fontSize: 16,
-                      height: 1.25,
+                      height: 1.45,
+                      letterSpacing: 0.2,
                     ),
                     border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                    isDense: false,
+                    contentPadding: innerContentPadding,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Divider(color: primaryColor.withValues(alpha: 0.1), height: 1),
           const SizedBox(height: 12),
           Align(
@@ -646,7 +675,7 @@ class _AiPromptBox extends StatelessWidget {
               alignment: WrapAlignment.end,
               children: [
                 SizedBox(
-                  height: 48,
+                  height: actionHeight,
                   child: OutlinedButton.icon(
                     onPressed: onSecondary,
                     icon: Icon(secondaryIcon, size: 19),
@@ -666,7 +695,7 @@ class _AiPromptBox extends StatelessWidget {
                 Opacity(
                   opacity: onAction == null ? 0.6 : 1,
                   child: Container(
-                    height: 48,
+                    height: actionHeight,
                     decoration: BoxDecoration(
                       gradient: AppTheme.brandGradient,
                       borderRadius: BorderRadius.circular(14),

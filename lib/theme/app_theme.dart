@@ -148,9 +148,20 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceDark.withValues(alpha: 0.78),
-        hintStyle: const TextStyle(color: textMuted),
+        hintStyle: const TextStyle(
+          color: textMuted,
+          fontSize: 15,
+          height: 1.45,
+          letterSpacing: 0.2,
+        ),
+        labelStyle: const TextStyle(
+          color: textMuted,
+          fontSize: 15,
+          height: 1.45,
+          letterSpacing: 0.2,
+        ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
+          horizontal: 18,
           vertical: 15,
         ),
         border: OutlineInputBorder(

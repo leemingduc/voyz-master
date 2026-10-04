@@ -238,10 +238,44 @@ class _SavedItemCard extends StatelessWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            height: 1.45,
+            letterSpacing: 0.2,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            hintStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.35),
+              fontSize: 15,
+              height: 1.45,
+              letterSpacing: 0.2,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 15,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppTheme.cyan,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
         actions: [
@@ -628,18 +662,43 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
             initialValue: item.workspaceNotes,
             minLines: 2,
             maxLines: 4,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            textAlignVertical: TextAlignVertical.top,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.45,
+              letterSpacing: 0.2,
+            ),
             decoration: InputDecoration(
               labelText: 'Notes',
               labelStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.55),
+                height: 1.45,
+                letterSpacing: 0.2,
               ),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
                   color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(
+                  color: AppTheme.cyan,
+                  width: 1.5,
                 ),
               ),
             ),
