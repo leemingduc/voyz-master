@@ -73,5 +73,8 @@ class CommunityReviewService {
       },
       onConflict: 'destination_id,user_id',
     );
+
+    // Trigger community_reviews_refresh_stats_trigger trong DB tự cập nhật
+    // destinations.rating và review_count, client không cần gọi thêm.
   }
 }

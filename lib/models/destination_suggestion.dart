@@ -1,3 +1,5 @@
+import 'package:voyz/utils/destination_rating_calculator.dart';
+
 /// Model for AI-suggested travel destinations displayed on the Suggestions screen.
 class DestinationSuggestion {
   final String name;
@@ -40,6 +42,29 @@ class DestinationSuggestion {
     Map<String, dynamic> row, {
     bool isTopMatch = false,
   }) {
+    // Ưu tiên tính từ community_reviews đi kèm (số liệu mới nhất), nếu
+    // không có thì dùng cột rating/review_count do trigger trong DB cập nhật.
+    final reviews = (row['community_reviews'] as List?)
+        ?.whereType<Map>()
+        .toList();
+    double effectiveRating;
+    int effectiveReviewCount;
+
+    if (reviews != null && reviews.isNotEmpty) {
+      final ratings = reviews
+          .map((r) => (r['rating'] as num?)?.toInt())
+          .whereType<int>()
+          .toList();
+      effectiveReviewCount = DestinationRatingCalculator.calculateReviewCount(
+        ratings.length,
+      );
+      effectiveRating =
+          DestinationRatingCalculator.calculateAverageRating(ratings) ?? 0.0;
+    } else {
+      effectiveRating = (row['rating'] as num?)?.toDouble() ?? 0.0;
+      effectiveReviewCount = (row['review_count'] as num?)?.toInt() ?? 0;
+    }
+
     return DestinationSuggestion(
       name: row['name']?.toString() ?? '',
       imageUrl: _resolvedImageUrl(
@@ -48,8 +73,8 @@ class DestinationSuggestion {
         category: row['category']?.toString(),
       ),
       matchPercent: (row['match_percent'] as num?)?.toInt() ?? 0,
-      rating: (row['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: (row['review_count'] as num?)?.toInt() ?? 0,
+      rating: effectiveRating,
+      reviewCount: effectiveReviewCount,
       price: row['price']?.toString() ?? '',
       aiInsight: row['ai_insight']?.toString() ?? '',
       isTopMatch: isTopMatch,

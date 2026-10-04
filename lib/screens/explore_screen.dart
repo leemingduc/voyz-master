@@ -11,6 +11,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
+import 'package:voyz/utils/destination_rating_calculator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -395,13 +396,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return _DestinationCard(
         destination: dest,
         isTopMatch: dest.isTopMatch,
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>
                   DestinationDetailScreen(destinationName: dest.name),
             ),
           );
+          if (mounted) {
+            _loadExplore(forceRefresh: true);
+          }
         },
       );
     }
@@ -611,21 +615,38 @@ class _DestinationCard extends StatelessWidget {
                         color: Color(0xFFFBBF24),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        destination.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                      if (destination.reviewCount > 0) ...[
+                        Text(
+                          destination.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                      Text(
-                        ' (${destination.reviewCount})',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontSize: 12,
+                        Flexible(
+                          child: Text(
+                            ' (${DestinationRatingCalculator.formatVotes(destination.reviewCount)})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
-                      ),
+                      ] else
+                        Flexible(
+                          child: Text(
+                            DestinationRatingCalculator.formatVotes(0),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
                       const Spacer(),
                       CurrencyAmountText(
                         destination.price,
