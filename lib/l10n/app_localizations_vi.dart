@@ -60,6 +60,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get savedTrips => 'Đã lưu';
 
   @override
+  String get friends => 'Bạn bè';
+
+  @override
   String get signOut => 'Đăng xuất';
 
   @override

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
@@ -13,6 +13,7 @@ import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/community_review_service.dart';
 import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
@@ -193,6 +194,12 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       case 2:
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FriendsScreen()),
           (route) => false,
         );
         break;
@@ -666,6 +673,8 @@ class _ReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayName =
+        review.userName.isNotEmpty ? review.userName : 'Anonymous';
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),
@@ -678,12 +687,14 @@ class _ReviewTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              ...List.generate(
-                5,
-                (index) => Icon(
-                  index < review.rating ? Icons.star : Icons.star_border,
-                  color: const Color(0xFFFBBF24),
-                  size: 14,
+              const Icon(Icons.person, color: Color(0xFF94A3B8), size: 14),
+              const SizedBox(width: 4),
+              Text(
+                displayName,
+                style: const TextStyle(
+                  color: Color(0xFFCBD5E1),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
@@ -695,6 +706,17 @@ class _ReviewTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: List.generate(
+              5,
+              (index) => Icon(
+                index < review.rating ? Icons.star : Icons.star_border,
+                color: const Color(0xFFFBBF24),
+                size: 14,
+              ),
+            ),
           ),
           if (review.comment.isNotEmpty) ...[
             const SizedBox(height: 6),

@@ -202,6 +202,12 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get savedTrips;
 
+  /// Bottom nav item for friends tab
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get friends;
+
   /// Sign out action in account menu
   ///
   /// In en, this message translates to:

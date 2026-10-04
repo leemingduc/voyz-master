@@ -51,6 +51,8 @@
 
   "savedTrips": "Saved",
   "@savedTrips": {"description": "Bottom nav item for saved tab"},
+  "friends": "Friends",
+  "@friends": {"description": "Bottom nav item for friends tab"},
 
   "signOut": "Sign out",
   "@signOut": {"description": "Sign out action in account menu"},

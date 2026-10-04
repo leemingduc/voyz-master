@@ -60,6 +60,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get savedTrips => '저장됨';
 
   @override
+  String get friends => '친구';
+
+  @override
   String get signOut => '로그아웃';
 
   @override

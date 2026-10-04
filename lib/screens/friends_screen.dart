@@ -1,12 +1,19 @@
-import 'dart:async';
+﻿import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:voyz/models/chat_theme_model.dart';
+import 'package:voyz/screens/chat_theme_screen.dart';
+import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/screens/saved_screen.dart';
+import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
+import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -104,6 +111,31 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  void _onNavTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SmartPlannerScreen()),
+          (route) => false,
+        );
+        break;
+      case 1:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const ExploreScreen()),
+          (route) => false,
+        );
+        break;
+      case 2:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        break;
+    }
+  }
+
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -122,6 +154,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final pending = _friendships.where((f) => f.status == 'pending').toList();
 
     return Scaffold(
+      bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
       body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
@@ -447,6 +480,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   StreamSubscription<List<FriendMessage>>? _streamSub;
   bool _isSending = false;
   bool _showEmojiPicker = false;
+  // IDs of locally recalled messages — guards against stream restoring deleted rows
+  final Set<String> _recalledIds = {};
+  // Active chat theme
+  ChatThemePreset _chatTheme = kChatThemes.first;
 
   final List<String> _quickEmojis = [
     '👋',
@@ -465,6 +502,28 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   void initState() {
     super.initState();
     _initRealtimeMessages();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final id = await ChatThemeStore.load(widget.friendship.id);
+    if (!mounted) return;
+    setState(() => _chatTheme = ChatThemeStore.resolve(id));
+  }
+
+  Future<void> _openThemePicker() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatThemeScreen(
+          currentThemeId: _chatTheme.id,
+          onThemeSelected: (theme) async {
+            await ChatThemeStore.save(widget.friendship.id, theme.id);
+            if (!mounted) return;
+            setState(() => _chatTheme = theme);
+          },
+        ),
+      ),
+    );
   }
 
   void _initRealtimeMessages() {
@@ -475,7 +534,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           .listen(
             (messages) {
               if (!mounted) return;
-              setState(() => _messages = messages);
+              // Filter out any messages recalled locally to prevent stream from restoring them
+              final filtered = messages
+                  .where((m) => !_recalledIds.contains(m.id))
+                  .toList();
+              setState(() => _messages = filtered);
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => _scrollToBottom(),
               );
@@ -503,7 +566,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         widget.friendship.id,
       );
       if (!mounted) return;
-      setState(() => _messages = messages);
+      // Filter out any locally recalled messages (guards against server race conditions)
+      final filtered = messages
+          .where((m) => !_recalledIds.contains(m.id))
+          .toList();
+      setState(() => _messages = filtered);
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (error) {
       if (!silent && mounted) {
@@ -586,15 +653,25 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   }
 
   Future<void> _deleteMessage(FriendMessage message) async {
+    // Optimistic update: hide immediately in UI
+    setState(() {
+      _recalledIds.add(message.id);
+      _messages.removeWhere((m) => m.id == message.id);
+    });
     try {
       await FriendsService.instance.deleteMessage(message.id);
       if (!mounted) return;
-      setState(() {
-        _messages.removeWhere((m) => m.id == message.id);
-      });
       _showMessage('Đã thu hồi tin nhắn');
+      // Reinitialize the realtime stream so its internal buffer re-fetches
+      // from the server and does not re-surface the deleted message.
+      await _streamSub?.cancel();
+      _streamSub = null;
+      _initRealtimeMessages();
     } catch (error) {
       if (!mounted) return;
+      // Revert optimistic update on failure — message was not deleted on server
+      setState(() => _recalledIds.remove(message.id));
+      await _loadMessages(silent: true);
       _showMessage(error.toString(), isError: true);
     }
   }
@@ -670,78 +747,102 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         ),
         title: const AivivuWordmark(text: 'AIVIVU CHAT', fontSize: 21),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topRight,
-            radius: 1.5,
-            colors: [Color(0xFF141927), AppTheme.backgroundDark],
-          ),
-        ),
-        child: Column(
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        decoration: BoxDecoration(gradient: _chatTheme.backgroundGradient),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            _FriendChatHeaderBar(
-              friend: friend,
-              onClearChat: () {
-                setState(() => _messages = []);
-              },
+            // Wallpaper pattern overlay
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.06,
+                child: CustomPaint(
+                  painter: WallpaperPainter(
+                    wallpaper: _chatTheme.wallpaper,
+                    color: _chatTheme.accentColor,
+                  ),
+                ),
+              ),
             ),
-            Expanded(
-              child: _messages.isEmpty
-                  ? _EmptyChatView(
-                      friend: friend,
-                      onSendQuick: (text) => _send(text),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final message = _messages[index];
-                        final isMine = message.senderId == currentId;
-                        final showDateHeader = index == 0 ||
-                            !_isSameDay(
-                              _messages[index - 1].createdAt,
-                              message.createdAt,
-                            );
+            Column(
+              children: [
+                _FriendChatHeaderBar(
+                  friend: friend,
+                  accentColor: _chatTheme.accentColor,
+                  onClearChat: () {
+                    setState(() => _messages = []);
+                  },
+                  onChangeTheme: _openThemePicker,
+                ),
+                Expanded(
+                  child: _messages.isEmpty
+                      ? _EmptyChatView(
+                          friend: friend,
+                          accentColor: _chatTheme.accentColor,
+                          bubbleGradient: _chatTheme.myBubbleGradient,
+                          onSendQuick: (text) => _send(text),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isMine = message.senderId == currentId;
+                            final showDateHeader = index == 0 ||
+                                !_isSameDay(
+                                  _messages[index - 1].createdAt,
+                                  message.createdAt,
+                                );
 
-                        return Column(
-                          children: [
-                            if (showDateHeader)
-                              _DateChip(
-                                label: _formatDateHeader(message.createdAt),
-                              ),
-                            _ChatMessageBubble(
-                              message: message,
-                              isMine: isMine,
-                              friend: friend,
-                              timeString: _formatTime(message.createdAt),
-                              onLongPress: () =>
-                                  _showOptionsSheet(message, isMine),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
-            _ChatInputDock(
-              controller: _messageController,
-              isSending: _isSending,
-              showEmojiPicker: _showEmojiPicker,
-              quickEmojis: _quickEmojis,
-              onToggleEmoji: () {
-                setState(() => _showEmojiPicker = !_showEmojiPicker);
-              },
-              onEmojiSelect: (emoji) {
-                _messageController.text += emoji;
-                _messageController.selection = TextSelection.fromPosition(
-                  TextPosition(offset: _messageController.text.length),
-                );
-              },
-              onSend: () => _send(),
+                            return Column(
+                              children: [
+                                if (showDateHeader)
+                                  _DateChip(
+                                    label: _formatDateHeader(message.createdAt),
+                                  ),
+                                _ChatMessageBubble(
+                                  message: message,
+                                  isMine: isMine,
+                                  friend: friend,
+                                  timeString: _formatTime(message.createdAt),
+                                  myBubbleGradient: _chatTheme.myBubbleGradient,
+                                  myBubbleTextColor: _chatTheme.myBubbleTextColor,
+                                  theirBubbleColor: _chatTheme.theirBubbleColor,
+                                  theirBubbleTextColor: _chatTheme.theirBubbleTextColor,
+                                  accentColor: _chatTheme.accentColor,
+                                  onLongPress: () =>
+                                      _showOptionsSheet(message, isMine),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+                _ChatInputDock(
+                  controller: _messageController,
+                  isSending: _isSending,
+                  showEmojiPicker: _showEmojiPicker,
+                  quickEmojis: _quickEmojis,
+                  accentColor: _chatTheme.accentColor,
+                  sendGradient: _chatTheme.myBubbleGradient,
+                  inputBarColor: _chatTheme.inputBarColor,
+                  onToggleEmoji: () {
+                    setState(() => _showEmojiPicker = !_showEmojiPicker);
+                  },
+                  onEmojiSelect: (emoji) {
+                    _messageController.text += emoji;
+                    _messageController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _messageController.text.length),
+                    );
+                  },
+                  onSend: () => _send(),
+                ),
+              ],
             ),
           ],
         ),
@@ -783,6 +884,11 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.isMine,
     required this.friend,
     required this.timeString,
+    required this.myBubbleGradient,
+    required this.myBubbleTextColor,
+    required this.theirBubbleColor,
+    required this.theirBubbleTextColor,
+    required this.accentColor,
     this.onLongPress,
   });
 
@@ -790,6 +896,11 @@ class _ChatMessageBubble extends StatelessWidget {
   final bool isMine;
   final SocialProfile friend;
   final String timeString;
+  final Gradient myBubbleGradient;
+  final Color myBubbleTextColor;
+  final Color theirBubbleColor;
+  final Color theirBubbleTextColor;
+  final Color accentColor;
   final VoidCallback? onLongPress;
 
   @override
@@ -813,18 +924,12 @@ class _ChatMessageBubble extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 decoration: BoxDecoration(
-                  gradient: isMine
-                      ? const LinearGradient(
-                          colors: [AppTheme.primaryPink, AppTheme.cyan],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isMine ? null : Colors.white.withValues(alpha: 0.08),
+                  gradient: isMine ? myBubbleGradient : null,
+                  color: isMine ? null : theirBubbleColor,
                   boxShadow: isMine
                       ? [
                           BoxShadow(
-                            color: AppTheme.primaryPink.withValues(alpha: 0.25),
+                            color: accentColor.withValues(alpha: 0.25),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -832,7 +937,9 @@ class _ChatMessageBubble extends StatelessWidget {
                       : null,
                   border: isMine
                       ? null
-                      : Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      : Border.all(
+                          color: accentColor.withValues(alpha: 0.15),
+                        ),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -846,8 +953,8 @@ class _ChatMessageBubble extends StatelessWidget {
                   children: [
                     Text(
                       message.body,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isMine ? myBubbleTextColor : theirBubbleTextColor,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -859,16 +966,17 @@ class _ChatMessageBubble extends StatelessWidget {
                         Text(
                           timeString,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.65),
+                            color: (isMine ? myBubbleTextColor : theirBubbleTextColor)
+                                .withValues(alpha: 0.65),
                             fontSize: 11,
                           ),
                         ),
                         if (isMine) ...[
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.done_all,
                             size: 14,
-                            color: Colors.white70,
+                            color: myBubbleTextColor.withValues(alpha: 0.7),
                           ),
                         ],
                       ],
@@ -888,10 +996,14 @@ class _EmptyChatView extends StatelessWidget {
   const _EmptyChatView({
     required this.friend,
     required this.onSendQuick,
+    required this.accentColor,
+    required this.bubbleGradient,
   });
 
   final SocialProfile friend;
   final ValueChanged<String> onSendQuick;
+  final Color accentColor;
+  final Gradient bubbleGradient;
 
   @override
   Widget build(BuildContext context) {
@@ -908,12 +1020,10 @@ class _EmptyChatView extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryPink, AppTheme.cyan],
-                ),
+                gradient: bubbleGradient,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.cyan.withValues(alpha: 0.3),
+                    color: accentColor.withValues(alpha: 0.35),
                     blurRadius: 18,
                     spreadRadius: 2,
                   ),
@@ -951,14 +1061,17 @@ class _EmptyChatView extends StatelessWidget {
               children: [
                 _QuickChip(
                   label: 'Say Hi 👋',
+                  accentColor: accentColor,
                   onTap: () => onSendQuick('Hi there! 👋'),
                 ),
                 _QuickChip(
                   label: 'Plan a trip ✈️',
+                  accentColor: accentColor,
                   onTap: () => onSendQuick('Want to plan a trip together? ✈️'),
                 ),
                 _QuickChip(
                   label: 'How are you? 😊',
+                  accentColor: accentColor,
                   onTap: () => onSendQuick('How are you doing today? 😊'),
                 ),
               ],
@@ -971,10 +1084,15 @@ class _EmptyChatView extends StatelessWidget {
 }
 
 class _QuickChip extends StatelessWidget {
-  const _QuickChip({required this.label, required this.onTap});
+  const _QuickChip({
+    required this.label,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -989,13 +1107,13 @@ class _QuickChip extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.cyan.withValues(alpha: 0.3),
+              color: accentColor.withValues(alpha: 0.4),
             ),
           ),
           child: Text(
             label,
-            style: const TextStyle(
-              color: AppTheme.cyan,
+            style: TextStyle(
+              color: accentColor,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -1015,6 +1133,9 @@ class _ChatInputDock extends StatelessWidget {
     required this.onToggleEmoji,
     required this.onEmojiSelect,
     required this.onSend,
+    required this.accentColor,
+    required this.sendGradient,
+    required this.inputBarColor,
   });
 
   final TextEditingController controller;
@@ -1024,17 +1145,21 @@ class _ChatInputDock extends StatelessWidget {
   final VoidCallback onToggleEmoji;
   final ValueChanged<String> onEmojiSelect;
   final VoidCallback onSend;
+  final Color accentColor;
+  final Gradient sendGradient;
+  final Color inputBarColor;
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceDark.withValues(alpha: 0.95),
+          color: inputBarColor.withValues(alpha: 0.97),
           border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            top: BorderSide(color: accentColor.withValues(alpha: 0.12)),
           ),
         ),
         child: Column(
@@ -1059,7 +1184,7 @@ class _ChatInputDock extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
+                          color: accentColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -1080,7 +1205,7 @@ class _ChatInputDock extends StatelessWidget {
                   onPressed: onToggleEmoji,
                   icon: Icon(
                     Icons.sentiment_satisfied_alt,
-                    color: showEmojiPicker ? AppTheme.cyan : Colors.white60,
+                    color: showEmojiPicker ? accentColor : Colors.white60,
                   ),
                 ),
                 Expanded(
@@ -1123,8 +1248,8 @@ class _ChatInputDock extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(22),
-                        borderSide: const BorderSide(
-                          color: AppTheme.cyan,
+                        borderSide: BorderSide(
+                          color: accentColor,
                           width: 1.5,
                         ),
                       ),
@@ -1136,12 +1261,10 @@ class _ChatInputDock extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primaryPink, AppTheme.cyan],
-                    ),
+                    gradient: sendGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryPink.withValues(alpha: 0.35),
+                        color: accentColor.withValues(alpha: 0.35),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1320,23 +1443,28 @@ class _ErrorState extends StatelessWidget {
 class _FriendChatHeaderBar extends StatelessWidget {
   const _FriendChatHeaderBar({
     required this.friend,
+    required this.accentColor,
     this.onClearChat,
+    this.onChangeTheme,
   });
 
   final SocialProfile friend;
+  final Color accentColor;
   final VoidCallback? onClearChat;
+  final VoidCallback? onChangeTheme;
 
   @override
   Widget build(BuildContext context) {
     final displayName =
         friend.displayName.isEmpty ? friend.email : friend.displayName;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withValues(alpha: 0.85),
+        color: Colors.black.withValues(alpha: 0.35),
         border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          bottom: BorderSide(color: accentColor.withValues(alpha: 0.15)),
         ),
       ),
       child: Row(
@@ -1354,7 +1482,7 @@ class _FriendChatHeaderBar extends StatelessWidget {
                     color: const Color(0xFF10B981),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppTheme.surfaceDark,
+                      color: accentColor.withValues(alpha: 0.5),
                       width: 2,
                     ),
                   ),
@@ -1416,38 +1544,208 @@ class _FriendChatHeaderBar extends StatelessWidget {
               ],
             ),
           ),
-          if (onClearChat != null)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white70),
-              color: AppTheme.surfaceDark,
-              onSelected: (value) {
-                if (value == 'clear') {
-                  onClearChat?.call();
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'clear',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: Colors.white70,
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        'Clear chat view',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white70),
+            color: AppTheme.surfaceDark,
+            onSelected: (value) {
+              if (value == 'clear') {
+                onClearChat?.call();
+              } else if (value == 'theme') {
+                onChangeTheme?.call();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'theme',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.palette_outlined,
+                      size: 20,
+                      color: accentColor,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Giao diện chat',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const PopupMenuItem(
+                value: 'clear',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Clear chat view',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WallpaperPainter — shared painter used by FriendChatScreen and
+// ChatThemeScreen (re-exported from chat_theme_screen.dart)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class WallpaperPainter extends CustomPainter {
+  const WallpaperPainter({
+    required this.wallpaper,
+    required this.color,
+  });
+
+  final ChatWallpaper wallpaper;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    switch (wallpaper) {
+      case ChatWallpaper.stars:
+        _drawStars(canvas, size, paint);
+      case ChatWallpaper.bubbles:
+        _drawBubbles(canvas, size, paint);
+      case ChatWallpaper.waves:
+        _drawWaves(canvas, size, paint);
+      case ChatWallpaper.grid:
+        _drawGrid(canvas, size, paint);
+      case ChatWallpaper.hearts:
+        _drawHearts(canvas, size, paint);
+      case ChatWallpaper.travel:
+        _drawPlanes(canvas, size, paint);
+      case ChatWallpaper.none:
+        break;
+    }
+  }
+
+  void _drawStars(Canvas canvas, Size size, Paint paint) {
+    const rng = _WallRng(seed: 42);
+    for (var i = 0; i < 80; i++) {
+      final x = rng.next(i * 7) * size.width;
+      final y = rng.next(i * 13) * size.height;
+      final r = rng.next(i * 3) * 3 + 1;
+      canvas.drawCircle(Offset(x, y), r, paint);
+    }
+  }
+
+  void _drawBubbles(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    const rng = _WallRng(seed: 17);
+    for (var i = 0; i < 22; i++) {
+      final x = rng.next(i * 11) * size.width;
+      final y = rng.next(i * 7) * size.height;
+      final r = rng.next(i * 5) * 24 + 8;
+      canvas.drawCircle(Offset(x, y), r, stroke);
+    }
+  }
+
+  void _drawWaves(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (var row = 0; row < 14; row++) {
+      final path = Path();
+      final y0 = size.height * row / 14;
+      path.moveTo(0, y0);
+      for (var x = 0; x <= size.width.toInt(); x += 20) {
+        path.lineTo(x.toDouble(), y0 + 7 * math.sin(x / 30.0 + row));
+      }
+      canvas.drawPath(path, stroke);
+    }
+  }
+
+  void _drawGrid(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+    const step = 28.0;
+    for (var x = 0.0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), stroke);
+    }
+    for (var y = 0.0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), stroke);
+    }
+  }
+
+  void _drawHearts(Canvas canvas, Size size, Paint paint) {
+    const rng = _WallRng(seed: 99);
+    for (var i = 0; i < 28; i++) {
+      final x = rng.next(i * 9) * size.width;
+      final y = rng.next(i * 4) * size.height;
+      final s = rng.next(i * 2) * 10 + 5;
+      _drawHeart(canvas, Offset(x, y), s, paint);
+    }
+  }
+
+  void _drawHeart(Canvas canvas, Offset center, double size, Paint paint) {
+    final path = Path();
+    path.moveTo(center.dx, center.dy + size * 0.3);
+    path.cubicTo(
+      center.dx - size * 1.2, center.dy - size * 0.6,
+      center.dx - size * 2, center.dy + size * 0.6,
+      center.dx, center.dy + size * 1.5,
+    );
+    path.cubicTo(
+      center.dx + size * 2, center.dy + size * 0.6,
+      center.dx + size * 1.2, center.dy - size * 0.6,
+      center.dx, center.dy + size * 0.3,
+    );
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawPlanes(Canvas canvas, Size size, Paint p) {
+    const rng = _WallRng(seed: 55);
+    for (var i = 0; i < 18; i++) {
+      final x = rng.next(i * 13) * size.width;
+      final y = rng.next(i * 8) * size.height;
+      final s = rng.next(i) * 10 + 6;
+      _drawPlane(canvas, Offset(x, y), s, p);
+    }
+  }
+
+  void _drawPlane(Canvas canvas, Offset c, double s, Paint p) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - s)
+      ..lineTo(c.dx + s * 1.5, c.dy)
+      ..lineTo(c.dx, c.dy + s * 0.5)
+      ..lineTo(c.dx - s * 1.5, c.dy)
+      ..close();
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(WallpaperPainter old) =>
+      old.wallpaper != wallpaper || old.color != color;
+}
+
+class _WallRng {
+  const _WallRng({required this.seed});
+  final int seed;
+
+  double next(int index) {
+    final n = (seed ^ (index * 2654435761)) & 0xFFFFFFFF;
+    return (n % 1000) / 1000.0;
+  }
+}

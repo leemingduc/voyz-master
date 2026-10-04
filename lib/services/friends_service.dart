@@ -293,11 +293,15 @@ class FriendsService {
   Future<void> deleteMessage(String messageId) async {
     final currentId = currentUserId;
     await _guardSchema(() async {
-      await _client
+      final deleted = await _client
           .from('friend_messages')
           .delete()
           .eq('id', messageId)
-          .eq('sender_id', currentId);
+          .eq('sender_id', currentId)
+          .select();
+      if (deleted.isEmpty) {
+        throw Exception('Không thể thu hồi tin nhắn. Bạn chỉ có thể thu hồi tin nhắn của chính mình.');
+      }
     });
   }
 

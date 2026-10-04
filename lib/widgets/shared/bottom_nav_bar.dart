@@ -3,7 +3,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/theme/app_theme.dart';
 
 /// Bottom navigation bar shared across Planner, Suggestions, Detail, and Plan
-/// screens. Renders 3 items: AI Planner, Explore, Saved.
+/// screens. Renders 4 items: AI Planner, Explore, Saved, Friends.
 class BottomNavBar extends StatelessWidget {
   const BottomNavBar({super.key, required this.currentIndex, this.onTap});
 
@@ -13,7 +13,7 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final activeIndex = currentIndex.clamp(0, 2);
+    final activeIndex = currentIndex.clamp(0, 3);
 
     final items = [
       _NavItem(
@@ -31,6 +31,11 @@ class BottomNavBar extends StatelessWidget {
         activeIcon: Icons.bookmark,
         label: l10n.savedTrips,
       ),
+      _NavItem(
+        icon: Icons.people_alt_outlined,
+        activeIcon: Icons.people_alt,
+        label: l10n.friends,
+      ),
     ];
 
     return SafeArea(
@@ -40,7 +45,7 @@ class BottomNavBar extends StatelessWidget {
         height: 50,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
+            constraints: const BoxConstraints(maxWidth: 440),
             child: Container(
               decoration: BoxDecoration(
                 color: AppTheme.surfaceDark.withValues(alpha: 0.94),
