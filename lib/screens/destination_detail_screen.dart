@@ -230,7 +230,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       imageUrl: d.imageUrl,
       price: d.totalBudget,
       matchPercent: 98,
-      rating: average,
+      rating: average ?? 0.0,
       reviewCount: totalVotes,
       aiInsight: AppLocalizations.of(context)!.defaultAiInsight,
       tripData: _trip,
@@ -461,22 +461,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                DestinationRatingCalculator.calculateAverageRating(
-                                  _reviews.map((r) => r.rating),
-                                ).toStringAsFixed(1),
+                                _ratingSummary(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '(${DestinationRatingCalculator.calculateReviewCount(_reviews.length)} lượt)',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -536,14 +525,21 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  Widget _buildReviewsSection(ThemeData theme) {
-    final totalVotes = DestinationRatingCalculator.calculateReviewCount(
-      _reviews.length,
-    );
+  /// "4.5 (12 lượt)" khi đã có đánh giá, "Chưa có đánh giá" khi chưa có.
+  String _ratingSummary() {
     final average = DestinationRatingCalculator.calculateAverageRating(
       _reviews.map((r) => r.rating),
     );
+    if (average == null) {
+      return DestinationRatingCalculator.formatVotes(0);
+    }
+    final votes = DestinationRatingCalculator.formatVotes(
+      DestinationRatingCalculator.calculateReviewCount(_reviews.length),
+    );
+    return '${average.toStringAsFixed(1)} ($votes)';
+  }
 
+  Widget _buildReviewsSection(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -568,7 +564,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               const Spacer(),
               Text(
-                '${average.toStringAsFixed(1)} ($totalVotes lượt đánh giá)',
+                _ratingSummary(),
                 style: const TextStyle(
                   color: Color(0xFFFBBF24),
                   fontWeight: FontWeight.w700,

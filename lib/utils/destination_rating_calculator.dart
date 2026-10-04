@@ -1,26 +1,28 @@
-/// Helper tính toán số lượt đánh giá và điểm sao trung bình cho địa điểm.
+/// Helper tính số lượt đánh giá và điểm sao trung bình cho địa điểm.
+///
+/// Chỉ dùng đánh giá thật của người dùng. Không cộng thêm lượt ảo, vì
+/// người dùng đọc "100 lượt" sẽ hiểu là có 100 người đã đánh giá.
 class DestinationRatingCalculator {
   DestinationRatingCalculator._();
 
-  static const int baseVotes = 100;
-  static const double baseRating = 5.0;
-  static const double baseScore = baseVotes * baseRating; // 500.0
-
-  /// Tính tổng số lượt vote sau khi cộng dồn [userReviewCount] đánh giá từ người dùng.
+  /// Số lượt đánh giá thật.
   static int calculateReviewCount(int userReviewCount) {
-    return baseVotes + userReviewCount;
+    return userReviewCount < 0 ? 0 : userReviewCount;
   }
 
-  /// Tính điểm sao trung bình sau khi cộng dồn các lượt đánh giá [ratings] từ người dùng.
-  static double calculateAverageRating(Iterable<int> ratings) {
-    if (ratings.isEmpty) return baseRating;
-    final totalScore = baseScore + ratings.fold<int>(0, (sum, r) => sum + r);
-    final totalCount = baseVotes + ratings.length;
-    return totalScore / totalCount;
+  /// Điểm sao trung bình của các lượt đánh giá thật.
+  ///
+  /// Trả về `null` khi chưa có đánh giá, để UI hiện "Chưa có đánh giá"
+  /// thay vì một con số không có căn cứ.
+  static double? calculateAverageRating(Iterable<int> ratings) {
+    if (ratings.isEmpty) return null;
+    final total = ratings.fold<int>(0, (sum, r) => sum + r);
+    return total / ratings.length;
   }
 
-  /// Định dạng số lượt: "100 lượt" hoặc "102 lượt"
+  /// Định dạng số lượt: "Chưa có đánh giá", "1 lượt", "12 lượt".
   static String formatVotes(int totalVotes) {
+    if (totalVotes <= 0) return 'Chưa có đánh giá';
     return '$totalVotes lượt';
   }
 }

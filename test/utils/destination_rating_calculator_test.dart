@@ -4,31 +4,36 @@ import 'package:voyz/utils/destination_rating_calculator.dart';
 
 void main() {
   group('DestinationRatingCalculator', () {
-    test('returns base 100 votes and 5.0 rating when no user reviews', () {
-      expect(DestinationRatingCalculator.calculateReviewCount(0), 100);
-      expect(DestinationRatingCalculator.calculateAverageRating([]), 5.0);
+    test('has no average and zero votes when there are no reviews', () {
+      expect(DestinationRatingCalculator.calculateReviewCount(0), 0);
+      expect(DestinationRatingCalculator.calculateAverageRating([]), isNull);
     });
 
-    test('correctly calculates new rating and count when user reviews added', () {
-      // 1 user review of 4 stars -> (500 + 4) / 101 = 4.990099...
-      expect(DestinationRatingCalculator.calculateReviewCount(1), 101);
-      final avg1 = DestinationRatingCalculator.calculateAverageRating([4]);
-      expect(avg1, closeTo(4.99, 0.01));
+    test('uses only real reviews for count and average', () {
+      expect(DestinationRatingCalculator.calculateReviewCount(1), 1);
+      expect(DestinationRatingCalculator.calculateAverageRating([4]), 4.0);
 
-      // 5 user reviews of 1 star -> (500 + 5) / 105 = 4.8095...
-      expect(DestinationRatingCalculator.calculateReviewCount(5), 105);
-      final avg5 = DestinationRatingCalculator.calculateAverageRating([1, 1, 1, 1, 1]);
-      expect(avg5, closeTo(4.81, 0.01));
+      // 5 reviews of 1 star must give 1.0, not a value close to 5.0.
+      expect(DestinationRatingCalculator.calculateReviewCount(5), 5);
+      expect(
+        DestinationRatingCalculator.calculateAverageRating([1, 1, 1, 1, 1]),
+        1.0,
+      );
+      expect(
+        DestinationRatingCalculator.calculateAverageRating([5, 4, 3]),
+        4.0,
+      );
     });
 
     test('formatVotes returns readable string', () {
-      expect(DestinationRatingCalculator.formatVotes(100), '100 lượt');
+      expect(DestinationRatingCalculator.formatVotes(0), 'Chưa có đánh giá');
+      expect(DestinationRatingCalculator.formatVotes(1), '1 lượt');
       expect(DestinationRatingCalculator.formatVotes(105), '105 lượt');
     });
   });
 
-  group('DestinationSuggestion defaults', () {
-    test('defaults to 100 reviews and 5.0 rating when 0 or not provided', () {
+  group('DestinationSuggestion rating', () {
+    test('keeps zero reviews and zero rating when nothing is provided', () {
       final suggestion = DestinationSuggestion.fromSupabase({
         'name': 'Da Nang',
         'image_url': '',
@@ -36,11 +41,23 @@ void main() {
         'rating': 0,
         'review_count': 0,
       });
-      expect(suggestion.reviewCount, 100);
-      expect(suggestion.rating, 5.0);
+      expect(suggestion.reviewCount, 0);
+      expect(suggestion.rating, 0.0);
     });
 
-    test('computes rating and count from embedded community_reviews if present', () {
+    test('uses DB columns when community_reviews is not embedded', () {
+      final suggestion = DestinationSuggestion.fromSupabase({
+        'name': 'Da Nang',
+        'image_url': '',
+        'match_percent': 90,
+        'rating': 4.5,
+        'review_count': 2,
+      });
+      expect(suggestion.reviewCount, 2);
+      expect(suggestion.rating, 4.5);
+    });
+
+    test('computes rating and count from embedded community_reviews', () {
       final suggestion = DestinationSuggestion.fromSupabase({
         'name': 'Da Nang',
         'image_url': '',
@@ -49,13 +66,11 @@ void main() {
         'review_count': 0,
         'community_reviews': [
           {'rating': 4},
-          {'rating': 4},
+          {'rating': 3},
         ],
       });
-      // 100 base + 2 real = 102
-      expect(suggestion.reviewCount, 102);
-      // (500 + 8) / 102 = 4.98039...
-      expect(suggestion.rating, closeTo(4.98, 0.01));
+      expect(suggestion.reviewCount, 2);
+      expect(suggestion.rating, 3.5);
     });
   });
 }

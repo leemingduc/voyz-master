@@ -15,13 +15,6 @@ class DestinationRepository {
 
   SupabaseClient get _client => SupabaseService.instance.client;
 
-  Future<void> clearCuratedCache() async {
-    try {
-      final box = await Hive.openBox<Map>(_cacheBoxName);
-      await box.clear();
-    } catch (_) {}
-  }
-
   Future<List<DestinationSuggestion>> getFeaturedDestinations({
     required String categoryKey,
     int limit = 10,
