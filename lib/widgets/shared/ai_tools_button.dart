@@ -13,6 +13,7 @@ class AIToolsButtonVisibility {
 }
 
 /// A persistent shortcut to the AI tools hub, shown above app routes after login.
+/// Thiết kế icon tròn đặc trưng AIVIVU, không có chữ, gọn gàng.
 class AIToolsButton extends StatelessWidget {
   const AIToolsButton({super.key, required this.navigatorKey});
 
@@ -26,35 +27,72 @@ class AIToolsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Stream<AuthState>? authStream;
+    try {
+      authStream = SupabaseService.instance.auth.onAuthStateChange;
+    } catch (_) {
+      // Supabase chưa khởi tạo (ví dụ trong widget test)
+    }
+
+    if (authStream == null) {
+      return _buildButton(context);
+    }
+
     return StreamBuilder<AuthState>(
-      stream: SupabaseService.instance.auth.onAuthStateChange,
+      stream: authStream,
       builder: (context, snapshot) {
-        final session = SupabaseService.instance.auth.currentSession;
+        Session? session;
+        try {
+          session = SupabaseService.instance.auth.currentSession;
+        } catch (_) {}
         if (session == null) {
           return const SizedBox.shrink();
         }
 
-        final l10n = AppLocalizations.of(context);
-
-        return Semantics(
-          button: true,
-          label: l10n?.aiToolsTitle ?? 'AI Tools',
-          child: FloatingActionButton.extended(
-            heroTag: 'global-ai-tools-button',
-            onPressed: _openAITools,
-            backgroundColor: AppTheme.primaryPink,
-            icon: const Icon(Icons.auto_awesome, color: Colors.white),
-            label: Text(
-              l10n?.aiToolsTitle ?? 'AI Tools',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
+        return _buildButton(context);
       },
     );
   }
-}
 
+  Widget _buildButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Semantics(
+      button: true,
+      label: l10n?.aiToolsTitle ?? 'AI Tools',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openAITools,
+          borderRadius: BorderRadius.circular(29),
+          child: Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: AppTheme.brandGradient,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.cyan.withValues(alpha: 0.55),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryPink.withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  spreadRadius: 1.5,
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -8,6 +8,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
@@ -152,19 +153,9 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
       return Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                AppLocalizations.of(context)!.loadingItinerary,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-              ),
-            ],
+          child: AivivuLoadingIndicator(
+            message: AppLocalizations.of(context)!.loadingItinerary,
+            size: 88,
           ),
         ),
       );

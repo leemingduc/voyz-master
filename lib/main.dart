@@ -47,12 +47,10 @@ Future<void> main() async {
   // Resolve the initial locale before rendering.
   Locale initialLocale;
   try {
-    initialLocale = await LocaleSettingsStore.instance.load(
-      WidgetsBinding.instance.platformDispatcher.locale,
-    );
+    initialLocale = await LocaleSettingsStore.instance.load();
   } catch (e, st) {
     debugPrint('❌ Locale load error: $e\n$st');
-    initialLocale = const Locale('en');
+    initialLocale = const Locale('vi');
   }
 
   runApp(
@@ -125,7 +123,7 @@ class _VoyzAppState extends State<VoyzApp> {
                       (s) => s.languageCode == deviceLocale?.languageCode,
                     )
                     ? deviceLocale
-                    : const Locale('en'),
+                    : const Locale('vi'),
                 home: const AuthGate(),
                 builder: (context, child) {
                   return AivivuPageBackground(
@@ -136,8 +134,8 @@ class _VoyzAppState extends State<VoyzApp> {
                         child ?? const SizedBox.shrink(),
                         Positioned(
                           right: 16,
-                          // Keeps this shortcut above the bottom navigation.
-                          bottom: MediaQuery.of(context).padding.bottom + 92,
+                          // Keeps this shortcut above the bottom navigation and dock send button.
+                          bottom: MediaQuery.of(context).padding.bottom + 144,
                           child: ValueListenableBuilder<bool>(
                             valueListenable: AIToolsButtonVisibility.isHidden,
                             builder: (context, isHidden, _) => isHidden

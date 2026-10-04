@@ -38,6 +38,7 @@ class TripOptionCard extends StatelessWidget {
                   DestinationImage(
                     imageUrl: option.imageUrl,
                     destinationName: option.imageStop,
+                    isLoading: option.imageUrl.isEmpty,
                   ),
                   Positioned(
                     top: 12,
