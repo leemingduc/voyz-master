@@ -15,6 +15,13 @@ class DestinationRepository {
 
   SupabaseClient get _client => SupabaseService.instance.client;
 
+  Future<void> clearCuratedCache() async {
+    try {
+      final box = await Hive.openBox<Map>(_cacheBoxName);
+      await box.clear();
+    } catch (_) {}
+  }
+
   Future<List<DestinationSuggestion>> getFeaturedDestinations({
     required String categoryKey,
     int limit = 10,
@@ -40,13 +47,24 @@ class DestinationRepository {
     }
 
     try {
-      final rows = await _client
-          .from('featured_destinations')
-          .select('rank, destinations(*)')
-          .eq('category_key', categoryKey)
-          .eq('is_active', true)
-          .order('rank', ascending: true)
-          .limit(limit);
+      List<dynamic> rows;
+      try {
+        rows = await _client
+            .from('featured_destinations')
+            .select('rank, destinations(*, community_reviews(rating))')
+            .eq('category_key', categoryKey)
+            .eq('is_active', true)
+            .order('rank', ascending: true)
+            .limit(limit);
+      } catch (_) {
+        rows = await _client
+            .from('featured_destinations')
+            .select('rank, destinations(*)')
+            .eq('category_key', categoryKey)
+            .eq('is_active', true)
+            .order('rank', ascending: true)
+            .limit(limit);
+      }
 
       final items = <DestinationSuggestion>[];
       for (var index = 0; index < rows.length; index++) {
@@ -115,22 +133,43 @@ class DestinationRepository {
     bool forceRefresh = false,
   }) async {
     try {
-      final query = _client
-          .from('destinations')
-          .select()
-          .eq('is_active', true)
-          .order('match_percent', ascending: false)
-          .limit(limit);
+      const selectQuery = '*, community_reviews(rating)';
+      List<dynamic> rows;
+      try {
+        final query = _client
+            .from('destinations')
+            .select(selectQuery)
+            .eq('is_active', true)
+            .order('match_percent', ascending: false)
+            .limit(limit);
 
-      final rows = categoryKey == 'random'
-          ? await query
-          : await _client
-                .from('destinations')
-                .select()
-                .eq('is_active', true)
-                .eq('category', categoryKey)
-                .order('match_percent', ascending: false)
-                .limit(limit);
+        rows = categoryKey == 'random'
+            ? await query
+            : await _client
+                  .from('destinations')
+                  .select(selectQuery)
+                  .eq('is_active', true)
+                  .eq('category', categoryKey)
+                  .order('match_percent', ascending: false)
+                  .limit(limit);
+      } catch (_) {
+        final query = _client
+            .from('destinations')
+            .select()
+            .eq('is_active', true)
+            .order('match_percent', ascending: false)
+            .limit(limit);
+
+        rows = categoryKey == 'random'
+            ? await query
+            : await _client
+                  .from('destinations')
+                  .select()
+                  .eq('is_active', true)
+                  .eq('category', categoryKey)
+                  .order('match_percent', ascending: false)
+                  .limit(limit);
+      }
 
       return List.generate(rows.length, (index) {
         return DestinationSuggestion.fromSupabase(

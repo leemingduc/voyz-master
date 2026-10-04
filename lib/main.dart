@@ -132,16 +132,12 @@ class _VoyzAppState extends State<VoyzApp> {
                     child: Stack(
                       children: [
                         child ?? const SizedBox.shrink(),
-                        Positioned(
-                          right: 16,
-                          // Keeps this shortcut above the bottom navigation and dock send button.
-                          bottom: MediaQuery.of(context).padding.bottom + 144,
-                          child: ValueListenableBuilder<bool>(
-                            valueListenable: AIToolsButtonVisibility.isHidden,
-                            builder: (context, isHidden, _) => isHidden
-                                ? const SizedBox.shrink()
-                                : AIToolsButton(navigatorKey: _navigatorKey),
-                          ),
+                        // AIToolsButton positions itself and can be dragged anywhere.
+                        ValueListenableBuilder<bool>(
+                          valueListenable: AIToolsButtonVisibility.isHidden,
+                          builder: (context, isHidden, _) => isHidden
+                              ? const SizedBox.shrink()
+                              : AIToolsButton(navigatorKey: _navigatorKey),
                         ),
                       ],
                     ),

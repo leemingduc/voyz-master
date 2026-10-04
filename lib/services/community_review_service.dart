@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/services/supabase_service.dart';
+import 'package:voyz/utils/destination_rating_calculator.dart';
 
 class CommunityReview {
   const CommunityReview({
@@ -73,5 +74,23 @@ class CommunityReviewService {
       },
       onConflict: 'destination_id,user_id',
     );
+
+    // Đồng bộ thống kê điểm sao và số vote (100 vote ảo + vote thật)
+    try {
+      await _client.rpc('refresh_destination_review_stats', params: {
+        'target_destination_id': destinationId,
+      });
+    } catch (_) {
+      try {
+        final reviews = await listForDestination(destinationId);
+        final totalVotes = DestinationRatingCalculator.calculateReviewCount(reviews.length);
+        final avgRating = DestinationRatingCalculator.calculateAverageRating(reviews.map((r) => r.rating));
+        await _client.from('destinations').update({
+          'rating': avgRating,
+          'review_count': totalVotes,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        }).eq('id', destinationId);
+      } catch (_) {}
+    }
   }
 }

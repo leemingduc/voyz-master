@@ -395,13 +395,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return _DestinationCard(
         destination: dest,
         isTopMatch: dest.isTopMatch,
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>
                   DestinationDetailScreen(destinationName: dest.name),
             ),
           );
+          if (mounted) {
+            _loadExplore(forceRefresh: true);
+          }
         },
       );
     }
@@ -619,11 +622,15 @@ class _DestinationCard extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
-                      Text(
-                        ' (${destination.reviewCount})',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontSize: 12,
+                      Flexible(
+                        child: Text(
+                          ' (${destination.reviewCount} lượt)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                       const Spacer(),
