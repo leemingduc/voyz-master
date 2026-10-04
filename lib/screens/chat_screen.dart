@@ -7,6 +7,7 @@ import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/chat_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -141,6 +142,12 @@ class _ChatScreenState extends State<ChatScreen> {
       case 2:
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FriendsScreen()),
           (route) => false,
         );
         break;

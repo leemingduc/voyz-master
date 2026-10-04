@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/services/supabase_service.dart';
 
@@ -6,6 +7,7 @@ class CommunityReview {
     required this.id,
     required this.destinationId,
     required this.userId,
+    required this.userName,
     required this.rating,
     required this.comment,
     required this.createdAt,
@@ -15,20 +17,29 @@ class CommunityReview {
   final String id;
   final String destinationId;
   final String userId;
+  final String userName;
   final int rating;
   final String comment;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  factory CommunityReview.fromMap(Map<String, dynamic> map) {
+  factory CommunityReview.fromMap(
+    Map<String, dynamic> map, {
+    String userName = '',
+  }) {
     return CommunityReview(
       id: map['id']?.toString() ?? '',
       destinationId: map['destination_id']?.toString() ?? '',
       userId: map['user_id']?.toString() ?? '',
+      userName: userName,
       rating: (map['rating'] as num?)?.toInt() ?? 0,
       comment: map['comment']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(map['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -41,16 +52,68 @@ class CommunityReviewService {
   SupabaseClient get _client => SupabaseService.instance.client;
   GoTrueClient get _auth => SupabaseService.instance.auth;
 
-  Future<List<CommunityReview>> listForDestination(String destinationId) async {
+  Future<List<CommunityReview>> listForDestination(
+    String destinationId,
+  ) async {
+    // Bước 1: Fetch reviews
     final rows = await _client
         .from('community_reviews')
         .select()
         .eq('destination_id', destinationId)
         .order('created_at', ascending: false)
         .limit(20);
-    return rows
+
+    if (rows.isEmpty) return [];
+
+    final reviews = rows
         .map((row) => CommunityReview.fromMap(Map<String, dynamic>.from(row)))
         .toList();
+
+    // Bước 2: Lấy danh sách user_id unique rồi fetch profiles riêng
+    final userIds = reviews.map((r) => r.userId).toSet().toList();
+    final nameMap = await _fetchDisplayNames(userIds);
+
+    // Bước 3: Gán tên vào từng review
+    return reviews.map((r) {
+      final name = nameMap[r.userId] ?? '';
+      if (name.isEmpty) return r;
+      return CommunityReview(
+        id: r.id,
+        destinationId: r.destinationId,
+        userId: r.userId,
+        userName: name,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      );
+    }).toList();
+  }
+
+  /// Fetch display_name từ bảng profiles cho danh sách user_id.
+  /// Nếu bảng/cột không tồn tại, trả về map rỗng (không crash).
+  Future<Map<String, String>> _fetchDisplayNames(
+    List<String> userIds,
+  ) async {
+    if (userIds.isEmpty) return {};
+    try {
+      final rows = await _client
+          .from('profiles')
+          .select('user_id, display_name')
+          .inFilter('user_id', userIds);
+      final map = <String, String>{};
+      for (final row in rows) {
+        final uid = row['user_id']?.toString() ?? '';
+        final name = row['display_name']?.toString() ?? '';
+        if (uid.isNotEmpty && name.isNotEmpty) {
+          map[uid] = name;
+        }
+      }
+      return map;
+    } catch (e) {
+      debugPrint('Could not fetch profile names: $e');
+      return {};
+    }
   }
 
   Future<void> upsertReview({

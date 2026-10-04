@@ -1,10 +1,19 @@
-import 'dart:async';
+﻿import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:voyz/models/chat_theme_model.dart';
+import 'package:voyz/screens/chat_theme_screen.dart';
+import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/screens/saved_screen.dart';
+import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
+import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
+import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -102,6 +111,31 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  void _onNavTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SmartPlannerScreen()),
+          (route) => false,
+        );
+        break;
+      case 1:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const ExploreScreen()),
+          (route) => false,
+        );
+        break;
+      case 2:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        break;
+    }
+  }
+
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -120,6 +154,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final pending = _friendships.where((f) => f.status == 'pending').toList();
 
     return Scaffold(
+      bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
       body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
@@ -444,11 +479,51 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   List<FriendMessage> _messages = [];
   StreamSubscription<List<FriendMessage>>? _streamSub;
   bool _isSending = false;
+  bool _showEmojiPicker = false;
+  // IDs of locally recalled messages — guards against stream restoring deleted rows
+  final Set<String> _recalledIds = {};
+  // Active chat theme
+  ChatThemePreset _chatTheme = kChatThemes.first;
+
+  final List<String> _quickEmojis = [
+    '👋',
+    '❤️',
+    '✈️',
+    '🔥',
+    '✨',
+    '🎉',
+    '😊',
+    '🙌',
+    '👍',
+    '💬',
+  ];
 
   @override
   void initState() {
     super.initState();
     _initRealtimeMessages();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final id = await ChatThemeStore.load(widget.friendship.id);
+    if (!mounted) return;
+    setState(() => _chatTheme = ChatThemeStore.resolve(id));
+  }
+
+  Future<void> _openThemePicker() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatThemeScreen(
+          currentThemeId: _chatTheme.id,
+          onThemeSelected: (theme) async {
+            await ChatThemeStore.save(widget.friendship.id, theme.id);
+            if (!mounted) return;
+            setState(() => _chatTheme = theme);
+          },
+        ),
+      ),
+    );
   }
 
   void _initRealtimeMessages() {
@@ -459,7 +534,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           .listen(
             (messages) {
               if (!mounted) return;
-              setState(() => _messages = messages);
+              // Filter out any messages recalled locally to prevent stream from restoring them
+              final filtered = messages
+                  .where((m) => !_recalledIds.contains(m.id))
+                  .toList();
+              setState(() => _messages = filtered);
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => _scrollToBottom(),
               );
@@ -487,7 +566,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         widget.friendship.id,
       );
       if (!mounted) return;
-      setState(() => _messages = messages);
+      // Filter out any locally recalled messages (guards against server race conditions)
+      final filtered = messages
+          .where((m) => !_recalledIds.contains(m.id))
+          .toList();
+      setState(() => _messages = filtered);
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (error) {
       if (!silent && mounted) {
@@ -501,13 +584,16 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     }
   }
 
-  Future<void> _send() async {
-    final body = _messageController.text.trim();
+  Future<void> _send([String? customText]) async {
+    final textToSend = customText ?? _messageController.text;
+    final body = textToSend.trim();
     if (body.isEmpty || _isSending) return;
     setState(() => _isSending = true);
     try {
       await FriendsService.instance.sendMessage(widget.friendship.id, body);
-      _messageController.clear();
+      if (customText == null) {
+        _messageController.clear();
+      }
       await _loadMessages(silent: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -523,113 +609,689 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     );
   }
 
+  String _formatTime(DateTime dt) {
+    final local = dt.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _formatDateHeader(DateTime dt) {
+    final local = dt.toLocal();
+    final now = DateTime.now();
+    if (local.year == now.year && local.month == now.month && local.day == now.day) {
+      return 'Hôm nay';
+    }
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (local.year == yesterday.year &&
+        local.month == yesterday.month &&
+        local.day == yesterday.day) {
+      return 'Hôm qua';
+    }
+    final dayStr = local.day.toString().padLeft(2, '0');
+    final monthStr = local.month.toString().padLeft(2, '0');
+    return '$dayStr/$monthStr/${local.year}';
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    final locA = a.toLocal();
+    final locB = b.toLocal();
+    return locA.year == locB.year && locA.month == locB.month && locA.day == locB.day;
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : const Color(0xFF475569),
+      ),
+    );
+  }
+
+  Future<void> _deleteMessage(FriendMessage message) async {
+    // Optimistic update: hide immediately in UI
+    setState(() {
+      _recalledIds.add(message.id);
+      _messages.removeWhere((m) => m.id == message.id);
+    });
+    try {
+      await FriendsService.instance.deleteMessage(message.id);
+      if (!mounted) return;
+      _showMessage('Đã thu hồi tin nhắn');
+      // Reinitialize the realtime stream so its internal buffer re-fetches
+      // from the server and does not re-surface the deleted message.
+      await _streamSub?.cancel();
+      _streamSub = null;
+      _initRealtimeMessages();
+    } catch (error) {
+      if (!mounted) return;
+      // Revert optimistic update on failure — message was not deleted on server
+      setState(() => _recalledIds.remove(message.id));
+      await _loadMessages(silent: true);
+      _showMessage(error.toString(), isError: true);
+    }
+  }
+
+  void _showOptionsSheet(FriendMessage message, bool isMine) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy, color: Colors.white70),
+                title: const Text(
+                  'Sao chép tin nhắn',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Clipboard.setData(ClipboardData(text: message.body));
+                  _showMessage('Đã sao chép tin nhắn');
+                },
+              ),
+              if (isMine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.undo_rounded,
+                    color: Colors.redAccent,
+                  ),
+                  title: const Text(
+                    'Thu hồi tin nhắn',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMessage(message);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentId = FriendsService.instance.currentUserId;
+    final friend = widget.friendship.friend;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
-      appBar: const AivivuHeader(),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isMine = message.senderId == currentId;
-                return Align(
-                  alignment: isMine
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 280),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMine
-                          ? AppTheme.primaryPink
-                          : Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      message.body,
-                      style: const TextStyle(color: Colors.white),
-                    ),
+      appBar: AivivuHeader(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const AivivuWordmark(text: 'AIVIVU CHAT', fontSize: 21),
+      ),
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        decoration: BoxDecoration(gradient: _chatTheme.backgroundGradient),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Wallpaper pattern overlay
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.06,
+                child: CustomPaint(
+                  painter: WallpaperPainter(
+                    wallpaper: _chatTheme.wallpaper,
+                    color: _chatTheme.accentColor,
                   ),
-                );
-              },
+                ),
+              ),
             ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      minLines: 1,
-                      maxLines: 4,
-                      textAlignVertical: TextAlignVertical.center,
-                      style: const TextStyle(
-                        color: Colors.white,
+            Column(
+              children: [
+                _FriendChatHeaderBar(
+                  friend: friend,
+                  accentColor: _chatTheme.accentColor,
+                  onClearChat: () {
+                    setState(() => _messages = []);
+                  },
+                  onChangeTheme: _openThemePicker,
+                ),
+                Expanded(
+                  child: _messages.isEmpty
+                      ? _EmptyChatView(
+                          friend: friend,
+                          accentColor: _chatTheme.accentColor,
+                          bubbleGradient: _chatTheme.myBubbleGradient,
+                          onSendQuick: (text) => _send(text),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isMine = message.senderId == currentId;
+                            final showDateHeader = index == 0 ||
+                                !_isSameDay(
+                                  _messages[index - 1].createdAt,
+                                  message.createdAt,
+                                );
+
+                            return Column(
+                              children: [
+                                if (showDateHeader)
+                                  _DateChip(
+                                    label: _formatDateHeader(message.createdAt),
+                                  ),
+                                _ChatMessageBubble(
+                                  message: message,
+                                  isMine: isMine,
+                                  friend: friend,
+                                  timeString: _formatTime(message.createdAt),
+                                  myBubbleGradient: _chatTheme.myBubbleGradient,
+                                  myBubbleTextColor: _chatTheme.myBubbleTextColor,
+                                  theirBubbleColor: _chatTheme.theirBubbleColor,
+                                  theirBubbleTextColor: _chatTheme.theirBubbleTextColor,
+                                  accentColor: _chatTheme.accentColor,
+                                  onLongPress: () =>
+                                      _showOptionsSheet(message, isMine),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+                _ChatInputDock(
+                  controller: _messageController,
+                  isSending: _isSending,
+                  showEmojiPicker: _showEmojiPicker,
+                  quickEmojis: _quickEmojis,
+                  accentColor: _chatTheme.accentColor,
+                  sendGradient: _chatTheme.myBubbleGradient,
+                  inputBarColor: _chatTheme.inputBarColor,
+                  onToggleEmoji: () {
+                    setState(() => _showEmojiPicker = !_showEmojiPicker);
+                  },
+                  onEmojiSelect: (emoji) {
+                    _messageController.text += emoji;
+                    _messageController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _messageController.text.length),
+                    );
+                  },
+                  onSend: () => _send(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateChip extends StatelessWidget {
+  const _DateChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.6),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatMessageBubble extends StatelessWidget {
+  const _ChatMessageBubble({
+    required this.message,
+    required this.isMine,
+    required this.friend,
+    required this.timeString,
+    required this.myBubbleGradient,
+    required this.myBubbleTextColor,
+    required this.theirBubbleColor,
+    required this.theirBubbleTextColor,
+    required this.accentColor,
+    this.onLongPress,
+  });
+
+  final FriendMessage message;
+  final bool isMine;
+  final SocialProfile friend;
+  final String timeString;
+  final Gradient myBubbleGradient;
+  final Color myBubbleTextColor;
+  final Color theirBubbleColor;
+  final Color theirBubbleTextColor;
+  final Color accentColor;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment:
+            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMine) ...[
+            _Avatar(url: friend.avatarUrl),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: GestureDetector(
+              onLongPress: onLongPress,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 290),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  gradient: isMine ? myBubbleGradient : null,
+                  color: isMine ? null : theirBubbleColor,
+                  boxShadow: isMine
+                      ? [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                  border: isMine
+                      ? null
+                      : Border.all(
+                          color: accentColor.withValues(alpha: 0.15),
+                        ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isMine ? 18 : 4),
+                    bottomRight: Radius.circular(isMine ? 4 : 18),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message.body,
+                      style: TextStyle(
+                        color: isMine ? myBubbleTextColor : theirBubbleTextColor,
                         fontSize: 15,
-                        height: 1.45,
-                        letterSpacing: 0.2,
+                        height: 1.4,
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Message',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 15,
-                          height: 1.45,
-                          letterSpacing: 0.2,
-                        ),
-                        filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.07),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: AppTheme.cyan,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      onSubmitted: (_) => _send(),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _isSending ? null : _send,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          timeString,
+                          style: TextStyle(
+                            color: (isMine ? myBubbleTextColor : theirBubbleTextColor)
+                                .withValues(alpha: 0.65),
+                            fontSize: 11,
+                          ),
+                        ),
+                        if (isMine) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.done_all,
+                            size: 14,
+                            color: myBubbleTextColor.withValues(alpha: 0.7),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyChatView extends StatelessWidget {
+  const _EmptyChatView({
+    required this.friend,
+    required this.onSendQuick,
+    required this.accentColor,
+    required this.bubbleGradient,
+  });
+
+  final SocialProfile friend;
+  final ValueChanged<String> onSendQuick;
+  final Color accentColor;
+  final Gradient bubbleGradient;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName =
+        friend.displayName.isEmpty ? friend.email : friend.displayName;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: bubbleGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 36,
+                backgroundColor: AppTheme.surfaceDark,
+                child: ProfileAvatar(avatarUrl: friend.avatarUrl, radius: 34),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Chat with $displayName',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'No messages yet. Send a quick greeting to get started! 👋',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 8,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                _QuickChip(
+                  label: 'Say Hi 👋',
+                  accentColor: accentColor,
+                  onTap: () => onSendQuick('Hi there! 👋'),
+                ),
+                _QuickChip(
+                  label: 'Plan a trip ✈️',
+                  accentColor: accentColor,
+                  onTap: () => onSendQuick('Want to plan a trip together? ✈️'),
+                ),
+                _QuickChip(
+                  label: 'How are you? 😊',
+                  accentColor: accentColor,
+                  onTap: () => onSendQuick('How are you doing today? 😊'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickChip extends StatelessWidget {
+  const _QuickChip({
+    required this.label,
+    required this.onTap,
+    required this.accentColor,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatInputDock extends StatelessWidget {
+  const _ChatInputDock({
+    required this.controller,
+    required this.isSending,
+    required this.showEmojiPicker,
+    required this.quickEmojis,
+    required this.onToggleEmoji,
+    required this.onEmojiSelect,
+    required this.onSend,
+    required this.accentColor,
+    required this.sendGradient,
+    required this.inputBarColor,
+  });
+
+  final TextEditingController controller;
+  final bool isSending;
+  final bool showEmojiPicker;
+  final List<String> quickEmojis;
+  final VoidCallback onToggleEmoji;
+  final ValueChanged<String> onEmojiSelect;
+  final VoidCallback onSend;
+  final Color accentColor;
+  final Gradient sendGradient;
+  final Color inputBarColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        decoration: BoxDecoration(
+          color: inputBarColor.withValues(alpha: 0.97),
+          border: Border(
+            top: BorderSide(color: accentColor.withValues(alpha: 0.12)),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showEmojiPicker) ...[
+              SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  itemCount: quickEmojis.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final emoji = quickEmojis[index];
+                    return InkWell(
+                      onTap: () => onEmojiSelect(emoji),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Emoji',
+                  onPressed: onToggleEmoji,
+                  icon: Icon(
+                    Icons.sentiment_satisfied_alt,
+                    color: showEmojiPicker ? accentColor : Colors.white60,
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    minLines: 1,
+                    maxLines: 4,
+                    textAlignVertical: TextAlignVertical.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.45,
+                      letterSpacing: 0.2,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Write a message...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 14,
+                        height: 1.45,
+                        letterSpacing: 0.2,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.07),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide(
+                          color: accentColor,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onSubmitted: (_) => onSend(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: sendGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: isSending ? null : onSend,
+                    icon: isSending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -775,5 +1437,315 @@ class _ErrorState extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _FriendChatHeaderBar extends StatelessWidget {
+  const _FriendChatHeaderBar({
+    required this.friend,
+    required this.accentColor,
+    this.onClearChat,
+    this.onChangeTheme,
+  });
+
+  final SocialProfile friend;
+  final Color accentColor;
+  final VoidCallback? onClearChat;
+  final VoidCallback? onChangeTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName =
+        friend.displayName.isEmpty ? friend.email : friend.displayName;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        border: Border(
+          bottom: BorderSide(color: accentColor.withValues(alpha: 0.15)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              _Avatar(url: friend.avatarUrl),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'Active',
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  friend.email,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white70),
+            color: AppTheme.surfaceDark,
+            onSelected: (value) {
+              if (value == 'clear') {
+                onClearChat?.call();
+              } else if (value == 'theme') {
+                onChangeTheme?.call();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'theme',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.palette_outlined,
+                      size: 20,
+                      color: accentColor,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Giao diện chat',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Clear chat view',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WallpaperPainter — shared painter used by FriendChatScreen and
+// ChatThemeScreen (re-exported from chat_theme_screen.dart)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class WallpaperPainter extends CustomPainter {
+  const WallpaperPainter({
+    required this.wallpaper,
+    required this.color,
+  });
+
+  final ChatWallpaper wallpaper;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    switch (wallpaper) {
+      case ChatWallpaper.stars:
+        _drawStars(canvas, size, paint);
+      case ChatWallpaper.bubbles:
+        _drawBubbles(canvas, size, paint);
+      case ChatWallpaper.waves:
+        _drawWaves(canvas, size, paint);
+      case ChatWallpaper.grid:
+        _drawGrid(canvas, size, paint);
+      case ChatWallpaper.hearts:
+        _drawHearts(canvas, size, paint);
+      case ChatWallpaper.travel:
+        _drawPlanes(canvas, size, paint);
+      case ChatWallpaper.none:
+        break;
+    }
+  }
+
+  void _drawStars(Canvas canvas, Size size, Paint paint) {
+    const rng = _WallRng(seed: 42);
+    for (var i = 0; i < 80; i++) {
+      final x = rng.next(i * 7) * size.width;
+      final y = rng.next(i * 13) * size.height;
+      final r = rng.next(i * 3) * 3 + 1;
+      canvas.drawCircle(Offset(x, y), r, paint);
+    }
+  }
+
+  void _drawBubbles(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    const rng = _WallRng(seed: 17);
+    for (var i = 0; i < 22; i++) {
+      final x = rng.next(i * 11) * size.width;
+      final y = rng.next(i * 7) * size.height;
+      final r = rng.next(i * 5) * 24 + 8;
+      canvas.drawCircle(Offset(x, y), r, stroke);
+    }
+  }
+
+  void _drawWaves(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (var row = 0; row < 14; row++) {
+      final path = Path();
+      final y0 = size.height * row / 14;
+      path.moveTo(0, y0);
+      for (var x = 0; x <= size.width.toInt(); x += 20) {
+        path.lineTo(x.toDouble(), y0 + 7 * math.sin(x / 30.0 + row));
+      }
+      canvas.drawPath(path, stroke);
+    }
+  }
+
+  void _drawGrid(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+    const step = 28.0;
+    for (var x = 0.0; x <= size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), stroke);
+    }
+    for (var y = 0.0; y <= size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), stroke);
+    }
+  }
+
+  void _drawHearts(Canvas canvas, Size size, Paint paint) {
+    const rng = _WallRng(seed: 99);
+    for (var i = 0; i < 28; i++) {
+      final x = rng.next(i * 9) * size.width;
+      final y = rng.next(i * 4) * size.height;
+      final s = rng.next(i * 2) * 10 + 5;
+      _drawHeart(canvas, Offset(x, y), s, paint);
+    }
+  }
+
+  void _drawHeart(Canvas canvas, Offset center, double size, Paint paint) {
+    final path = Path();
+    path.moveTo(center.dx, center.dy + size * 0.3);
+    path.cubicTo(
+      center.dx - size * 1.2, center.dy - size * 0.6,
+      center.dx - size * 2, center.dy + size * 0.6,
+      center.dx, center.dy + size * 1.5,
+    );
+    path.cubicTo(
+      center.dx + size * 2, center.dy + size * 0.6,
+      center.dx + size * 1.2, center.dy - size * 0.6,
+      center.dx, center.dy + size * 0.3,
+    );
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawPlanes(Canvas canvas, Size size, Paint p) {
+    const rng = _WallRng(seed: 55);
+    for (var i = 0; i < 18; i++) {
+      final x = rng.next(i * 13) * size.width;
+      final y = rng.next(i * 8) * size.height;
+      final s = rng.next(i) * 10 + 6;
+      _drawPlane(canvas, Offset(x, y), s, p);
+    }
+  }
+
+  void _drawPlane(Canvas canvas, Offset c, double s, Paint p) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - s)
+      ..lineTo(c.dx + s * 1.5, c.dy)
+      ..lineTo(c.dx, c.dy + s * 0.5)
+      ..lineTo(c.dx - s * 1.5, c.dy)
+      ..close();
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(WallpaperPainter old) =>
+      old.wallpaper != wallpaper || old.color != color;
+}
+
+class _WallRng {
+  const _WallRng({required this.seed});
+  final int seed;
+
+  double next(int index) {
+    final n = (seed ^ (index * 2654435761)) & 0xFFFFFFFF;
+    return (n % 1000) / 1000.0;
   }
 }

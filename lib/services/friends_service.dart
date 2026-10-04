@@ -75,7 +75,7 @@ class FriendMessage {
       friendshipId: map['friendship_id']?.toString() ?? '',
       senderId: map['sender_id']?.toString() ?? '',
       body: map['body']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
           DateTime.now(),
     );
   }
@@ -233,7 +233,7 @@ class FriendsService {
           requesterId: requester,
           addresseeId: addressee,
           status: map['status']?.toString() ?? 'pending',
-          createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
               DateTime.now(),
           friend: profiles[friendId] ??
               SocialProfile(
@@ -287,6 +287,21 @@ class FriendsService {
         'sender_id': currentUserId,
         'body': trimmed,
       });
+    });
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    final currentId = currentUserId;
+    await _guardSchema(() async {
+      final deleted = await _client
+          .from('friend_messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('sender_id', currentId)
+          .select();
+      if (deleted.isEmpty) {
+        throw Exception('Không thể thu hồi tin nhắn. Bạn chỉ có thể thu hồi tin nhắn của chính mình.');
+      }
     });
   }
 

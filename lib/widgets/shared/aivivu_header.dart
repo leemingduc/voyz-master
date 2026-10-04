@@ -6,11 +6,13 @@ class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
   const AivivuHeader({
     super.key,
     this.leading,
+    this.title,
     this.actions = const [],
     this.bottom,
   });
 
   final Widget? leading;
+  final Widget? title;
   final List<Widget> actions;
   final PreferredSizeWidget? bottom;
 
@@ -24,7 +26,7 @@ class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: leading,
       titleSpacing: leading == null ? 20 : 4,
-      title: const AivivuWordmark(fontSize: 21),
+      title: title ?? const AivivuWordmark(fontSize: 21),
       actions: actions,
       bottom: bottom,
       backgroundColor: AppTheme.surfaceDark.withValues(alpha: 0.76),

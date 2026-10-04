@@ -5,6 +5,7 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
@@ -36,6 +37,12 @@ class _SavedScreenState extends State<SavedScreen> {
         break;
       case 2:
         // Already on Saved
+        break;
+      case 3:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FriendsScreen()),
+          (route) => false,
+        );
         break;
     }
   }

@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:voyz/theme/app_theme.dart';
 
 class AivivuWordmark extends StatelessWidget {
-  const AivivuWordmark({super.key, this.fontSize = 26, this.alignment});
+  const AivivuWordmark({
+    super.key,
+    this.text = 'AIVIVU',
+    this.fontSize = 26,
+    this.alignment,
+  });
 
+  final String text;
   final double fontSize;
   final AlignmentGeometry? alignment;
 
   @override
   Widget build(BuildContext context) {
-    final text = Text(
-      'AIVIVU',
+    final textWidget = Text(
+      text,
       textAlign: TextAlign.center,
       style: TextStyle(
         color: Colors.white,
@@ -30,7 +36,7 @@ class AivivuWordmark extends StatelessWidget {
       child: ShaderMask(
         blendMode: BlendMode.srcIn,
         shaderCallback: AppTheme.brandGradient.createShader,
-        child: text,
+        child: textWidget,
       ),
     );
   }

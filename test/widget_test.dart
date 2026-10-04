@@ -82,7 +82,7 @@ void main() {
   });
 
   testWidgets(
-    'bottom navigation has three equal destinations and an active indicator',
+    'bottom navigation has four equal destinations and an active indicator',
     (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -94,7 +94,7 @@ void main() {
         ),
       );
 
-      expect(find.byType(Expanded), findsNWidgets(3));
+      expect(find.byType(Expanded), findsNWidgets(4));
       expect(
         find.byKey(const ValueKey('bottom_nav_active_indicator')),
         findsOneWidget,

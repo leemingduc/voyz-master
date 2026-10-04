@@ -8,6 +8,7 @@ import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/profile_service.dart';
@@ -104,6 +105,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       case 2:
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FriendsScreen()),
           (route) => false,
         );
         break;

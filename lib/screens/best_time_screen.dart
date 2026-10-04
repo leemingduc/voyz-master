@@ -5,6 +5,7 @@ import 'package:voyz/models/best_time_travel.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
@@ -104,6 +105,12 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
       case 2:
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const SavedScreen()),
+          (route) => false,
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const FriendsScreen()),
           (route) => false,
         );
         break;

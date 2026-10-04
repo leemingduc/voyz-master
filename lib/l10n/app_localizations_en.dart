@@ -60,6 +60,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedTrips => 'Saved';
 
   @override
+  String get friends => 'Friends';
+
+  @override
   String get signOut => 'Sign out';
 
   @override
