@@ -28,17 +28,13 @@ void main() {
   });
 
   group('LocaleSettingsStore', () {
-    test('uses English for an unsupported device language', () async {
+    test('defaults to Vietnamese when nothing is saved', () async {
       expect(
-        await LocaleSettingsStore.instance.load(const Locale('fr')),
-        const Locale('en'),
+        await LocaleSettingsStore.instance.load(),
+        const Locale('vi'),
       );
-    });
-
-    test('uses device language when it is supported and nothing is saved',
-        () async {
       expect(
-        await LocaleSettingsStore.instance.load(const Locale('vi')),
+        await LocaleSettingsStore.instance.load(const Locale('en')),
         const Locale('vi'),
       );
     });

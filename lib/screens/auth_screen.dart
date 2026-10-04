@@ -25,12 +25,18 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    AIToolsButtonVisibility.isHidden.value = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AIToolsButtonVisibility.isHidden.value = true;
+      }
+    });
   }
 
   @override
   void dispose() {
-    AIToolsButtonVisibility.isHidden.value = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AIToolsButtonVisibility.isHidden.value = false;
+    });
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

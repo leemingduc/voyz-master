@@ -15,10 +15,12 @@ import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/utils/error_localizer.dart';
 import 'package:voyz/widgets/planner/planner_bubble.dart';
+import 'package:voyz/widgets/planner/planner_generating_card.dart';
 import 'package:voyz/widgets/planner/trip_option_card.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
+import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
 
 /// Planner AI-first dạng chat. Trước lượt gửi đầu là màn hero như cũ; sau đó
 /// là hội thoại với AI, AI hỏi thêm khi thiếu thông tin rồi đưa 3 thẻ phương
@@ -333,7 +335,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                     ),
                   ),
             ],
-            if (_isSending) _TypingRow(label: l10n.chatAiReply),
+            if (_isSending)
+              if (_lastForce || _messages.length <= 1)
+                const PlannerGeneratingCard()
+              else
+                TypingIndicatorBubble(label: l10n.chatAiReply),
             if (_error != null)
               _ErrorRow(
                 message: ErrorLocalizer.getLocalizedMessage(_error!, l10n),
@@ -490,38 +496,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   }
 }
 
-class _TypingRow extends StatelessWidget {
-  const _TypingRow({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPink),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _ErrorRow extends StatelessWidget {
   const _ErrorRow({
