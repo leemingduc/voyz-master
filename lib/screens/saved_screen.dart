@@ -7,6 +7,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
@@ -126,7 +127,7 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(width: 48), // balance placeholder
+          const AccountMenuButton(),
         ],
       ),
     );

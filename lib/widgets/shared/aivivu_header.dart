@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 
 class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -9,12 +10,14 @@ class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
     this.title,
     this.actions = const [],
     this.bottom,
+    this.showAccountMenu = true,
   });
 
   final Widget? leading;
   final Widget? title;
   final List<Widget> actions;
   final PreferredSizeWidget? bottom;
+  final bool showAccountMenu;
 
   @override
   Size get preferredSize =>
@@ -27,7 +30,13 @@ class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       titleSpacing: leading == null ? 20 : 4,
       title: title ?? const AivivuWordmark(fontSize: 21),
-      actions: actions,
+      actions: [
+        ...actions,
+        if (showAccountMenu) ...[
+          const AccountMenuButton(),
+          const SizedBox(width: 12),
+        ],
+      ],
       bottom: bottom,
       backgroundColor: AppTheme.surfaceDark.withValues(alpha: 0.76),
       surfaceTintColor: Colors.transparent,
@@ -39,3 +48,4 @@ class AivivuHeader extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
+

@@ -4,6 +4,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
@@ -112,6 +113,7 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
               ),
             ),
           ),
+          const AccountMenuButton(),
         ],
       ),
     );

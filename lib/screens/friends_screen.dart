@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -11,6 +11,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
@@ -266,6 +267,8 @@ class _Header extends StatelessWidget {
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh, color: Colors.white70),
           ),
+          const SizedBox(width: 4),
+          const AccountMenuButton(),
         ],
       ),
     );
