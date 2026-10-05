@@ -14,49 +14,61 @@ class BackgroundMusicService {
 
   final ValueNotifier<bool> isPlayingNotifier = ValueNotifier<bool>(false);
 
+  bool get isInitialized => _isInitialized;
+
   /// Initialize the music service and start playing background music.
   Future<void> init() async {
     if (_isInitialized) return;
 
     try {
-      // Set the audio source from assets (with timeout to avoid blocking)
-      await _audioPlayer
-          .setSource(AssetSource('audio/background_music.mp3'))
-          .timeout(const Duration(seconds: 5));
-
       // Enable looping
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
 
       // Set initial volume
       await _audioPlayer.setVolume(_volume);
 
-      _isInitialized = true;
+      // Set the audio source from assets (with timeout to avoid blocking)
+      await _audioPlayer
+          .setSource(AssetSource('audio/background_music.mp3'))
+          .timeout(const Duration(seconds: 5));
 
-      // Start playing immediately
-      await play();
+      _isInitialized = true;
     } catch (e) {
-      debugPrint('Error initializing background music: $e');
-      _isInitialized = false;
+      debugPrint('Error preparing background music source: $e');
+      _isInitialized = true;
     }
+
+    // Try starting playback (browsers on web may block autoplay until user interacts)
+    await play();
   }
 
   /// Start or resume playing the background music.
   Future<void> play() async {
-    if (!_isInitialized) return;
-
     try {
-      await _audioPlayer.resume();
+      if (!_isInitialized) {
+        await init();
+      }
+
+      if (_audioPlayer.state == PlayerState.paused) {
+        await _audioPlayer.resume();
+      } else {
+        await _audioPlayer.play(AssetSource('audio/background_music.mp3'));
+      }
+
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(_volume);
+
       _isPlaying = true;
       isPlayingNotifier.value = true;
     } catch (e) {
       debugPrint('Error playing background music: $e');
+      _isPlaying = false;
+      isPlayingNotifier.value = false;
     }
   }
 
   /// Pause the background music.
   Future<void> pause() async {
-    if (!_isInitialized) return;
-
     try {
       await _audioPlayer.pause();
       _isPlaying = false;
@@ -68,8 +80,6 @@ class BackgroundMusicService {
 
   /// Stop the background music completely.
   Future<void> stop() async {
-    if (!_isInitialized) return;
-
     try {
       await _audioPlayer.stop();
       _isPlaying = false;
@@ -91,8 +101,10 @@ class BackgroundMusicService {
   /// Set the volume (0.0 to 1.0).
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 1.0);
-    if (_isInitialized) {
+    try {
       await _audioPlayer.setVolume(_volume);
+    } catch (e) {
+      debugPrint('Error setting volume: $e');
     }
   }
 
@@ -110,3 +122,4 @@ class BackgroundMusicService {
     isPlayingNotifier.value = false;
   }
 }
+

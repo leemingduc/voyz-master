@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
@@ -8,7 +8,6 @@ import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
 import 'package:voyz/screens/best_time_screen.dart';
-import 'package:voyz/screens/chat_screen.dart';
 import 'package:voyz/screens/cultural_tips_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
@@ -19,6 +18,7 @@ import 'package:voyz/services/destination_repository.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/utils/destination_rating_calculator.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
@@ -786,7 +786,14 @@ class _HeroSection extends StatelessWidget {
                       icon: Icons.arrow_back,
                       onTap: () => Navigator.of(context).maybePop(),
                     ),
-                    _CircleBtn(icon: Icons.share, onTap: onShare),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _CircleBtn(icon: Icons.share, onTap: onShare),
+                        const SizedBox(width: 8),
+                        const AccountMenuButton(),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1106,34 +1113,15 @@ class _ActionButtons extends StatelessWidget {
           onPressed: onGenerateItinerary,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _OutlineBtn(
-                label: AppLocalizations.of(context)!.contextBestTime,
-                icon: Icons.calendar_month,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        BestTimeScreen(initialDestination: destinationName),
-                  ),
-                ),
-              ),
+        _OutlineBtn(
+          label: AppLocalizations.of(context)!.contextBestTime,
+          icon: Icons.calendar_month,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  BestTimeScreen(initialDestination: destinationName),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _OutlineBtn(
-                label: AppLocalizations.of(context)!.contextAskAboutDestination,
-                icon: Icons.auto_awesome,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ChatScreen(destinationName: destinationName),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 12),
         GradientButton(
@@ -1148,52 +1136,10 @@ class _ActionButtons extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _OutlineBtn(
-                label: AppLocalizations.of(context)!.saveInfo,
-                icon: Icons.bookmark,
-                onPressed: onSaveInfo,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.bookNow,
-                          style: TextStyle(
-                            color: AppTheme.backgroundDark,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward,
-                          color: AppTheme.backgroundDark,
-                          size: 18,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        _OutlineBtn(
+          label: AppLocalizations.of(context)!.saveInfo,
+          icon: Icons.bookmark,
+          onPressed: onSaveInfo,
         ),
       ],
     );

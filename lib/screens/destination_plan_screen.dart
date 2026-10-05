@@ -9,6 +9,7 @@ import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
@@ -376,7 +377,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
                   ),
                 ],
               ),
-              const SizedBox(width: 40),
+              const AccountMenuButton(),
             ],
           ),
         ),

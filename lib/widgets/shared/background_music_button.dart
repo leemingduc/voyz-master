@@ -14,16 +14,21 @@ class _BackgroundMusicButtonState extends State<BackgroundMusicButton> {
   Widget build(BuildContext context) {
     final musicService = BackgroundMusicService.instance;
 
-    return Switch(
-      value: musicService.isPlaying,
-      activeThumbColor: Colors.white,
-      activeTrackColor: const Color(0xFF06B6D4),
-      inactiveThumbColor: Colors.white70,
-      inactiveTrackColor: Colors.white24,
-      onChanged: (_) async {
-        await musicService.toggle();
-        if (mounted) setState(() {});
+    return ValueListenableBuilder<bool>(
+      valueListenable: musicService.isPlayingNotifier,
+      builder: (context, isPlaying, child) {
+        return Switch(
+          value: isPlaying,
+          activeThumbColor: Colors.white,
+          activeTrackColor: const Color(0xFF06B6D4),
+          inactiveThumbColor: Colors.white70,
+          inactiveTrackColor: Colors.white24,
+          onChanged: (_) async {
+            await musicService.toggle();
+          },
+        );
       },
     );
   }
 }
+
