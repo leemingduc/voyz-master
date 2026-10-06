@@ -88,12 +88,20 @@ class ItineraryItem {
   final String title;
   final String description;
   final String icon;
+  final String? location;
+  final String? estimatedCost;
+  final String? tips;
+  final String? details;
 
   const ItineraryItem({
     required this.time,
     required this.title,
     required this.description,
     required this.icon,
+    this.location,
+    this.estimatedCost,
+    this.tips,
+    this.details,
   });
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
@@ -102,6 +110,10 @@ class ItineraryItem {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       icon: json['icon'] as String? ?? 'circle',
+      location: json['location'] as String?,
+      estimatedCost: json['estimatedCost'] as String?,
+      tips: json['tips'] as String?,
+      details: json['details'] as String?,
     );
   }
 
@@ -110,5 +122,10 @@ class ItineraryItem {
     'title': title,
     'description': description,
     'icon': icon,
+    if (location != null) 'location': location,
+    if (estimatedCost != null) 'estimatedCost': estimatedCost,
+    if (tips != null) 'tips': tips,
+    if (details != null) 'details': details,
   };
 }
+
