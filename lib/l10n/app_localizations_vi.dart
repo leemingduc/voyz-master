@@ -632,7 +632,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get contextAskAboutDestination => 'Hỏi AI về nơi này';
 
   @override
-  String get refineForBudget => 'Tối ưu theo ngân sách';
+  String get refineForBudget => 'Hoạt động nhiều hơn (Tối ưu ngân sách)';
 
   @override
   String get refineForFamily => 'Phù hợp trẻ em/người lớn tuổi';

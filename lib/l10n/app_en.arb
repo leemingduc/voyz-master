@@ -807,7 +807,7 @@
   "contextAskAboutDestination": "Ask AI about this place",
   "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
 
-  "refineForBudget": "Optimize for budget",
+  "refineForBudget": "More Activities (Budget Optimized)",
   "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
 
   "refineForFamily": "Better for children or seniors",

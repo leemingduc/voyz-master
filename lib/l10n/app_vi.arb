@@ -210,7 +210,7 @@
   "contextAskAboutDestination": "Hỏi AI về nơi này",
   "@contextAskAboutDestination": {"description": "Action to open AI chat with the current destination context"},
 
-  "refineForBudget": "Tối ưu theo ngân sách",
+  "refineForBudget": "Hoạt động nhiều hơn (Tối ưu ngân sách)",
   "@refineForBudget": {"description": "Action to optimize an itinerary for the user's budget"},
 
   "refineForFamily": "Phù hợp trẻ em/người lớn tuổi",

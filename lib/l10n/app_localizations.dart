@@ -1297,7 +1297,7 @@ abstract class AppLocalizations {
   /// Action to optimize an itinerary for the user's budget
   ///
   /// In en, this message translates to:
-  /// **'Optimize for budget'**
+  /// **'More Activities (Budget Optimized)'**
   String get refineForBudget;
 
   /// Action to make an itinerary more suitable for children or older adults

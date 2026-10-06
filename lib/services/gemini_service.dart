@@ -891,7 +891,11 @@ Trả về JSON object với cấu trúc:
           "time": "09:00 AM",
           "title": "Arrival at Airport",
           "description": "Mô tả ngắn gọn về hoạt động",
-          "icon": "flight_land"
+          "icon": "flight_land",
+          "location": "Địa điểm cụ thể hoặc khu vực",
+          "estimatedCost": "Dự toán chi phí (ví dụ: Miễn phí hoặc ~150.000 VNĐ)",
+          "tips": "Mẹo thực tế khi tham quan",
+          "details": "Chi tiết các bước thực hiện hoặc trải nghiệm nổi bật"
         }
       ]
     }
@@ -903,7 +907,8 @@ Trả về JSON object với cấu trúc:
 - Tổng cộng $numDays ngày
 - title: "Day X: Tiêu đề ngắn" — subtitle: 1 câu mô tả
 - items.time: "HH:MM AM/PM" — items.icon: flight_land|hotel|restaurant|beach_access
-- items.description: 1 câu, ngắn gọn
+- items.description: 1 câu ngắn gọn
+- items.location, items.estimatedCost, items.tips, items.details: Cung cấp đầy đủ thông tin để người đọc có thể thấy rõ chi tiết khi chọn xem
 - proTip: 1 mẹo thực tế
 - Viết toàn bộ nội dung bằng $languageName
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác
