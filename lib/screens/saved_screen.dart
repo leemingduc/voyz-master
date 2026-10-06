@@ -12,6 +12,7 @@ import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
+import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
 
 /// Saved & Wishlist screen — displays saved trips and wishlist items.
 class SavedScreen extends StatefulWidget {
@@ -734,15 +735,11 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               ),
               _ActionChipButton(
                 icon: Icons.group_add,
-                label: 'Share with',
-                onTap: () => widget.showAddDialog(
+                label: 'Chia sẻ cho bạn bè',
+                onTap: () => ShareDestinationBottomSheet.show(
                   context,
-                  title: 'Share with',
-                  hint: 'Name or email',
-                  onSubmit: (value) => runSave(
-                    context,
-                    () => provider.addSharedPerson(item, value),
-                  ),
+                  destinationName: item.name,
+                  destinationId: item.id,
                 ),
               ),
             ],

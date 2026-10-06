@@ -248,7 +248,7 @@ class _ShareDestinationBottomSheetState
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _friends.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (ctx, index) {
                   final friendship = _friends[index];
                   final isSelected = _selectedFriendshipIds.contains(
