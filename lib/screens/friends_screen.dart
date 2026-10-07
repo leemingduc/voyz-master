@@ -8,6 +8,7 @@ import 'package:voyz/screens/chat_theme_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
+import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
@@ -906,8 +907,177 @@ class _ChatMessageBubble extends StatelessWidget {
   final Color accentColor;
   final VoidCallback? onLongPress;
 
+  bool get _isDestinationShare => message.body.contains('📍 [Địa điểm]');
+
+  String _parseDestinationName() {
+    for (final line in message.body.split('\n')) {
+      if (line.startsWith('📍 [Địa điểm] ')) {
+        return line.replaceFirst('📍 [Địa điểm] ', '').trim();
+      }
+    }
+    return '';
+  }
+
+  String? _parseNote() {
+    for (final line in message.body.split('\n')) {
+      if (line.startsWith('💬 Lời nhắn: ')) {
+        return line.replaceFirst('💬 Lời nhắn: ', '').trim();
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isDestinationShare) {
+      return _buildDestinationCard(context);
+    }
+    return _buildNormalBubble(context);
+  }
+
+  Widget _buildDestinationCard(BuildContext context) {
+    final name = _parseDestinationName();
+    final note = _parseNote();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment:
+            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMine) ...[
+            _Avatar(url: friend.avatarUrl),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: GestureDetector(
+              onLongPress: onLongPress,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 270),
+                decoration: BoxDecoration(
+                  color: isMine
+                      ? AppTheme.primaryPink.withValues(alpha: 0.18)
+                      : Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isMine ? 18 : 4),
+                    bottomRight: Radius.circular(isMine ? 4 : 18),
+                  ),
+                  border: Border.all(
+                    color: AppTheme.primaryPink.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryPink.withValues(alpha: 0.2),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(17),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            color: AppTheme.primaryPink,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 5),
+                          const Text(
+                            'Địa điểm được chia sẻ',
+                            style: TextStyle(
+                              color: AppTheme.primaryPink,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (note != null && note.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              '"$note"',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: name.isNotEmpty
+                                  ? () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              DestinationDetailScreen(
+                                            destinationName: name,
+                                          ),
+                                        ),
+                                      )
+                                  : null,
+                              icon: const Icon(Icons.explore, size: 14),
+                              label: const Text(
+                                'Xem chi tiết địa điểm',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryPink,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              timeString,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNormalBubble(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -957,7 +1127,8 @@ class _ChatMessageBubble extends StatelessWidget {
                     Text(
                       message.body,
                       style: TextStyle(
-                        color: isMine ? myBubbleTextColor : theirBubbleTextColor,
+                        color:
+                            isMine ? myBubbleTextColor : theirBubbleTextColor,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -969,7 +1140,9 @@ class _ChatMessageBubble extends StatelessWidget {
                         Text(
                           timeString,
                           style: TextStyle(
-                            color: (isMine ? myBubbleTextColor : theirBubbleTextColor)
+                            color: (isMine
+                                    ? myBubbleTextColor
+                                    : theirBubbleTextColor)
                                 .withValues(alpha: 0.65),
                             fontSize: 11,
                           ),

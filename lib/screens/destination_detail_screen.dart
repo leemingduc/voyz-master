@@ -24,6 +24,7 @@ import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
 
 /// Destination Detail screen - hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
@@ -207,20 +208,14 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   void _onShare(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.share, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(AppLocalizations.of(context)!.shareLinkCopied),
-          ],
-        ),
-        backgroundColor: AppTheme.primaryPink.withValues(alpha: 0.9),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
+    ShareDestinationBottomSheet.show(
+      context,
+      destinationName: _detail?.name ?? widget.destinationName,
+      destinationId: widget.destinationName,
+      imageUrl: _detail?.imageUrl,
+      subtitle: _detail != null
+          ? '${_detail!.tags.take(2).join(' • ')} • ${_detail!.totalBudget}'
+          : null,
     );
   }
 
