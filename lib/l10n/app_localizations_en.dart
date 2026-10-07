@@ -632,7 +632,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contextAskAboutDestination => 'Ask AI about this place';
 
   @override
-  String get refineForBudget => 'Optimize for budget';
+  String get refineForBudget => 'More Activities (Budget Optimized)';
 
   @override
   String get refineForFamily => 'Better for children or seniors';
