@@ -38,7 +38,8 @@ void main() {
   group('chatLanguageInstruction', () {
     test('returns Vietnamese plain-text instruction for vi', () {
       final result = GeminiService.chatLanguageInstruction('vi');
-      expect(result, 'Reply in Vietnamese.');
+      expect(result, contains('Reply only in Vietnamese.'));
+      expect(result, contains('Do not mix languages'));
     });
   });
 
@@ -290,11 +291,14 @@ Please let me know if you need anything else!
     test(
       'JSON day du: moi truong vao dung cho, participants so thanh chuoi',
       () {
-        final trip = service.parseTripMap(m('''
+        final trip = service.parseTripMap(
+          m('''
 {"destination":"Da Lat","departDate":"2026-10-01","returnDate":"2026-10-03",
  "numDays":3,"budgetTier":"economy","participants":4,"ageRange":"30-40",
  "interests":["food","culture"]}
-'''), originalPrompt: 'Di Da Lat');
+'''),
+          originalPrompt: 'Di Da Lat',
+        );
         expect(trip.destination, 'Da Lat');
         expect(trip.departDate, DateTime(2026, 10, 1));
         expect(trip.returnDate, DateTime(2026, 10, 3));
@@ -363,7 +367,9 @@ Please let me know if you need anything else!
 
     test('ngay co gio va Z duoc chuan hoa ve date-only local', () {
       final trip = service.parseTripMap(
-        m('{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}'),
+        m(
+          '{"departDate":"2026-10-01T00:00:00Z","returnDate":"2026-10-03T15:30:00Z"}',
+        ),
       );
       expect(trip.departDate, DateTime(2026, 10, 1));
       expect(trip.returnDate, DateTime(2026, 10, 3));

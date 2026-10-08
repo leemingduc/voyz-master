@@ -6,6 +6,7 @@ import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_detail.dart';
+import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/screens/destination_plan_screen.dart';
 import 'package:voyz/screens/best_time_screen.dart';
 import 'package:voyz/screens/cultural_tips_screen.dart';
@@ -33,6 +34,8 @@ class DestinationDetailScreen extends StatefulWidget {
     super.key,
     required this.destinationName,
     this.savedItem,
+    this.suggestedOptions = const [],
+    this.selectedSuggestionIndex = 0,
   });
 
   final String destinationName;
@@ -41,6 +44,10 @@ class DestinationDetailScreen extends StatefulWidget {
   /// không dùng currentTrip toàn cục.
   final SavedItem? savedItem;
 
+  final List<TripOption> suggestedOptions;
+  final int selectedSuggestionIndex;
+
+  /// Các phương án từ cùng một lượt gợi ý AI. Chỉ có khi mở từ Planner.
   @override
   State<DestinationDetailScreen> createState() =>
       _DestinationDetailScreenState();
@@ -58,16 +65,36 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _error;
+  late String _destinationName;
+  late int _selectedSuggestionIndex;
+  final Map<int, DestinationDetail> _aiDetailCache = {};
 
   SavedItem? _savedItem;
 
   TripData get _trip =>
       _savedItem?.tripData ?? SavedTripsProvider.of(context).currentTrip;
 
+  TripOption? get _activeAiSuggestion {
+    if (_selectedSuggestionIndex < 0 ||
+        _selectedSuggestionIndex >= widget.suggestedOptions.length) {
+      return null;
+    }
+    return widget.suggestedOptions[_selectedSuggestionIndex];
+  }
+
   @override
   void initState() {
     super.initState();
     _savedItem = widget.savedItem;
+    _destinationName = widget.destinationName;
+    _selectedSuggestionIndex = widget.selectedSuggestionIndex
+        .clamp(
+          0,
+          widget.suggestedOptions.isEmpty
+              ? 0
+              : widget.suggestedOptions.length - 1,
+        )
+        .toInt();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDetail());
   }
 
@@ -78,6 +105,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   Future<void> _loadDetail() async {
+    final destinationName = _destinationName;
+    final suggestionIndex = _selectedSuggestionIndex;
+    final isAiSuggestion = widget.suggestedOptions.isNotEmpty;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -85,26 +115,46 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
     try {
       final trip = _trip;
-      final dbDetail = await DestinationRepository.instance
-          .getDestinationDetail(widget.destinationName);
-      final detail =
-          dbDetail ??
-          await GeminiService.instance.getDestinationDetail(
-            widget.destinationName,
-            trip,
-            languageCode: LocaleProvider.of(context).value.languageCode,
-          );
-      if (mounted) {
+      final cachedAiDetail = isAiSuggestion
+          ? _aiDetailCache[suggestionIndex]
+          : null;
+      final DestinationDetail detail;
+      if (cachedAiDetail != null) {
+        detail = cachedAiDetail;
+      } else if (isAiSuggestion) {
+        // A planner suggestion can share a destination with another option but
+        // have a different theme and route. Its detail must therefore use the
+        // selected AI prompt instead of the generic database detail.
+        detail = await GeminiService.instance.getDestinationDetail(
+          destinationName,
+          trip,
+          languageCode: LocaleProvider.of(context).value.languageCode,
+        );
+        _aiDetailCache[suggestionIndex] = detail;
+      } else {
+        final dbDetail = await DestinationRepository.instance
+            .getDestinationDetail(destinationName);
+        detail =
+            dbDetail ??
+            await GeminiService.instance.getDestinationDetail(
+              destinationName,
+              trip,
+              languageCode: LocaleProvider.of(context).value.languageCode,
+            );
+      }
+      if (mounted &&
+          _destinationName == destinationName &&
+          (!isAiSuggestion || _selectedSuggestionIndex == suggestionIndex)) {
         setState(() {
           _detail = detail;
           _activeHeroUrl = detail.imageUrl;
           _isLoading = false;
         });
-        unawaited(_prefetchItinerary());
-        unawaited(_loadReviews());
+        unawaited(_prefetchItinerary(destinationName));
+        unawaited(_loadReviews(destinationName));
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && _destinationName == destinationName) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
@@ -113,19 +163,22 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
-  Future<void> _loadReviews() async {
+  Future<void> _loadReviews([String? targetDestination]) async {
+    final destinationName = targetDestination ?? _destinationName;
     setState(() => _isLoadingReviews = true);
     try {
       final destinationId = await DestinationRepository.instance
-          .getDestinationIdByName(_detail?.name ?? widget.destinationName);
+          .getDestinationIdByName(destinationName);
       if (destinationId == null) {
-        if (mounted) setState(() => _isLoadingReviews = false);
+        if (mounted && _destinationName == destinationName) {
+          setState(() => _isLoadingReviews = false);
+        }
         return;
       }
       final reviews = await CommunityReviewService.instance.listForDestination(
         destinationId,
       );
-      if (!mounted) return;
+      if (!mounted || _destinationName != destinationName) return;
       setState(() {
         _destinationId = destinationId;
         _reviews = reviews;
@@ -133,7 +186,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       });
     } catch (error) {
       debugPrint('Review load skipped: $error');
-      if (mounted) setState(() => _isLoadingReviews = false);
+      if (mounted && _destinationName == destinationName) {
+        setState(() => _isLoadingReviews = false);
+      }
     }
   }
 
@@ -164,11 +219,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
-  Future<void> _prefetchItinerary() async {
+  Future<void> _prefetchItinerary(String destinationName) async {
     try {
       final trip = _trip;
       await GeminiService.instance.getItineraryPlan(
-        widget.destinationName,
+        destinationName,
         trip.dayCount(),
         trip,
         limit: 6,
@@ -179,6 +234,199 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
+  void _selectAiSuggestion(int index) {
+    if (index < 0 || index >= widget.suggestedOptions.length) return;
+    if (index == _selectedSuggestionIndex) return;
+
+    final option = widget.suggestedOptions[index];
+    final currentTrip = _trip;
+    final selection =
+        'Phương án đã chọn: ${option.title}, ${option.numDays} ngày, '
+        'lộ trình: ${option.stops.join(', ')}.';
+    SavedTripsProvider.of(context).updateTrip(
+      currentTrip.copyWith(
+        destination: option.destination,
+        numDays: option.numDays,
+        aiPrompt: '${currentTrip.aiPrompt}\n$selection'.trim(),
+      ),
+    );
+    setState(() {
+      _selectedSuggestionIndex = index;
+      _destinationName = option.destination;
+      _activeHeroUrl = null;
+      _destinationId = null;
+      _reviews = const [];
+      _savedItem = null;
+    });
+    unawaited(_loadDetail());
+  }
+
+  /*
+  List<TripOption> get _switchableOptions {
+    final source = _regionalOptions.isNotEmpty
+        ? _regionalOptions
+        : [...widget.suggestedOptions, ..._alternativeOptions];
+    final seen = <String>{};
+    final destinations = source.where((option) {
+      final destination = option.destination.trim();
+      return destination.isNotEmpty && seen.add(destination.toLowerCase());
+    }).toList();
+    if (!seen.contains(_destinationName.trim().toLowerCase())) {
+      destinations.insert(
+        0,
+        TripOption(
+          title: 'Đang xem',
+          destination: _destinationName,
+          numDays: _trip.dayCount(),
+          stops: [_destinationName],
+          imageStop: _destinationName,
+          price: '',
+          aiInsight: '',
+        ),
+      );
+      seen.add(_destinationName.trim().toLowerCase());
+    }
+    if (destinations.length >= 2) return destinations;
+
+    // Khi người dùng đã nêu một thành phố, Planner giữ cùng điểm đến gốc cho
+    // các phương án và thay đổi các điểm dừng. Lúc đó dùng chính các điểm dừng
+    // riêng này để người dùng chuyển thẳng sang detail của địa danh khác.
+    for (final option in source) {
+      for (final stop in option.stops) {
+        final name = stop.trim();
+        if (name.isEmpty || !seen.add(name.toLowerCase())) continue;
+        destinations.add(
+          TripOption(
+            title: option.title,
+            destination: name,
+            numDays: option.numDays,
+            stops: option.stops,
+            imageStop: name,
+            price: option.price,
+            aiInsight: option.aiInsight,
+            imageUrl: option.imageUrl,
+          ),
+        );
+      }
+    }
+    return destinations;
+  }
+
+  Future<void> _loadAlternativeOptions() async {
+    if (widget.suggestedOptions.isNotEmpty || _regionalOptions.isNotEmpty) {
+      return;
+    }
+
+    final messages = SavedTripsProvider.of(context).plannerMessages;
+    for (final message in messages.reversed) {
+      final options = message.turn?.options ?? const <TripOption>[];
+      if (options.isNotEmpty) {
+        if (mounted) setState(() => _alternativeOptions = options);
+        return;
+      }
+    }
+
+    final suggestions = await DestinationRepository.instance
+        .getDestinationsByCategory(categoryKey: 'random', limit: 3);
+    if (!mounted) return;
+    setState(() {
+      _alternativeOptions = suggestions
+          .map(
+            (suggestion) => TripOption(
+              title: suggestion.aiInsight,
+              destination: suggestion.name,
+              numDays: _trip.dayCount(),
+              stops: [suggestion.name],
+              imageStop: suggestion.name,
+              price: suggestion.price,
+              aiInsight: suggestion.aiInsight,
+              imageUrl: suggestion.imageUrl,
+            ),
+          )
+          .where((option) => option.destination.isNotEmpty)
+          .toList();
+    });
+  }
+
+  Future<void> _switchDestination(TripOption option) async {
+    final destination = option.destination.trim();
+    if (destination.isEmpty || destination == _destinationName) return;
+
+    final currentTrip = _trip;
+    final previousDestination = _destinationName;
+    final previousSavedItem = _savedItem;
+    final selectedRoute =
+        'Phương án đã chọn: ${option.title}, ${option.numDays} ngày, '
+        'lộ trình: ${option.stops.join(', ')}.';
+    final prompt = [currentTrip.aiPrompt.trim(), selectedRoute]
+        .where((line) => line.isNotEmpty)
+        .join('\n');
+    SavedTripsProvider.of(context).updateTrip(
+      currentTrip.copyWith(
+        destination: destination,
+        numDays: option.numDays,
+        aiPrompt: prompt,
+      ),
+    );
+    setState(() {
+      _destinationName = destination;
+      _activeHeroUrl = null;
+      _destinationId = null;
+      _reviews = const [];
+      _savedItem = null;
+    });
+    final loaded = await _loadDetail();
+    if (!mounted || loaded || _destinationName != destination) return;
+
+    SavedTripsProvider.of(context).updateTrip(currentTrip);
+    setState(() {
+      _destinationName = previousDestination;
+      _savedItem = previousSavedItem;
+      _error = null;
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Không thể tải địa điểm này. Vui lòng thử lại.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _compareOptions() {
+    final destinations = _switchableOptions
+        .map((option) => option.destination.trim())
+        .take(3)
+        .toList();
+    if (destinations.length < 2) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CompareScreen(
+          initialDestinations: destinations,
+          initialTrip: _trip,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDestinationBottomSheet() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DestinationPickerSheet(
+        options: _switchableOptions,
+        currentDestination: _destinationName,
+      ),
+    );
+    if (!mounted || selected == null) return;
+    if (selected == -1) {
+      _compareOptions();
+    } else if (selected >= 0 && selected < _switchableOptions.length) {
+      _switchDestination(_switchableOptions[selected]);
+    }
+  }
+
+  */
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -211,8 +459,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   void _onShare(BuildContext context) {
     ShareDestinationBottomSheet.show(
       context,
-      destinationName: _detail?.name ?? widget.destinationName,
-      destinationId: widget.destinationName,
+      destinationName: _detail?.name ?? _destinationName,
+      destinationId: _destinationName,
       imageUrl: _detail?.imageUrl,
       subtitle: _detail != null
           ? '${_detail!.tags.take(2).join(' • ')} • ${_detail!.totalBudget}'
@@ -314,7 +562,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         MaterialPageRoute(
           builder: (_) => DestinationPlanScreen(
             tripId: _savedItem!.id,
-            destinationName: widget.destinationName,
+            destinationName: _destinationName,
             dateRange: _detail!.dateRange,
           ),
         ),
@@ -335,8 +583,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final activeAiSuggestion = _activeAiSuggestion;
 
-    if (_isLoading) {
+    if (_isLoading && _detail == null) {
       return Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Center(
@@ -348,7 +597,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       );
     }
 
-    if (_error != null || _detail == null) {
+    if (_detail == null) {
       return Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Center(
@@ -421,102 +670,140 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       backgroundColor: AppTheme.backgroundDark,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _HeroSection(
-                  theme: theme,
-                  imageUrl: _activeHeroUrl ?? d.imageUrl,
-                  destinationName: d.name,
-                  onShare: () => _onShare(context),
-                ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.015, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.sizeOf(context).width >= 900
-                        ? 40
-                        : 24,
+            ),
+            child: CustomScrollView(
+              key: ValueKey('${d.name}:$_selectedSuggestionIndex'),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _HeroSection(
+                    theme: theme,
+                    imageUrl: _activeHeroUrl ?? d.imageUrl,
+                    destinationName: d.name,
+                    onShare: () => _onShare(context),
                   ),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1100),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _LocationSubtitle(theme: theme, location: d.location),
-                          const SizedBox(height: 8),
-                          Text(
-                            d.name,
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.sizeOf(context).width >= 900
+                          ? 40
+                          : 24,
+                    ),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1100),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _LocationSubtitle(
+                              theme: theme,
+                              location: d.location,
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Color(0xFFFBBF24),
-                                size: 18,
+                            const SizedBox(height: 8),
+                            Text(
+                              d.name,
+                              style: theme.textTheme.headlineLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                _ratingSummary(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                            ),
+                            if (activeAiSuggestion != null) ...[
+                              const SizedBox(height: 10),
+                              _AiSuggestionTheme(option: activeAiSuggestion),
+                            ],
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Color(0xFFFBBF24),
+                                  size: 18,
                                 ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  _ratingSummary(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (widget.suggestedOptions.length >= 2) ...[
+                              _AiSuggestionSelector(
+                                options: widget.suggestedOptions,
+                                selectedIndex: _selectedSuggestionIndex,
+                                onSelected: _selectAiSuggestion,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            _TagsRow(tags: d.tags),
+                            if (d.gallery.isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              _LandmarkGallerySection(
+                                gallery: d.gallery,
+                                fallbackUrl: d.imageUrl,
+                                onSelectPhoto: (url) {
+                                  setState(() {
+                                    _activeHeroUrl = url;
+                                  });
+                                },
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 16),
-                          _TagsRow(tags: d.tags),
-                          if (d.gallery.isNotEmpty) ...[
                             const SizedBox(height: 24),
-                            _LandmarkGallerySection(
-                              gallery: d.gallery,
-                              fallbackUrl: d.imageUrl,
-                              onSelectPhoto: (url) {
-                                setState(() {
-                                  _activeHeroUrl = url;
-                                });
-                              },
+                            _WeatherCard(
+                              theme: theme,
+                              weather: d.weather,
+                              dateRange: d.dateRange,
                             ),
+                            const SizedBox(height: 16),
+                            _BudgetCard(
+                              theme: theme,
+                              totalBudget: d.totalBudget,
+                              breakdown: d.budgetBreakdown,
+                            ),
+                            const SizedBox(height: 24),
+                            _buildReviewsSection(theme),
+                            const SizedBox(height: 32),
+                            _ActionButtons(
+                              theme: theme,
+                              onSaveInfo: () => _onSaveInfo(context),
+                              onGenerateItinerary: _onGenerateItinerary,
+                              destinationName: d.name,
+                            ),
+                            const SizedBox(height: 120),
                           ],
-                          const SizedBox(height: 24),
-                          _WeatherCard(
-                            theme: theme,
-                            weather: d.weather,
-                            dateRange: d.dateRange,
-                          ),
-                          const SizedBox(height: 16),
-                          _BudgetCard(
-                            theme: theme,
-                            totalBudget: d.totalBudget,
-                            breakdown: d.budgetBreakdown,
-                          ),
-                          const SizedBox(height: 24),
-                          _buildReviewsSection(theme),
-                          const SizedBox(height: 32),
-                          _ActionButtons(
-                            theme: theme,
-                            onSaveInfo: () => _onSaveInfo(context),
-                            onGenerateItinerary: _onGenerateItinerary,
-                            destinationName: d.name,
-                          ),
-                          const SizedBox(height: 120),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          if (_isLoading)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
           Positioned(
             left: 0,
             right: 0,
@@ -662,6 +949,377 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 }
 
+class _AiSuggestionSelector extends StatelessWidget {
+  const _AiSuggestionSelector({
+    required this.options,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<TripOption> options;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 68,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: options.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final option = options[index];
+          final isSelected = index == selectedIndex;
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              onTap: () => onSelected(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                constraints: const BoxConstraints(minWidth: 154, maxWidth: 250),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.cyan.withValues(alpha: 0.16)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.cyan.withValues(alpha: 0.52)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      option.title.isEmpty ? option.destination : option.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isSelected ? AppTheme.cyan : Colors.white,
+                        fontSize: 13,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                      ),
+                    ),
+                    if (option.title.isNotEmpty &&
+                        option.destination.isNotEmpty &&
+                        option.destination != option.title) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        option.destination,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.62),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AiSuggestionTheme extends StatelessWidget {
+  const _AiSuggestionTheme({required this.option});
+
+  final TripOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    final route = option.stops.where((stop) => stop.trim().isNotEmpty).take(3);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.cyan.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.cyan.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, color: AppTheme.cyan, size: 18),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  option.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.cyan,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (route.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    route.join(' • '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.68),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/*
+class _DestinationSwitcher extends StatelessWidget {
+  const _DestinationSwitcher({
+    required this.options,
+    required this.currentDestination,
+    required this.onSelect,
+    required this.onCompare,
+    required this.onOpenMobile,
+  });
+
+  final List<TripOption> options;
+  final String currentDestination;
+  final ValueChanged<TripOption> onSelect;
+  final VoidCallback onCompare;
+  final VoidCallback onOpenMobile;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final button = OutlinedButton.icon(
+          onPressed: constraints.maxWidth < 700 ? onOpenMobile : () {},
+          icon: const Icon(Icons.sync, size: 18),
+          label: const Text('🔄 Đổi địa điểm'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.cyan,
+            side: BorderSide(color: AppTheme.cyan.withValues(alpha: 0.45)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        );
+        if (constraints.maxWidth < 700) return button;
+
+        return PopupMenuButton<int>(
+          tooltip: 'Đổi địa điểm',
+          color: AppTheme.surfaceDark,
+          constraints: const BoxConstraints(maxWidth: 360),
+          onSelected: (value) {
+            if (value == -1) {
+              onCompare();
+            } else if (value >= 0 && value < options.length) {
+              onSelect(options[value]);
+            }
+          },
+          itemBuilder: (context) => [
+            for (var index = 0; index < options.length; index++)
+              PopupMenuItem<int>(
+                value: index,
+                child: _DestinationPickerItem(
+                  option: options[index],
+                  isSelected:
+                      options[index].destination.trim().toLowerCase() ==
+                      currentDestination.trim().toLowerCase(),
+                ),
+              ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<int>(
+              value: -1,
+              child: Row(
+                children: [
+                  Icon(Icons.balance, color: AppTheme.cyan, size: 20),
+                  SizedBox(width: 10),
+                  Text('⚖ So sánh các lựa chọn'),
+                ],
+              ),
+            ),
+          ],
+          child: IgnorePointer(child: button),
+        );
+      },
+    );
+  }
+}
+
+class _DestinationPickerSheet extends StatelessWidget {
+  const _DestinationPickerSheet({
+    required this.options,
+    required this.currentDestination,
+  });
+
+  final List<TripOption> options;
+  final String currentDestination;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 640),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Đổi địa điểm',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  final isSelected =
+                      option.destination.trim().toLowerCase() ==
+                      currentDestination.trim().toLowerCase();
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      onTap: () => Navigator.pop(context, index),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.cyan.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.cyan.withValues(alpha: 0.55)
+                                : Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: _DestinationPickerItem(
+                          option: option,
+                          isSelected: isSelected,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 24),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: const Icon(Icons.balance, color: AppTheme.cyan),
+              title: const Text(
+                '⚖ So sánh các lựa chọn',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+              onTap: () => Navigator.pop(context, -1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DestinationPickerItem extends StatelessWidget {
+  const _DestinationPickerItem({required this.option, required this.isSelected});
+
+  final TripOption option;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                option.destination,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.cyan : Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (option.title.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  option.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.62),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (isSelected) const Icon(Icons.check_circle, color: AppTheme.cyan),
+      ],
+    );
+  }
+}
+
+*/
 class _ReviewTile extends StatelessWidget {
   const _ReviewTile({required this.review});
 

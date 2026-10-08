@@ -19,3 +19,9 @@ _Avoid_: raw price, original-price text
 **Exchange rate**:
 The online-sourced reference rate used to convert an original amount into the user's display currency. It has a recorded retrieval time and is not a payment or cash-exchange guarantee.
 _Avoid_: live price, guaranteed rate
+
+## AI planning
+
+**AI planning session**:
+The temporary conversation and destination options generated for the traveller's current request. It remains available while they move between app screens, but it is not a saved trip and can be discarded by starting a new conversation.
+_Avoid_: saved suggestions, booked itinerary

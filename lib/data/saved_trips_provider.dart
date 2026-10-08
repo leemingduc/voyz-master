@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/itinerary_plan.dart';
+import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/services/supabase_service.dart';
 
 /// Giữ trip đang nhập và danh sách trip đã lưu.
@@ -29,11 +30,16 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   static const _boxPrefix = 'saved_trips_cache_';
   static const _currentTripKey = '__current_trip';
   static const _itineraryPrefix = '__itinerary_';
+  static const _plannerMessagesKey = '__planner_messages';
+  static const _plannerConversationsKey = '__planner_conversations';
   static const _oldBoxNames = ['saved_trip_workspaces', 'storage_migrations'];
 
   TripData _currentTrip = TripData();
   final List<SavedItem> _items = [];
   final Map<String, ItineraryPlan> _itineraries = {}; // key = tripId
+  // Các hội thoại Gợi ý AI được lưu cục bộ theo tài khoản.
+  List<PlannerConversation> _plannerConversations = const [];
+  String? _activePlannerConversationId;
   Box<Map>? _box;
   StreamSubscription? _authSubscription;
   final Set<String> _deletedOldBoxes = {};
@@ -45,6 +51,21 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   TripData get currentTrip => _currentTrip;
   bool get isLoading => _isLoading;
   String? get loadError => _loadError;
+  List<PlannerMessage> get plannerMessages => List<PlannerMessage>.unmodifiable(
+    _activePlannerConversation?.messages ?? const [],
+  );
+  List<PlannerConversation> get plannerConversations =>
+      List<PlannerConversation>.unmodifiable(_plannerConversations);
+  String? get activePlannerConversationId => _activePlannerConversationId;
+  PlannerConversation? get _activePlannerConversation {
+    final id = _activePlannerConversationId;
+    if (id == null) return null;
+    for (final conversation in _plannerConversations) {
+      if (conversation.id == id) return conversation;
+    }
+    return null;
+  }
+
   List<SavedItem> get savedItems => List.unmodifiable(_items);
   List<SavedItem> get tripWorkspaces =>
       _items.where((item) => item.tripData != null).toList();
@@ -156,12 +177,21 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   void _readFromHive(Box<Map> box) {
     final items = <SavedItem>[];
     final plans = <String, ItineraryPlan>{};
+    var plannerConversations = <PlannerConversation>[];
+    var activePlannerConversationId = '';
+    var legacyPlannerMessages = <PlannerMessage>[];
     var current = TripData();
     for (final entry in box.toMap().entries) {
       final key = entry.key.toString();
       try {
         if (key == _currentTripKey) {
           current = TripData.fromMap(entry.value);
+        } else if (key == _plannerConversationsKey) {
+          final saved = _plannerConversationsFromMap(entry.value);
+          plannerConversations = saved.conversations;
+          activePlannerConversationId = saved.activeId;
+        } else if (key == _plannerMessagesKey) {
+          legacyPlannerMessages = _plannerMessagesFromMap(entry.value);
         } else if (key.startsWith(_itineraryPrefix)) {
           final plan = ItineraryPlan.fromJson(_deepMap(entry.value));
           if (plan.tripId.isNotEmpty) plans[plan.tripId] = plan;
@@ -171,6 +201,11 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       } catch (e) {
         debugPrint('SavedTripsProvider: corrupt Hive entry "$key" skipped: $e');
       }
+    }
+    if (plannerConversations.isEmpty && legacyPlannerMessages.isNotEmpty) {
+      final conversation = PlannerConversation(messages: legacyPlannerMessages);
+      plannerConversations = [conversation];
+      activePlannerConversationId = conversation.id;
     }
     items.sort((a, b) => b.savedAt.compareTo(a.savedAt));
     if (!mounted) return;
@@ -182,7 +217,43 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       _itineraries
         ..clear()
         ..addAll(plans);
+      _plannerConversations = plannerConversations;
+      _activePlannerConversationId =
+          plannerConversations.any(
+            (conversation) => conversation.id == activePlannerConversationId,
+          )
+          ? activePlannerConversationId
+          : null;
     });
+  }
+
+  List<PlannerMessage> _plannerMessagesFromMap(Map<dynamic, dynamic> map) {
+    final rawMessages = map['messages'];
+    if (rawMessages is! List) return const [];
+    return rawMessages
+        .whereType<Map>()
+        .map(PlannerMessage.fromMap)
+        .where((message) => message.text.isNotEmpty)
+        .toList();
+  }
+
+  ({List<PlannerConversation> conversations, String activeId})
+  _plannerConversationsFromMap(Map<dynamic, dynamic> map) {
+    final rawConversations = map['conversations'];
+    if (rawConversations is! List) {
+      return (conversations: const [], activeId: '');
+    }
+    final conversations =
+        rawConversations
+            .whereType<Map>()
+            .map(PlannerConversation.fromMap)
+            .where((conversation) => conversation.messages.isNotEmpty)
+            .toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return (
+      conversations: conversations,
+      activeId: map['activeId']?.toString() ?? '',
+    );
   }
 
   /// Hive/Supabase jsonb trả về map/list lồng nhau kiểu dynamic; chuyển đệ quy
@@ -204,6 +275,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   ) async {
     final keep = <String>{
       _currentTripKey,
+      if (_plannerConversations.isNotEmpty) _plannerConversationsKey,
       ...items.map((item) => item.id),
       ...plans.keys.map((tripId) => '$_itineraryPrefix$tripId'),
     };
@@ -216,6 +288,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     for (final plan in plans.values) {
       await box.put('$_itineraryPrefix${plan.tripId}', plan.toMap());
     }
+    await _writePlannerConversations(box);
   }
 
   Future<void> _deleteOldBoxesOnce(String userId) async {
@@ -233,6 +306,98 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   void updateTrip(TripData trip) {
     setState(() => _currentTrip = trip);
     unawaited(_box?.put(_currentTripKey, trip.toMap()));
+  }
+
+  Future<void> updatePlannerMessages(Iterable<PlannerMessage> messages) async {
+    final updated = List<PlannerMessage>.of(messages);
+    if (updated.isEmpty) return;
+    final active = _activePlannerConversation;
+    final conversation = active == null
+        ? PlannerConversation(messages: updated)
+        : active.copyWith(messages: updated, updatedAt: DateTime.now());
+    setState(() {
+      _plannerConversations = [
+        conversation,
+        ..._plannerConversations.where((item) => item.id != conversation.id),
+      ];
+      _activePlannerConversationId = conversation.id;
+    });
+    await _persistPlannerConversations();
+  }
+
+  /// Starts a blank conversation while preserving every previous one.
+  Future<void> startNewPlannerConversation() async {
+    if (_activePlannerConversationId == null) return;
+    setState(() => _activePlannerConversationId = null);
+    await _persistPlannerConversations();
+  }
+
+  Future<List<PlannerMessage>> openPlannerConversation(String id) async {
+    final conversation = _plannerConversations.where((item) => item.id == id);
+    if (conversation.isEmpty) return const [];
+    final selected = conversation.first;
+    setState(() {
+      _activePlannerConversationId = selected.id;
+      _plannerConversations = [
+        selected.copyWith(updatedAt: DateTime.now()),
+        ..._plannerConversations.where((item) => item.id != selected.id),
+      ];
+    });
+    await _persistPlannerConversations();
+    return plannerMessages;
+  }
+
+  Future<void> deletePlannerConversation(String id) async {
+    setState(() {
+      _plannerConversations = _plannerConversations
+          .where((conversation) => conversation.id != id)
+          .toList();
+      if (_activePlannerConversationId == id) {
+        _activePlannerConversationId = null;
+      }
+    });
+    await _persistPlannerConversations();
+  }
+
+  /// Kept for older callers: clear only the active conversation.
+  Future<void> clearPlannerMessages() async {
+    final id = _activePlannerConversationId;
+    if (id == null) return;
+    await deletePlannerConversation(id);
+  }
+
+  Future<void> _persistPlannerConversations() async {
+    final box = _box;
+    if (box == null) {
+      unawaited(_syncPlannerConversationsAfterInitialLoad());
+      return;
+    }
+    await _writePlannerConversations(box);
+  }
+
+  Future<void> _writePlannerConversations(Box<Map> box) async {
+    if (_plannerConversations.isEmpty) {
+      await box.delete(_plannerConversationsKey);
+      await box.delete(_plannerMessagesKey);
+      return;
+    }
+    await box.put(_plannerConversationsKey, {
+      'activeId': _activePlannerConversationId,
+      'conversations': _plannerConversations
+          .map((conversation) => conversation.toMap())
+          .toList(),
+    });
+    await box.delete(_plannerMessagesKey);
+  }
+
+  /// Queue a write when the first chat turn happens before the initial Hive
+  /// snapshot is ready. Read the current state after loading to avoid an older
+  /// queued write replacing a newer message.
+  Future<void> _syncPlannerConversationsAfterInitialLoad() async {
+    await load();
+    final box = _box;
+    if (box == null) return;
+    await _writePlannerConversations(box);
   }
 
   // ── Ghi: cloud trước, thành công mới đổi state và Hive ─────────────────

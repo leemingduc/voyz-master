@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/services/friend_message_notification_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 
 /// Bottom navigation bar shared across Planner, Suggestions, Detail, and Plan
@@ -38,98 +40,166 @@ class BottomNavBar extends StatelessWidget {
       ),
     ];
 
-    return SafeArea(
-      top: false,
-      minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: SizedBox(
-        height: 50,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.30),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: List.generate(items.length, (i) {
-                  final item = items[i];
-                  final isActive = i == activeIndex;
-                  final color = isActive ? AppTheme.cyan : AppTheme.textMuted;
+    return ValueListenableBuilder<bool>(
+      valueListenable: FriendMessageNotificationSettings.instance.enabled,
+      builder: (context, notificationsEnabled, _) =>
+          ValueListenableBuilder<Map<String, int>>(
+            valueListenable:
+                FriendMessageNotificationService.instance.unreadByFriendship,
+            builder: (context, unreadByFriendship, _) {
+              final unreadCount = notificationsEnabled
+                  ? unreadByFriendship.values.fold<int>(0, (a, b) => a + b)
+                  : 0;
 
-                  return Expanded(
-                    child: Semantics(
-                      selected: isActive,
-                      button: true,
-                      child: InkWell(
-                        onTap: () => onTap?.call(i),
-                        borderRadius: BorderRadius.circular(18),
-                        child: SizedBox(
-                          height: 50,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedContainer(
-                                key: isActive
-                                    ? const ValueKey(
-                                        'bottom_nav_active_indicator',
-                                      )
-                                    : null,
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeOut,
-                                width: 42,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(15),
-                                  color: isActive
-                                      ? AppTheme.cyan.withValues(alpha: 0.16)
-                                      : Colors.transparent,
-                                  border: isActive
-                                      ? Border.all(
-                                          color: AppTheme.cyan.withValues(
-                                            alpha: 0.28,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                                child: Icon(
-                                  isActive ? item.activeIcon : item.icon,
-                                  color: color,
-                                  size: 21,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                item.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isActive
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  color: color,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
+              return SafeArea(
+                top: false,
+                minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: SizedBox(
+                  height: 50,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceDark.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.30),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: List.generate(items.length, (i) {
+                            final item = items[i];
+                            final isActive = i == activeIndex;
+                            final color = isActive
+                                ? AppTheme.cyan
+                                : AppTheme.textMuted;
+
+                            return Expanded(
+                              child: Semantics(
+                                selected: isActive,
+                                button: true,
+                                child: InkWell(
+                                  onTap: () => onTap?.call(i),
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: SizedBox(
+                                    height: 50,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        AnimatedContainer(
+                                          key: isActive
+                                              ? const ValueKey(
+                                                  'bottom_nav_active_indicator',
+                                                )
+                                              : null,
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          curve: Curves.easeOut,
+                                          width: 42,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              15,
+                                            ),
+                                            color: isActive
+                                                ? AppTheme.cyan.withValues(
+                                                    alpha: 0.16,
+                                                  )
+                                                : Colors.transparent,
+                                            border: isActive
+                                                ? Border.all(
+                                                    color: AppTheme.cyan
+                                                        .withValues(
+                                                          alpha: 0.28,
+                                                        ),
+                                                  )
+                                                : null,
+                                          ),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Icon(
+                                                isActive
+                                                    ? item.activeIcon
+                                                    : item.icon,
+                                                color: color,
+                                                size: 21,
+                                              ),
+                                              if (i == 3 && unreadCount > 0)
+                                                Positioned(
+                                                  top: -7,
+                                                  right: -9,
+                                                  child: _MessageBadge(
+                                                    count: unreadCount,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          item.label,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: isActive
+                                                ? FontWeight.w800
+                                                : FontWeight.w600,
+                                            color: color,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
                         ),
                       ),
                     ),
-                  );
-                }),
-              ),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
+    );
+  }
+}
+
+class _MessageBadge extends StatelessWidget {
+  const _MessageBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppTheme.primaryPink,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

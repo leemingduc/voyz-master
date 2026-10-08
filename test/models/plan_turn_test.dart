@@ -51,6 +51,46 @@ void main() {
       expect(updated.raw, '{}');
       expect(updated.reply, 'r');
     });
+
+    test('round-trips an AI message for the saved planner conversation', () {
+      final message = PlannerMessage.agent(
+        PlanTurn(
+          reply: 'Đây là các phương án phù hợp.',
+          trip: TripData(destination: 'Côn Đảo', numDays: 4),
+          options: const [option],
+          raw: '{"reply":"Đây là các phương án phù hợp."}',
+        ),
+      );
+
+      final restored = PlannerMessage.fromMap(message.toMap());
+
+      expect(restored.isUser, isFalse);
+      expect(restored.text, message.text);
+      expect(restored.turn!.trip.destination, 'Côn Đảo');
+      expect(restored.turn!.options.single.title, option.title);
+      expect(restored.turn!.raw, message.turn!.raw);
+    });
+
+    test('saved conversations retain their id and message history', () {
+      final conversation = PlannerConversation(
+        id: 'planner-1',
+        messages: [
+          PlannerMessage.user('Plan a weekend in Seoul'),
+          PlannerMessage.agent(
+            PlanTurn(reply: 'How many people?', trip: TripData()),
+          ),
+        ],
+        createdAt: DateTime(2026, 10, 7),
+        updatedAt: DateTime(2026, 10, 8),
+      );
+
+      final restored = PlannerConversation.fromMap(conversation.toMap());
+
+      expect(restored.id, 'planner-1');
+      expect(restored.messages, hasLength(2));
+      expect(restored.title, 'Plan a weekend in Seoul');
+      expect(restored.updatedAt, DateTime(2026, 10, 8));
+    });
   });
 
   group('tripForOption', () {

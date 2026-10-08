@@ -36,18 +36,24 @@ class GeminiService {
   /// JSON keys, numeric values, and icon identifiers remain language-neutral.
   static String languageInstruction(String languageCode) {
     return switch (languageCode) {
-      'vi' => 'Write every human-readable JSON value in Vietnamese.',
-      'ko' => 'Write every human-readable JSON value in Korean.',
-      _ => 'Write every human-readable JSON value in English.',
+      'vi' =>
+        'Write every human-readable JSON value only in Vietnamese. Do not mix languages, except for proper names, standardized currency codes, and required enum values.',
+      'ko' =>
+        'Write every human-readable JSON value only in Korean. Do not mix languages, except for proper names, standardized currency codes, and required enum values.',
+      _ =>
+        'Write every human-readable JSON value only in English. Do not mix languages, except for proper names, standardized currency codes, and required enum values.',
     };
   }
 
   /// Returns a language instruction for the conversational, plain-text chat.
   static String chatLanguageInstruction(String languageCode) {
     return switch (languageCode) {
-      'vi' => 'Reply in Vietnamese.',
-      'ko' => 'Reply in Korean.',
-      _ => 'Reply in English.',
+      'vi' =>
+        'Reply only in Vietnamese. Do not mix languages, except for proper names and standardized currency codes.',
+      'ko' =>
+        'Reply only in Korean. Do not mix languages, except for proper names and standardized currency codes.',
+      _ =>
+        'Reply only in English. Do not mix languages, except for proper names and standardized currency codes.',
     };
   }
 
@@ -116,6 +122,7 @@ class GeminiService {
     final s = value?.toString().trim() ?? '';
     return (s.isEmpty || s.toLowerCase() == 'null') ? '' : s;
   }
+
   /// Số nguyên từ JSON (số hoặc chuỗi số). Không đọc được thì null.
   static int? _toInt(dynamic value) => value is num
       ? value.toInt()
@@ -173,8 +180,14 @@ class GeminiService {
       'trip': Schema.object(
         properties: {
           'destination': Schema.string(nullable: true),
-          'departDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
-          'returnDate': Schema.string(nullable: true, description: 'yyyy-MM-dd'),
+          'departDate': Schema.string(
+            nullable: true,
+            description: 'yyyy-MM-dd',
+          ),
+          'returnDate': Schema.string(
+            nullable: true,
+            description: 'yyyy-MM-dd',
+          ),
           'numDays': Schema.integer(nullable: true),
           'budgetTier': Schema.enumString(
             enumValues: _validTiers,
@@ -264,7 +277,8 @@ class GeminiService {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final transcript = messages
         .map(
-          (m) => m.isUser ? 'Người dùng: ${m.text}' : 'AI (JSON): ${m.turn!.raw}',
+          (m) =>
+              m.isUser ? 'Người dùng: ${m.text}' : 'AI (JSON): ${m.turn!.raw}',
         )
         .join('\n');
     final forceRule = forceOptions
@@ -332,11 +346,9 @@ Quy tắc:
   TripOption? _parseTripOption(Map<String, dynamic> map, TripData trip) {
     final title = _cleanString(map['title']);
     final destination = _cleanString(map['destination']);
-    final stops = TripData.stringList(map['stops'])
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .take(5)
-        .toList();
+    final stops = TripData.stringList(
+      map['stops'],
+    ).map((s) => s.trim()).where((s) => s.isNotEmpty).take(5).toList();
     if (title.isEmpty || destination.isEmpty || stops.isEmpty) return null;
     final imageStop = _cleanString(map['imageStop']);
     final days = _toInt(map['numDays']);
@@ -986,10 +998,12 @@ Trả về JSON object với cấu trúc:
   Future<DestinationComparison> compareDestinations(
     List<String> destinations, {
     String languageCode = 'vi',
+    TripData? trip,
   }) async {
     final cacheKey = _aiCache.buildKey('comparison', {
       'destinations': destinations,
       'lang': languageCode,
+      'trip': trip?.toMap() ?? const <String, dynamic>{},
     });
 
     final cached = _aiCache.get(cacheKey);
@@ -1001,9 +1015,23 @@ Trả về JSON object với cấu trúc:
 
     final langInst = languageInstruction(languageCode);
     final destList = destinations.map((d) => '"$d"').join(', ');
+    final tripContext = trip == null
+        ? ''
+        : '''
+
+Trip context from the user:
+- Budget: ${trip.budget.isEmpty ? 'not specified' : '${trip.budget} ${trip.currency}'}
+- Travelers: ${trip.participants.isEmpty ? 'not specified' : trip.participants}
+- Duration: ${trip.dayCount()} days
+- Interests: ${trip.selectedInterests.isEmpty ? 'not specified' : trip.selectedInterests.join(', ')}
+- Additional trip description: ${trip.aiPrompt.isEmpty ? 'none' : trip.aiPrompt}
+
+Evaluate every destination for this exact context, especially budget and suitability.
+''';
 
     final prompt =
         '''
+$tripContext
 Bạn là chuyên gia du lịch AI. Hãy so sánh các điểm đến sau: $destList.
 
 Trả về JSON object với cấu trúc:
@@ -1033,7 +1061,7 @@ Quy tắc:
 - destinations: thông tin chi tiết cho mỗi điểm đến
 - overallScore: 0.0-10.0
 - pros/cons: 3-4 điểm mỗi loại
-- aspects: 4-5 tiêu chí so sánh (Chi phí, Thời tiết, Ẩm thực, Hoạt động, An toàn)
+- aspects: 5 tiêu chí so sánh gồm Chi phí, Thời gian/di chuyển, Hoạt động, Thời tiết và Mức độ phù hợp với bối cảnh chuyến đi
 - icon chỉ dùng: attach_money, wb_sunny, restaurant, local_activity, security
 - recommendation: 2-3 câu tóm tắt điểm đến nào phù hợp nhất và tại sao
 - $langInst

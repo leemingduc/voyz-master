@@ -691,6 +691,18 @@ class AppLocalizationsVi extends AppLocalizations {
   String get quickPromptsLabel => 'Gợi ý nhanh:';
 
   @override
+  String get quickPromptTokyo => 'Tokyo mùa hoa anh đào';
+
+  @override
+  String get quickPromptDaLat => 'Đà Lạt 3 ngày 2 đêm';
+
+  @override
+  String get quickPromptBali => 'Bali nghỉ dưỡng';
+
+  @override
+  String get quickPromptPhuQuoc => 'Phú Quốc ngắm hoàng hôn';
+
+  @override
   String get suggestNow => 'Gợi ý luôn';
 
   @override
@@ -701,6 +713,24 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get newPlannerChat => 'Cuộc trò chuyện mới';
+
+  @override
+  String get plannerConversationHistory => 'Lịch sử hội thoại';
+
+  @override
+  String get noPlannerConversations => 'Chưa có hội thoại đã lưu';
+
+  @override
+  String get messagesLabel => 'tin nhắn';
+
+  @override
+  String get deletePlannerConversation => 'Xóa hội thoại';
+
+  @override
+  String get savePlannerConversation => 'Lưu hội thoại';
+
+  @override
+  String get plannerConversationSaved => 'Đã lưu hội thoại';
 
   @override
   String get aiEstimateLabel => 'Ước tính AI';

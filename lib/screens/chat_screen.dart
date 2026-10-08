@@ -29,6 +29,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
+  List<ChatConversation> _conversations = const [];
+  String? _activeConversationId;
   bool _isSending = false;
 
   @override
@@ -38,27 +40,117 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await ChatHistoryService.instance.load(
+    final history = await ChatHistoryService.instance.loadConversations(
       destinationName: widget.destinationName,
     );
     if (!mounted) return;
     setState(() {
+      _conversations = history.conversations;
+      _activeConversationId = history.activeConversationId;
       _messages
         ..clear()
-        ..addAll(history);
+        ..addAll(_activeMessages);
       if (_messages.isEmpty) {
         _messages.add(
           ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome),
         );
       }
     });
-    unawaited(_persistMessages());
   }
 
-  Future<void> _persistMessages() => ChatHistoryService.instance.save(
-    _messages,
-    destinationName: widget.destinationName,
-  );
+  List<ChatMessage> get _activeMessages {
+    final id = _activeConversationId;
+    if (id == null) return const [];
+    for (final conversation in _conversations) {
+      if (conversation.id == id) return conversation.messages;
+    }
+    return const [];
+  }
+
+  Future<void> _persistMessages() async {
+    if (!_messages.any((message) => message.isUser)) return;
+    final history = await ChatHistoryService.instance.saveConversation(
+      _messages,
+      conversationId: _activeConversationId,
+      destinationName: widget.destinationName,
+    );
+    if (!mounted) return;
+    setState(() {
+      _conversations = history.conversations;
+      _activeConversationId = history.activeConversationId;
+    });
+  }
+
+  void _newChat() {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _activeConversationId = null;
+      _messages
+        ..clear()
+        ..add(ChatMessage.ai(l10n.chatWelcome));
+    });
+  }
+
+  Future<void> _openConversation(String id) async {
+    final history = await ChatHistoryService.instance.openConversation(
+      id,
+      destinationName: widget.destinationName,
+    );
+    if (!mounted) return;
+    final conversation = history.conversations.where(
+      (item) => item.id == history.activeConversationId,
+    );
+    if (conversation.isEmpty) return;
+    setState(() {
+      _conversations = history.conversations;
+      _activeConversationId = history.activeConversationId;
+      _messages
+        ..clear()
+        ..addAll(conversation.first.messages);
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _deleteConversation(String id) async {
+    final history = await ChatHistoryService.instance.deleteConversation(
+      id,
+      destinationName: widget.destinationName,
+    );
+    if (!mounted) return;
+    final wasActive = _activeConversationId == id;
+    setState(() {
+      _conversations = history.conversations;
+      _activeConversationId = history.activeConversationId;
+      if (wasActive) {
+        _messages
+          ..clear()
+          ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
+      }
+    });
+  }
+
+  Future<void> _showConversationMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      showDragHandle: true,
+      builder: (sheetContext) => _ChatConversationSheet(
+        conversations: _conversations,
+        onNewConversation: () {
+          Navigator.pop(sheetContext);
+          _newChat();
+        },
+        onOpenConversation: (id) {
+          Navigator.pop(sheetContext);
+          unawaited(_openConversation(id));
+        },
+        onDeleteConversation: (id) {
+          Navigator.pop(sheetContext);
+          unawaited(_deleteConversation(id));
+        },
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -165,15 +257,9 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () {
-              final l10n = AppLocalizations.of(context)!;
-              setState(() {
-                _messages.clear();
-                _messages.add(ChatMessage.ai(l10n.chatCleared));
-              });
-              unawaited(_persistMessages());
-            },
+            tooltip: AppLocalizations.of(context)!.plannerConversationHistory,
+            icon: const Icon(Icons.more_vert),
+            onPressed: _isSending ? null : _showConversationMenu,
           ),
         ],
       ),
@@ -277,6 +363,109 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
+    );
+  }
+}
+
+class _ChatConversationSheet extends StatelessWidget {
+  const _ChatConversationSheet({
+    required this.conversations,
+    required this.onNewConversation,
+    required this.onOpenConversation,
+    required this.onDeleteConversation,
+  });
+
+  final List<ChatConversation> conversations;
+  final VoidCallback onNewConversation;
+  final ValueChanged<String> onOpenConversation;
+  final ValueChanged<String> onDeleteConversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+              child: Text(
+                l10n.plannerConversationHistory,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.add_comment_outlined,
+                color: AppTheme.cyan,
+              ),
+              title: Text(
+                l10n.newPlannerChat,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: onNewConversation,
+            ),
+            const Divider(height: 1),
+            if (conversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  l10n.noPlannerConversations,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: conversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = conversations[index];
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.forum_outlined,
+                        color: Colors.white70,
+                      ),
+                      title: Text(
+                        conversation.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        '${conversation.messages.length} ${l10n.messagesLabel}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      onTap: () => onOpenConversation(conversation.id),
+                      trailing: IconButton(
+                        tooltip: l10n.deletePlannerConversation,
+                        onPressed: () => onDeleteConversation(conversation.id),
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
