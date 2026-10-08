@@ -8,6 +8,7 @@ import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/best_time_travel.dart';
+import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/models/destination_comparison.dart';
