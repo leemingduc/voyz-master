@@ -11,6 +11,7 @@ import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
+import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 
@@ -67,7 +68,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         widget.destinationName,
         trip.dayCount(),
         trip,
-        limit: 3,
+        limit: 6,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
       final plan = generated.copyWith(tripId: widget.tripId);
@@ -103,7 +104,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         widget.destinationName,
         numDays,
         trip,
-        limit: 3,
+        limit: 6,
         forceRefresh: true,
         languageCode: LocaleProvider.of(context).value.languageCode,
         additionalInstruction: instruction,
@@ -460,7 +461,10 @@ class _RefinementActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isLoading) ...[
-          const LinearProgressIndicator(),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: AivivuRocketMascot(size: 32),
+          ),
           const SizedBox(height: 12),
         ],
         Wrap(
@@ -774,11 +778,8 @@ class _Timeline extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: InkWell(
-                    onTap: () => _showActivityDetailBottomSheet(
-                      context,
-                      item,
-                      color,
-                    ),
+                    onTap: () =>
+                        _showActivityDetailBottomSheet(context, item, color),
                     borderRadius: BorderRadius.circular(16),
                     child: GlassCard(
                       glowColor: isFirst ? AppTheme.primaryPink : null,

@@ -7,6 +7,7 @@ import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
@@ -23,6 +24,16 @@ class SavedScreen extends StatefulWidget {
 }
 
 class _SavedScreenState extends State<SavedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Recheck the cloud whenever this tab opens. load() coalesces an ongoing
+    // startup request, so this does not send duplicate requests.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) SavedTripsProvider.of(context).load();
+    });
+  }
+
   void _onNavTap(int index) {
     switch (index) {
       case 0:
@@ -78,6 +89,9 @@ class _SavedScreenState extends State<SavedScreen> {
               Expanded(
                 child: _ItemListView(
                   items: allItems,
+                  isLoading: provider.isLoading,
+                  loadError: provider.loadError,
+                  onRetry: provider.load,
                   onRemoved: () => setState(() {}),
                 ),
               ),
@@ -138,13 +152,31 @@ class _Header extends StatelessWidget {
 // ── Item List View ──────────────────────────────────────────────────────
 
 class _ItemListView extends StatelessWidget {
-  const _ItemListView({required this.items, this.onRemoved});
+  const _ItemListView({
+    required this.items,
+    required this.isLoading,
+    required this.loadError,
+    required this.onRetry,
+    this.onRemoved,
+  });
   final List<SavedItem> items;
+  final bool isLoading;
+  final String? loadError;
+  final Future<void> Function() onRetry;
   final VoidCallback? onRemoved;
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
+      if (isLoading) return const AivivuLoadingIndicator(size: 72);
+      if (loadError != null) {
+        return Center(
+          child: TextButton(
+            onPressed: onRetry,
+            child: const Text('Unable to load saved places. Try again'),
+          ),
+        );
+      }
       return const _EmptyState();
     }
 
@@ -280,10 +312,7 @@ class _SavedItemCard extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppTheme.cyan,
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
             ),
           ),
         ),
@@ -705,10 +734,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(
-                  color: AppTheme.cyan,
-                  width: 1.5,
-                ),
+                borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
               ),
             ),
             onChanged: (value) => _notesDraft = value,

@@ -20,6 +20,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/utils/destination_rating_calculator.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
+import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -170,7 +171,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         widget.destinationName,
         trip.dayCount(),
         trip,
-        limit: 3,
+        limit: 6,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
     } catch (error) {
@@ -627,10 +628,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppTheme.cyan,
-                  width: 1.5,
-                ),
+                borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
               ),
             ),
           ),
@@ -650,7 +648,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
           ),
           if (_isLoadingReviews) ...[
             const SizedBox(height: 8),
-            const LinearProgressIndicator(minHeight: 2),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: AivivuRocketMascot(size: 32),
+            ),
           ] else if (_reviews.isNotEmpty) ...[
             const SizedBox(height: 10),
             ..._reviews.take(3).map((review) => _ReviewTile(review: review)),
@@ -668,8 +669,9 @@ class _ReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName =
-        review.userName.isNotEmpty ? review.userName : 'Anonymous';
+    final displayName = review.userName.isNotEmpty
+        ? review.userName
+        : 'Anonymous';
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),

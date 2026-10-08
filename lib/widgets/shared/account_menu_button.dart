@@ -52,7 +52,14 @@ class _AccountMenuButtonState extends State<AccountMenuButton> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final user = SupabaseService.instance.auth.currentUser;
+    // The app initializes Supabase before rendering. Keep this widget harmless
+    // in isolated widget tests and offline startup failures as well.
+    dynamic user;
+    try {
+      user = SupabaseService.instance.auth.currentUser;
+    } catch (_) {
+      user = null;
+    }
     final email = user?.email ?? l10n.signIn;
     final avatarUrl = user?.userMetadata?['avatar_url']?.toString();
     final displayName =
