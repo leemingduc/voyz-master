@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:voyz/l10n/app_localizations.dart';
@@ -5,11 +7,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
+import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
+import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/currency_service.dart';
+import 'package:voyz/services/friend_message_notification_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -38,6 +43,7 @@ Future<void> main() async {
     await ExchangeRateService.instance.init();
     initialDisplayCurrency = await CurrencySettingsStore.instance.load();
     await AiModelSettings.instance.load();
+    await FriendMessageNotificationSettings.instance.load();
     // Don't block app startup on background music init.
     BackgroundMusicService.instance.init();
   } catch (e, st) {
@@ -79,19 +85,48 @@ class _VoyzAppState extends State<VoyzApp> {
   late final LocaleController _localeController;
   late final CurrencyController _currencyController;
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  late final StreamSubscription<FriendMessageAlert> _friendMessageAlerts;
 
   @override
   void initState() {
     super.initState();
     _localeController = LocaleController(widget.initialLocale);
     _currencyController = CurrencyController(widget.initialDisplayCurrency);
+    _friendMessageAlerts = FriendMessageNotificationService.instance.alerts
+        .listen(_showFriendMessageAlert);
   }
 
   @override
   void dispose() {
     _localeController.dispose();
     _currencyController.dispose();
+    _friendMessageAlerts.cancel();
     super.dispose();
+  }
+
+  void _showFriendMessageAlert(FriendMessageAlert alert) {
+    final messenger = _scaffoldMessengerKey.currentState;
+    if (messenger == null) return;
+    final friend = alert.friendship.friend;
+    final name = friend.displayName.isEmpty ? friend.email : friend.displayName;
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('$name: ${alert.message.body}'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Xem',
+          onPressed: () {
+            _navigatorKey.currentState?.push(
+              MaterialPageRoute(
+                builder: (_) => FriendChatScreen(friendship: alert.friendship),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -108,6 +143,7 @@ class _VoyzAppState extends State<VoyzApp> {
               final locale = LocaleProvider.of(context).value;
               return MaterialApp(
                 navigatorKey: _navigatorKey,
+                scaffoldMessengerKey: _scaffoldMessengerKey,
                 onGenerateTitle: (ctx) =>
                     AppLocalizations.of(ctx)?.appTitle ??
                     'AIVIVU - AI Travel Advisor',

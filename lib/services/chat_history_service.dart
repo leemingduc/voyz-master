@@ -10,6 +10,100 @@ class ChatHistoryService {
   static final ChatHistoryService instance = ChatHistoryService._();
 
   static const _boxPrefix = 'ai_chat_history_';
+  static const _conversationsBoxPrefix = 'ai_chat_conversations_';
+
+  /// Local multi-conversation history for the AI Tools chatbot. This keeps
+  /// the existing cloud-backed single thread intact while offering the same
+  /// ChatGPT-style history menu when users are offline or anonymous.
+  Future<ChatConversationHistory> loadConversations({
+    String? destinationName,
+  }) async {
+    final box = await _openConversationsBox();
+    final key = _conversationKey(destinationName);
+    final stored = box.get(key);
+    if (stored is Map) return _historyFromMap(stored);
+
+    final legacy = await _loadLocal();
+    if (legacy.isEmpty) {
+      return const ChatConversationHistory(conversations: []);
+    }
+    final conversation = ChatConversation(messages: legacy);
+    final history = ChatConversationHistory(
+      conversations: [conversation],
+      activeConversationId: conversation.id,
+    );
+    await _saveConversationHistory(box, key, history);
+    return history;
+  }
+
+  Future<ChatConversationHistory> saveConversation(
+    List<ChatMessage> messages, {
+    String? conversationId,
+    String? destinationName,
+  }) async {
+    if (messages.isEmpty) {
+      return loadConversations(destinationName: destinationName);
+    }
+    final box = await _openConversationsBox();
+    final key = _conversationKey(destinationName);
+    final current = await loadConversations(destinationName: destinationName);
+    final existing = current.conversations.where(
+      (conversation) => conversation.id == conversationId,
+    );
+    final conversation = existing.isEmpty
+        ? ChatConversation(messages: List.of(messages))
+        : existing.first.copyWith(
+            messages: List.of(messages),
+            updatedAt: DateTime.now(),
+          );
+    final updated = ChatConversationHistory(
+      conversations: [
+        conversation,
+        ...current.conversations.where((item) => item.id != conversation.id),
+      ],
+      activeConversationId: conversation.id,
+    );
+    await _saveConversationHistory(box, key, updated);
+    return updated;
+  }
+
+  Future<ChatConversationHistory> openConversation(
+    String id, {
+    String? destinationName,
+  }) async {
+    final box = await _openConversationsBox();
+    final key = _conversationKey(destinationName);
+    final current = await loadConversations(destinationName: destinationName);
+    if (!current.conversations.any((conversation) => conversation.id == id)) {
+      return current;
+    }
+    final updated = ChatConversationHistory(
+      conversations: current.conversations,
+      activeConversationId: id,
+    );
+    await _saveConversationHistory(box, key, updated);
+    return updated;
+  }
+
+  Future<ChatConversationHistory> deleteConversation(
+    String id, {
+    String? destinationName,
+  }) async {
+    final box = await _openConversationsBox();
+    final key = _conversationKey(destinationName);
+    final current = await loadConversations(destinationName: destinationName);
+    final conversations = current.conversations
+        .where((conversation) => conversation.id != id)
+        .toList();
+    final updated = ChatConversationHistory(
+      conversations: conversations,
+      activeConversationId: current.activeConversationId == id
+          ? null
+          : current.activeConversationId,
+    );
+    await _saveConversationHistory(box, key, updated);
+    return updated;
+  }
 
   Future<List<ChatMessage>> load({String? destinationName}) async {
     final local = await _loadLocal();
@@ -51,19 +145,21 @@ class ChatHistoryService {
       final client = SupabaseService.instance.client;
       await client.from('chat_messages').delete().eq('thread_id', threadId);
       if (messages.isNotEmpty) {
-        await client.from('chat_messages').insert(
-          List.generate(messages.length, (index) {
-            final message = messages[index];
-            return {
-              'thread_id': threadId,
-              'user_id': _userId,
-              'role': message.isUser ? 'user' : 'assistant',
-              'content': message.text,
-              'message_index': index,
-              'created_at': message.timestamp.toUtc().toIso8601String(),
-            };
-          }),
-        );
+        await client
+            .from('chat_messages')
+            .insert(
+              List.generate(messages.length, (index) {
+                final message = messages[index];
+                return {
+                  'thread_id': threadId,
+                  'user_id': _userId,
+                  'role': message.isUser ? 'user' : 'assistant',
+                  'content': message.text,
+                  'message_index': index,
+                  'created_at': message.timestamp.toUtc().toIso8601String(),
+                };
+              }),
+            );
       }
       await client
           .from('chat_threads')
@@ -134,13 +230,53 @@ class ChatHistoryService {
     return ChatMessage(
       text: row['content']?.toString() ?? '',
       isUser: row['role'] == 'user',
-      timestamp: DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now(),
+      timestamp:
+          DateTime.tryParse(row['created_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 
   Future<Box<Map>> _openBox() {
     return Hive.openBox<Map>('$_boxPrefix$_userId');
   }
+
+  Future<Box<Map>> _openConversationsBox() {
+    return Hive.openBox<Map>('$_conversationsBoxPrefix$_userId');
+  }
+
+  String _conversationKey(String? destinationName) =>
+      destinationName?.trim() ?? '';
+
+  ChatConversationHistory _historyFromMap(Map<dynamic, dynamic> map) {
+    final rawConversations = map['conversations'];
+    final conversations = rawConversations is List
+        ? rawConversations
+              .whereType<Map>()
+              .map(ChatConversation.fromMap)
+              .where((conversation) => conversation.messages.isNotEmpty)
+              .toList()
+        : <ChatConversation>[];
+    conversations.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final activeId = map['activeId']?.toString();
+    return ChatConversationHistory(
+      conversations: conversations,
+      activeConversationId:
+          conversations.any((conversation) => conversation.id == activeId)
+          ? activeId
+          : null,
+    );
+  }
+
+  Future<void> _saveConversationHistory(
+    Box<Map> box,
+    String key,
+    ChatConversationHistory history,
+  ) => box.put(key, {
+    'activeId': history.activeConversationId,
+    'conversations': history.conversations
+        .map((conversation) => conversation.toMap())
+        .toList(),
+  });
 
   String get _userId {
     try {

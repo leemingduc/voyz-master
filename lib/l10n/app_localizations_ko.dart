@@ -608,19 +608,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiBestTimeDesc => '날씨, 관광객 수 및 현지 이벤트를 기준으로 방문하기 이상적인 달을 알아보세요.';
 
   @override
-  String get contextBestTime => 'When should I go?';
+  String get contextBestTime => '언제 가면 좋을까요?';
 
   @override
-  String get contextAskAboutDestination => 'Ask AI about this place';
+  String get contextAskAboutDestination => '이곳에 대해 AI에게 물어보기';
 
   @override
-  String get refineForBudget => 'More Activities (Budget Optimized)';
+  String get refineForBudget => '더 많은 활동 (예산 최적화)';
 
   @override
-  String get refineForFamily => 'Better for children or seniors';
+  String get refineForFamily => '어린이 또는 어르신에게 더 적합하게';
 
   @override
-  String get refineLessTravel => 'Less travel between stops';
+  String get refineLessTravel => '장소 간 이동 줄이기';
 
   @override
   String get currencySelectorTitle => '표시 통화';
@@ -672,6 +672,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get quickPromptsLabel => '빠른 아이디어:';
 
   @override
+  String get quickPromptTokyo => '벚꽃 시즌의 도쿄';
+
+  @override
+  String get quickPromptDaLat => '달랏 3일 2박';
+
+  @override
+  String get quickPromptBali => '발리 휴양 여행';
+
+  @override
+  String get quickPromptPhuQuoc => '푸꾸옥의 일몰 감상';
+
+  @override
   String get suggestNow => '바로 추천';
 
   @override
@@ -682,6 +694,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get newPlannerChat => '새 대화';
+
+  @override
+  String get plannerConversationHistory => '대화 기록';
+
+  @override
+  String get noPlannerConversations => '저장된 대화가 아직 없습니다';
+
+  @override
+  String get messagesLabel => '개의 메시지';
+
+  @override
+  String get deletePlannerConversation => '대화 삭제';
+
+  @override
+  String get savePlannerConversation => '대화 저장';
+
+  @override
+  String get plannerConversationSaved => '대화가 저장되었습니다';
 
   @override
   String get aiEstimateLabel => 'AI 추정';

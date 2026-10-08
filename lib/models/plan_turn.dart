@@ -1,4 +1,5 @@
 import 'package:voyz/data/trip_data.dart';
+import 'package:uuid/uuid.dart';
 
 /// Một phương án chuyến đi AI đưa ra trong planner chat: một chủ đề,
 /// một thời lượng và lộ trình nhiều điểm dừng trong cùng điểm đến gốc.
@@ -44,6 +45,28 @@ class TripOption {
     aiInsight: aiInsight,
     imageUrl: imageUrl ?? this.imageUrl,
   );
+
+  factory TripOption.fromMap(Map<dynamic, dynamic> map) => TripOption(
+    title: map['title']?.toString() ?? '',
+    destination: map['destination']?.toString() ?? '',
+    numDays: int.tryParse(map['numDays']?.toString() ?? '') ?? 0,
+    stops: TripData.stringList(map['stops']),
+    imageStop: map['imageStop']?.toString() ?? '',
+    price: map['price']?.toString() ?? '',
+    aiInsight: map['aiInsight']?.toString() ?? '',
+    imageUrl: map['imageUrl']?.toString() ?? '',
+  );
+
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'destination': destination,
+    'numDays': numDays,
+    'stops': stops,
+    'imageStop': imageStop,
+    'price': price,
+    'aiInsight': aiInsight,
+    'imageUrl': imageUrl,
+  };
 }
 
 /// Một lượt trả lời của AI trong planner chat.
@@ -75,6 +98,25 @@ class PlanTurn {
     options: options ?? this.options,
     raw: raw,
   );
+
+  factory PlanTurn.fromMap(Map<dynamic, dynamic> map) => PlanTurn(
+    reply: map['reply']?.toString() ?? '',
+    trip: map['trip'] is Map
+        ? TripData.fromMap(map['trip'] as Map)
+        : TripData(),
+    options: (map['options'] as List? ?? const [])
+        .whereType<Map>()
+        .map(TripOption.fromMap)
+        .toList(),
+    raw: map['raw']?.toString() ?? '',
+  );
+
+  Map<String, dynamic> toMap() => {
+    'reply': reply,
+    'trip': trip.toMap(),
+    'options': options.map((option) => option.toMap()).toList(),
+    'raw': raw,
+  };
 }
 
 /// Một tin nhắn trong planner chat: của người dùng ([turn] null) hoặc của AI.
@@ -90,6 +132,80 @@ class PlannerMessage {
   final PlanTurn? turn;
 
   bool get isUser => turn == null;
+
+  factory PlannerMessage.fromMap(Map<dynamic, dynamic> map) {
+    final turn = map['turn'];
+    if (turn is Map) return PlannerMessage.agent(PlanTurn.fromMap(turn));
+    return PlannerMessage.user(map['text']?.toString() ?? '');
+  }
+
+  Map<String, dynamic> toMap() => {
+    'text': text,
+    if (turn != null) 'turn': turn!.toMap(),
+  };
+}
+
+/// Một cuộc trò chuyện đã lưu trong phần Gợi ý AI.
+class PlannerConversation {
+  PlannerConversation({
+    String? id,
+    required this.messages,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+
+  final String id;
+  final List<PlannerMessage> messages;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  String get title {
+    var text = '';
+    for (final message in messages) {
+      if (message.isUser) {
+        text = message.text.trim();
+        break;
+      }
+    }
+    if (text.isEmpty && messages.isNotEmpty) text = messages.first.text.trim();
+    if (text.length <= 48) return text;
+    return '${text.substring(0, 48)}…';
+  }
+
+  PlannerConversation copyWith({
+    List<PlannerMessage>? messages,
+    DateTime? updatedAt,
+  }) => PlannerConversation(
+    id: id,
+    messages: messages ?? this.messages,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+
+  factory PlannerConversation.fromMap(Map<dynamic, dynamic> map) {
+    final rawMessages = map['messages'];
+    return PlannerConversation(
+      id: map['id']?.toString(),
+      messages: rawMessages is List
+          ? rawMessages
+                .whereType<Map>()
+                .map(PlannerMessage.fromMap)
+                .where((message) => message.text.isNotEmpty)
+                .toList()
+          : const [],
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? ''),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'messages': messages.map((message) => message.toMap()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 }
 
 /// TripData giao cho màn chi tiết khi người dùng chọn [option].

@@ -1408,6 +1408,30 @@ abstract class AppLocalizations {
   /// **'Quick ideas:'**
   String get quickPromptsLabel;
 
+  /// No description provided for @quickPromptTokyo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokyo during cherry blossom season'**
+  String get quickPromptTokyo;
+
+  /// No description provided for @quickPromptDaLat.
+  ///
+  /// In en, this message translates to:
+  /// **'Đà Lạt for 3 days and 2 nights'**
+  String get quickPromptDaLat;
+
+  /// No description provided for @quickPromptBali.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxing in Bali'**
+  String get quickPromptBali;
+
+  /// No description provided for @quickPromptPhuQuoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch the sunset in Phú Quốc'**
+  String get quickPromptPhuQuoc;
+
   /// Planner chat button that asks the AI for trip options right away
   ///
   /// In en, this message translates to:
@@ -1431,6 +1455,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New chat'**
   String get newPlannerChat;
+
+  /// Title and tooltip for the saved AI planner conversation history
+  ///
+  /// In en, this message translates to:
+  /// **'Chat history'**
+  String get plannerConversationHistory;
+
+  /// Empty state for the AI planner conversation history
+  ///
+  /// In en, this message translates to:
+  /// **'No saved conversations yet'**
+  String get noPlannerConversations;
+
+  /// Label after a conversation's message count
+  ///
+  /// In en, this message translates to:
+  /// **'messages'**
+  String get messagesLabel;
+
+  /// Action that permanently removes a saved AI planner conversation
+  ///
+  /// In en, this message translates to:
+  /// **'Delete conversation'**
+  String get deletePlannerConversation;
+
+  /// Tooltip of the button that saves the current AI planner conversation
+  ///
+  /// In en, this message translates to:
+  /// **'Save conversation'**
+  String get savePlannerConversation;
+
+  /// Confirmation after saving the current AI planner conversation
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation saved'**
+  String get plannerConversationSaved;
 
   /// Label under an AI generated price
   ///

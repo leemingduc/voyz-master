@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/destination_comparison.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
@@ -15,9 +16,14 @@ import 'package:voyz/widgets/shared/gradient_button.dart';
 
 /// AI Destination Comparison screen — compare 2-3 destinations side by side.
 class CompareScreen extends StatefulWidget {
-  const CompareScreen({super.key, this.initialDestinations = const []});
+  const CompareScreen({
+    super.key,
+    this.initialDestinations = const [],
+    this.initialTrip,
+  });
 
   final List<String> initialDestinations;
+  final TripData? initialTrip;
 
   @override
   State<CompareScreen> createState() => _CompareScreenState();
@@ -81,6 +87,7 @@ class _CompareScreenState extends State<CompareScreen> {
       final result = await GeminiService.instance.compareDestinations(
         destinations,
         languageCode: LocaleProvider.of(context).value.languageCode,
+        trip: widget.initialTrip,
       );
 
       if (mounted) {

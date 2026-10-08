@@ -6,6 +6,7 @@ import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/plan_turn.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
+import 'package:voyz/screens/compare_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/friends_screen.dart';
@@ -26,7 +27,7 @@ import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
 /// Planner AI-first dạng chat. Trước lượt gửi đầu là màn hero như cũ; sau đó
 /// là hội thoại với AI, AI hỏi thêm khi thiếu thông tin rồi đưa 3 thẻ phương
 /// án. Chọn thẻ thì mở màn chi tiết như chạm một gợi ý trước đây.
-/// Hội thoại chỉ nằm trong state, không lưu.
+/// Mỗi hội thoại được lưu cục bộ và có thể mở lại từ lịch sử.
 class SmartPlannerScreen extends StatefulWidget {
   const SmartPlannerScreen({super.key});
 
@@ -53,6 +54,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   @override
   void initState() {
     super.initState();
+    _messages.addAll(SavedTripsProvider.of(context).plannerMessages);
+    _loadMissingImages(_messages);
+    unawaited(_restoreSavedMessages());
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final trip = SavedTripsProvider.of(context).currentTrip;
       final currency = CurrencyProvider.of(context);
@@ -73,6 +77,27 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             const [];
       });
     });
+  }
+
+  Future<void> _restoreSavedMessages() async {
+    final provider = SavedTripsProvider.of(context);
+    await provider.load();
+    if (!mounted || _messages.isNotEmpty) return;
+    final savedMessages = provider.plannerMessages;
+    if (savedMessages.isEmpty) return;
+    setState(() => _messages.addAll(savedMessages));
+    _loadMissingImages(savedMessages);
+  }
+
+  void _loadMissingImages(Iterable<PlannerMessage> messages) {
+    for (final message in messages) {
+      final turn = message.turn;
+      if (turn != null &&
+          turn.hasOptions &&
+          turn.options.any((option) => option.imageUrl.isEmpty)) {
+        unawaited(_loadImages(message));
+      }
+    }
   }
 
   @override
@@ -130,6 +155,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       if (text.isNotEmpty) _messages.add(PlannerMessage.user(text));
       _promptController.clear();
     });
+    _persistMessages();
     await _runTurn(forceOptions: forceOptions);
   }
 
@@ -156,6 +182,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _messages.add(message);
         _isSending = false;
       });
+      _persistMessages();
       _scrollToBottom();
       if (turn.hasOptions) unawaited(_loadImages(message));
     } catch (e) {
@@ -181,6 +208,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     setState(() {
       _messages[index] = PlannerMessage.agent(turn.copyWith(options: options));
     });
+    _persistMessages();
   }
 
   void _newChat() {
@@ -189,6 +217,87 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       _error = null;
       _promptController.clear();
     });
+    unawaited(SavedTripsProvider.of(context).startNewPlannerConversation());
+  }
+
+  void _persistMessages() {
+    unawaited(SavedTripsProvider.of(context).updatePlannerMessages(_messages));
+  }
+
+  Future<void> _openConversation(String id) async {
+    final messages = await SavedTripsProvider.of(
+      context,
+    ).openPlannerConversation(id);
+    if (!mounted || messages.isEmpty) return;
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(messages);
+      _error = null;
+      _promptController.clear();
+    });
+    _loadMissingImages(messages);
+    _scrollToBottom();
+  }
+
+  Future<void> _showConversationMenu() async {
+    final provider = SavedTripsProvider.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      showDragHandle: true,
+      builder: (sheetContext) => _PlannerConversationSheet(
+        conversations: provider.plannerConversations,
+        onNewConversation: () {
+          Navigator.pop(sheetContext);
+          _newChat();
+        },
+        onOpenConversation: (id) {
+          Navigator.pop(sheetContext);
+          unawaited(_openConversation(id));
+        },
+        onDeleteConversation: (id) {
+          Navigator.pop(sheetContext);
+          unawaited(_deleteConversation(id));
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteConversation(String id) async {
+    final provider = SavedTripsProvider.of(context);
+    final isActive = provider.activePlannerConversationId == id;
+    await provider.deletePlannerConversation(id);
+    if (!mounted || !isActive) return;
+    setState(() {
+      _messages.clear();
+      _error = null;
+      _promptController.clear();
+    });
+  }
+
+  List<String> _comparisonDestinations(PlanTurn turn) {
+    final destinations = <String>[];
+    final seen = <String>{};
+    for (final option in turn.options) {
+      final destination = option.destination.trim();
+      if (destination.isEmpty || !seen.add(destination.toLowerCase())) continue;
+      destinations.add(destination);
+    }
+    return destinations;
+  }
+
+  void _compareOptions(PlanTurn turn) {
+    final destinations = _comparisonDestinations(turn);
+    if (destinations.length < 2) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CompareScreen(
+          initialDestinations: destinations,
+          initialTrip: turn.trip,
+        ),
+      ),
+    );
   }
 
   Future<void> _pickOption(PlanTurn turn, TripOption option) async {
@@ -211,8 +320,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            DestinationDetailScreen(destinationName: option.destination),
+        builder: (_) => DestinationDetailScreen(
+          destinationName: option.destination,
+          suggestedOptions: turn.options,
+          selectedSuggestionIndex: turn.options.indexOf(option),
+        ),
       ),
     );
   }
@@ -303,14 +415,16 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                tooltip: l10n.plannerConversationHistory,
+                onPressed: _isSending ? null : _showConversationMenu,
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+              ),
               if (_inChat)
                 IconButton(
-                  tooltip: l10n.newPlannerChat,
+                  tooltip: l10n.goBack,
                   onPressed: _isSending ? null : _newChat,
-                  icon: const Icon(
-                    Icons.add_comment_outlined,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
               const AccountMenuButton(),
             ],
@@ -332,7 +446,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             for (final message in _messages) ...[
               if (message.text.isNotEmpty)
                 PlannerBubble(text: message.text, isUser: message.isUser),
-              if (message.turn != null)
+              if (message.turn != null) ...[
                 for (final option in message.turn!.options)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -341,6 +455,26 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
                       onTap: () => _pickOption(message.turn!, option),
                     ),
                   ),
+                if (_comparisonDestinations(message.turn!).length >= 2)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _compareOptions(message.turn!),
+                        icon: const Icon(Icons.compare_arrows),
+                        label: Text(l10n.compareButton),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.cyan,
+                          side: BorderSide(
+                            color: AppTheme.cyan.withValues(alpha: 0.45),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ],
             if (_isSending)
               if (_lastForce || _messages.length <= 1)
@@ -503,6 +637,108 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   }
 }
 
+class _PlannerConversationSheet extends StatelessWidget {
+  const _PlannerConversationSheet({
+    required this.conversations,
+    required this.onNewConversation,
+    required this.onOpenConversation,
+    required this.onDeleteConversation,
+  });
+
+  final List<PlannerConversation> conversations;
+  final VoidCallback onNewConversation;
+  final ValueChanged<String> onOpenConversation;
+  final ValueChanged<String> onDeleteConversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+              child: Text(
+                l10n.plannerConversationHistory,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.add_comment_outlined,
+                color: AppTheme.cyan,
+              ),
+              title: Text(
+                l10n.newPlannerChat,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: onNewConversation,
+            ),
+            const Divider(height: 1),
+            if (conversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  l10n.noPlannerConversations,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.62)),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: conversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = conversations[index];
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.forum_outlined,
+                        color: Colors.white70,
+                      ),
+                      title: Text(
+                        conversation.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        '${conversation.messages.length} ${l10n.messagesLabel}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      onTap: () => onOpenConversation(conversation.id),
+                      trailing: IconButton(
+                        tooltip: l10n.deletePlannerConversation,
+                        onPressed: () => onDeleteConversation(conversation.id),
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ErrorRow extends StatelessWidget {
   const _ErrorRow({
@@ -614,7 +850,11 @@ class _AiPromptBox extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 3),
-                child: Icon(Icons.search, color: primaryColor, size: searchIconSize),
+                child: Icon(
+                  Icons.search,
+                  color: primaryColor,
+                  size: searchIconSize,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -731,11 +971,12 @@ class _QuickPromptChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const prompts = [
-      'Tokyo mùa hoa anh đào',
-      'Đà Lạt 3 ngày 2 đêm',
-      'Bali nghỉ dưỡng',
-      'Phú Quốc ngắm hoàng hôn',
+    final l10n = AppLocalizations.of(context)!;
+    final prompts = [
+      l10n.quickPromptTokyo,
+      l10n.quickPromptDaLat,
+      l10n.quickPromptBali,
+      l10n.quickPromptPhuQuoc,
     ];
 
     return Wrap(
@@ -744,7 +985,7 @@ class _QuickPromptChips extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          AppLocalizations.of(context)!.quickPromptsLabel,
+          l10n.quickPromptsLabel,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.56),
             fontSize: 12,

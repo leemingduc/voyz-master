@@ -691,6 +691,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickPromptsLabel => 'Quick ideas:';
 
   @override
+  String get quickPromptTokyo => 'Tokyo during cherry blossom season';
+
+  @override
+  String get quickPromptDaLat => 'Đà Lạt for 3 days and 2 nights';
+
+  @override
+  String get quickPromptBali => 'Relaxing in Bali';
+
+  @override
+  String get quickPromptPhuQuoc => 'Watch the sunset in Phú Quốc';
+
+  @override
   String get suggestNow => 'Suggest now';
 
   @override
@@ -701,6 +713,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newPlannerChat => 'New chat';
+
+  @override
+  String get plannerConversationHistory => 'Chat history';
+
+  @override
+  String get noPlannerConversations => 'No saved conversations yet';
+
+  @override
+  String get messagesLabel => 'messages';
+
+  @override
+  String get deletePlannerConversation => 'Delete conversation';
+
+  @override
+  String get savePlannerConversation => 'Save conversation';
+
+  @override
+  String get plannerConversationSaved => 'Conversation saved';
 
   @override
   String get aiEstimateLabel => 'AI estimate';

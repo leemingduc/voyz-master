@@ -4,12 +4,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:voyz/models/chat_theme_model.dart';
+import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/screens/chat_theme_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/services/friends_service.dart';
+import 'package:voyz/services/friend_message_notification_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
@@ -98,6 +100,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Future<void> _accept(Friendship friendship) async {
     try {
       await FriendsService.instance.acceptFriendRequest(friendship.id);
+      await FriendMessageNotificationService.instance.refresh();
       if (!mounted) return;
       _showMessage('Friend request accepted');
       await _load();
@@ -154,87 +157,111 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final accepted = _friendships.where((f) => f.status == 'accepted').toList();
-    final pending = _friendships.where((f) => f.status == 'pending').toList();
+    return ValueListenableBuilder<bool>(
+      valueListenable: FriendMessageNotificationSettings.instance.enabled,
+      builder: (context, notificationsEnabled, _) =>
+          ValueListenableBuilder<Map<String, int>>(
+            valueListenable:
+                FriendMessageNotificationService.instance.unreadByFriendship,
+            builder: (context, unreadByFriendship, _) {
+              final accepted = _friendships
+                  .where((f) => f.status == 'accepted')
+                  .toList();
+              final pending = _friendships
+                  .where((f) => f.status == 'pending')
+                  .toList();
 
-    return Scaffold(
-      bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topRight,
-            radius: 1.4,
-            colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
+              return Scaffold(
+                bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
+                body: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.topRight,
+                      radius: 1.4,
+                      colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        _Header(onRefresh: _load),
+                        Expanded(
+                          child: _isLoading
+                              ? const AivivuLoadingIndicator(size: 80)
+                              : _error != null
+                              ? _ErrorState(error: _error!, onRetry: _load)
+                              : ListView(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    18,
+                                    12,
+                                    18,
+                                    32,
+                                  ),
+                                  children: [
+                                    _SearchPanel(
+                                      controller: _searchController,
+                                      isSearching: _isSearching,
+                                      results: _searchResults,
+                                      onSearch: _search,
+                                      onSendRequest: _sendRequest,
+                                    ),
+                                    const SizedBox(height: 18),
+                                    _SectionTitle(
+                                      icon: Icons.people_alt_outlined,
+                                      title: 'Friends',
+                                      count: accepted.length,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    if (accepted.isEmpty)
+                                      const _EmptyPanel(
+                                        icon: Icons.people_outline,
+                                        title: 'No friends yet',
+                                        subtitle:
+                                            'Search by email or display name to add someone.',
+                                      )
+                                    else
+                                      ...accepted.map(
+                                        (friendship) => _FriendTile(
+                                          friendship: friendship,
+                                          onTap: () => _openChat(friendship),
+                                          unreadCount: notificationsEnabled
+                                              ? unreadByFriendship[friendship
+                                                        .id] ??
+                                                    0
+                                              : 0,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 18),
+                                    _SectionTitle(
+                                      icon: Icons.mark_email_unread_outlined,
+                                      title: 'Requests',
+                                      count: pending.length,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    if (pending.isEmpty)
+                                      const _EmptyPanel(
+                                        icon: Icons.inbox_outlined,
+                                        title: 'No pending requests',
+                                        subtitle:
+                                            'Incoming and outgoing requests appear here.',
+                                      )
+                                    else
+                                      ...pending.map(
+                                        (friendship) => _RequestTile(
+                                          friendship: friendship,
+                                          onAccept: () => _accept(friendship),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _Header(onRefresh: _load),
-              Expanded(
-                child: _isLoading
-                    ? const AivivuLoadingIndicator(size: 80)
-                    : _error != null
-                    ? _ErrorState(error: _error!, onRetry: _load)
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
-                        children: [
-                          _SearchPanel(
-                            controller: _searchController,
-                            isSearching: _isSearching,
-                            results: _searchResults,
-                            onSearch: _search,
-                            onSendRequest: _sendRequest,
-                          ),
-                          const SizedBox(height: 18),
-                          _SectionTitle(
-                            icon: Icons.people_alt_outlined,
-                            title: 'Friends',
-                            count: accepted.length,
-                          ),
-                          const SizedBox(height: 10),
-                          if (accepted.isEmpty)
-                            const _EmptyPanel(
-                              icon: Icons.people_outline,
-                              title: 'No friends yet',
-                              subtitle:
-                                  'Search by email or display name to add someone.',
-                            )
-                          else
-                            ...accepted.map(
-                              (friendship) => _FriendTile(
-                                friendship: friendship,
-                                onTap: () => _openChat(friendship),
-                              ),
-                            ),
-                          const SizedBox(height: 18),
-                          _SectionTitle(
-                            icon: Icons.mark_email_unread_outlined,
-                            title: 'Requests',
-                            count: pending.length,
-                          ),
-                          const SizedBox(height: 10),
-                          if (pending.isEmpty)
-                            const _EmptyPanel(
-                              icon: Icons.inbox_outlined,
-                              title: 'No pending requests',
-                              subtitle:
-                                  'Incoming and outgoing requests appear here.',
-                            )
-                          else
-                            ...pending.map(
-                              (friendship) => _RequestTile(
-                                friendship: friendship,
-                                onAccept: () => _accept(friendship),
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -404,10 +431,15 @@ class _SearchPanel extends StatelessWidget {
 }
 
 class _FriendTile extends StatelessWidget {
-  const _FriendTile({required this.friendship, required this.onTap});
+  const _FriendTile({
+    required this.friendship,
+    required this.onTap,
+    required this.unreadCount,
+  });
 
   final Friendship friendship;
   final VoidCallback onTap;
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -428,8 +460,47 @@ class _FriendTile extends StatelessWidget {
           friend.email,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
-        trailing: const Icon(Icons.chat_bubble_outline, color: Colors.white70),
+        trailing: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.chat_bubble_outline, color: Colors.white70),
+            if (unreadCount > 0)
+              Positioned(
+                top: -8,
+                right: -10,
+                child: _UnreadBadge(count: unreadCount),
+              ),
+          ],
+        ),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppTheme.primaryPink,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -507,6 +578,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   @override
   void initState() {
     super.initState();
+    FriendMessageNotificationService.instance.openConversation(
+      widget.friendship.id,
+    );
     _initRealtimeMessages();
     _loadTheme();
   }
@@ -560,6 +634,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
   @override
   void dispose() {
+    FriendMessageNotificationService.instance.closeConversation(
+      widget.friendship.id,
+    );
     _streamSub?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
@@ -625,7 +702,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   String _formatDateHeader(DateTime dt) {
     final local = dt.toLocal();
     final now = DateTime.now();
-    if (local.year == now.year && local.month == now.month && local.day == now.day) {
+    if (local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day) {
       return 'Hôm nay';
     }
     final yesterday = now.subtract(const Duration(days: 1));
@@ -642,7 +721,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   bool _isSameDay(DateTime a, DateTime b) {
     final locA = a.toLocal();
     final locB = b.toLocal();
-    return locA.year == locB.year && locA.month == locB.month && locA.day == locB.day;
+    return locA.year == locB.year &&
+        locA.month == locB.month &&
+        locA.day == locB.day;
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -799,7 +880,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                           itemBuilder: (context, index) {
                             final message = _messages[index];
                             final isMine = message.senderId == currentId;
-                            final showDateHeader = index == 0 ||
+                            final showDateHeader =
+                                index == 0 ||
                                 !_isSameDay(
                                   _messages[index - 1].createdAt,
                                   message.createdAt,
@@ -817,9 +899,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                                   friend: friend,
                                   timeString: _formatTime(message.createdAt),
                                   myBubbleGradient: _chatTheme.myBubbleGradient,
-                                  myBubbleTextColor: _chatTheme.myBubbleTextColor,
+                                  myBubbleTextColor:
+                                      _chatTheme.myBubbleTextColor,
                                   theirBubbleColor: _chatTheme.theirBubbleColor,
-                                  theirBubbleTextColor: _chatTheme.theirBubbleTextColor,
+                                  theirBubbleTextColor:
+                                      _chatTheme.theirBubbleTextColor,
                                   accentColor: _chatTheme.accentColor,
                                   onLongPress: () =>
                                       _showOptionsSheet(message, isMine),
@@ -943,8 +1027,9 @@ class _ChatMessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
@@ -975,7 +1060,9 @@ class _ChatMessageBubble extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 7),
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryPink.withValues(alpha: 0.2),
                         borderRadius: const BorderRadius.vertical(
@@ -1031,13 +1118,12 @@ class _ChatMessageBubble extends StatelessWidget {
                             child: ElevatedButton.icon(
                               onPressed: name.isNotEmpty
                                   ? () => Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              DestinationDetailScreen(
-                                            destinationName: name,
-                                          ),
+                                      MaterialPageRoute(
+                                        builder: (_) => DestinationDetailScreen(
+                                          destinationName: name,
                                         ),
-                                      )
+                                      ),
+                                    )
                                   : null,
                               icon: const Icon(Icons.explore, size: 14),
                               label: const Text(
@@ -1047,8 +1133,9 @@ class _ChatMessageBubble extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryPink,
                                 foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -1083,8 +1170,9 @@ class _ChatMessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
@@ -1096,8 +1184,10 @@ class _ChatMessageBubble extends StatelessWidget {
               onLongPress: onLongPress,
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 290),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
+                ),
                 decoration: BoxDecoration(
                   gradient: isMine ? myBubbleGradient : null,
                   color: isMine ? null : theirBubbleColor,
@@ -1112,9 +1202,7 @@ class _ChatMessageBubble extends StatelessWidget {
                       : null,
                   border: isMine
                       ? null
-                      : Border.all(
-                          color: accentColor.withValues(alpha: 0.15),
-                        ),
+                      : Border.all(color: accentColor.withValues(alpha: 0.15)),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -1129,8 +1217,9 @@ class _ChatMessageBubble extends StatelessWidget {
                     Text(
                       message.body,
                       style: TextStyle(
-                        color:
-                            isMine ? myBubbleTextColor : theirBubbleTextColor,
+                        color: isMine
+                            ? myBubbleTextColor
+                            : theirBubbleTextColor,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -1142,10 +1231,11 @@ class _ChatMessageBubble extends StatelessWidget {
                         Text(
                           timeString,
                           style: TextStyle(
-                            color: (isMine
-                                    ? myBubbleTextColor
-                                    : theirBubbleTextColor)
-                                .withValues(alpha: 0.65),
+                            color:
+                                (isMine
+                                        ? myBubbleTextColor
+                                        : theirBubbleTextColor)
+                                    .withValues(alpha: 0.65),
                             fontSize: 11,
                           ),
                         ),
@@ -1185,8 +1275,9 @@ class _EmptyChatView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName =
-        friend.displayName.isEmpty ? friend.email : friend.displayName;
+    final displayName = friend.displayName.isEmpty
+        ? friend.email
+        : friend.displayName;
 
     return Center(
       child: SingleChildScrollView(
@@ -1284,9 +1375,7 @@ class _QuickChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: accentColor.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: accentColor.withValues(alpha: 0.4)),
           ),
           child: Text(
             label,
@@ -1426,10 +1515,7 @@ class _ChatInputDock extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(22),
-                        borderSide: BorderSide(
-                          color: accentColor,
-                          width: 1.5,
-                        ),
+                        borderSide: BorderSide(color: accentColor, width: 1.5),
                       ),
                     ),
                     onSubmitted: (_) => onSend(),
@@ -1630,8 +1716,9 @@ class _FriendChatHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName =
-        friend.displayName.isEmpty ? friend.email : friend.displayName;
+    final displayName = friend.displayName.isEmpty
+        ? friend.email
+        : friend.displayName;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -1734,11 +1821,7 @@ class _FriendChatHeaderBar extends StatelessWidget {
                 value: 'theme',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.palette_outlined,
-                      size: 20,
-                      color: accentColor,
-                    ),
+                    Icon(Icons.palette_outlined, size: 20, color: accentColor),
                     const SizedBox(width: 10),
                     const Text(
                       'Giao diện chat',
@@ -1751,11 +1834,7 @@ class _FriendChatHeaderBar extends StatelessWidget {
                 value: 'clear',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.delete_outline,
-                      size: 20,
-                      color: Colors.white70,
-                    ),
+                    Icon(Icons.delete_outline, size: 20, color: Colors.white70),
                     SizedBox(width: 10),
                     Text(
                       'Clear chat view',
@@ -1778,10 +1857,7 @@ class _FriendChatHeaderBar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class WallpaperPainter extends CustomPainter {
-  const WallpaperPainter({
-    required this.wallpaper,
-    required this.color,
-  });
+  const WallpaperPainter({required this.wallpaper, required this.color});
 
   final ChatWallpaper wallpaper;
   final Color color;
@@ -1878,14 +1954,20 @@ class WallpaperPainter extends CustomPainter {
     final path = Path();
     path.moveTo(center.dx, center.dy + size * 0.3);
     path.cubicTo(
-      center.dx - size * 1.2, center.dy - size * 0.6,
-      center.dx - size * 2, center.dy + size * 0.6,
-      center.dx, center.dy + size * 1.5,
+      center.dx - size * 1.2,
+      center.dy - size * 0.6,
+      center.dx - size * 2,
+      center.dy + size * 0.6,
+      center.dx,
+      center.dy + size * 1.5,
     );
     path.cubicTo(
-      center.dx + size * 2, center.dy + size * 0.6,
-      center.dx + size * 1.2, center.dy - size * 0.6,
-      center.dx, center.dy + size * 0.3,
+      center.dx + size * 2,
+      center.dy + size * 0.6,
+      center.dx + size * 1.2,
+      center.dy - size * 0.6,
+      center.dx,
+      center.dy + size * 0.3,
     );
     canvas.drawPath(path, paint);
   }

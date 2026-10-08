@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/screens/auth_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/splash_screen.dart';
 import 'package:voyz/services/supabase_service.dart';
+import 'package:voyz/services/friend_message_notification_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, this.showSplash = true});
@@ -16,11 +19,32 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late bool _splashComplete;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
     _splashComplete = !widget.showSplash;
+    _authSubscription = SupabaseService.instance.auth.onAuthStateChange.listen(
+      (_) => _syncFriendMessageNotifications(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _syncFriendMessageNotifications(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _syncFriendMessageNotifications() async {
+    if (SupabaseService.instance.auth.currentSession == null) {
+      await FriendMessageNotificationService.instance.stop();
+      return;
+    }
+    await FriendMessageNotificationService.instance.start();
   }
 
   @override
