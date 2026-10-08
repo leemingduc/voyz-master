@@ -264,8 +264,24 @@ Please let me know if you need anything else!
       );
       expect(prompt, isNot(contains('nêu số ngày cụ thể')));
     });
-  });
 
+    test('requires exact days and five to six activities per day', () {
+      final prompt = GeminiService.instance.buildItineraryPrompt(
+        'Hue',
+        7,
+        TripData(),
+        6,
+        'en',
+        null,
+      );
+
+      expect(prompt, contains('Return exactly 7 entries in `days`'));
+      expect(
+        prompt,
+        contains('Every day must contain 5 to 6 time-stamped activities'),
+      );
+    });
+  });
   group('parseTripMap', () {
     final service = GeminiService.instance;
     Map<String, dynamic> m(String json) =>

@@ -39,8 +39,12 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   final Set<String> _deletedOldBoxes = {};
   Future<void>? _inFlightLoad;
   String? _inFlightLoadUserId;
+  bool _isLoading = true;
+  String? _loadError;
 
   TripData get currentTrip => _currentTrip;
+  bool get isLoading => _isLoading;
+  String? get loadError => _loadError;
   List<SavedItem> get savedItems => List.unmodifiable(_items);
   List<SavedItem> get tripWorkspaces =>
       _items.where((item) => item.tripData != null).toList();
@@ -79,6 +83,12 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     final userId = _userId;
     final inFlight = _inFlightLoad;
     if (inFlight != null && _inFlightLoadUserId == userId) return inFlight;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+      });
+    }
     final future = _loadInternal(userId);
     _inFlightLoad = future;
     _inFlightLoadUserId = userId;
@@ -86,6 +96,9 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       if (_inFlightLoadUserId == userId) {
         _inFlightLoad = null;
         _inFlightLoadUserId = null;
+      }
+      if (mounted && userId == _userId) {
+        setState(() => _isLoading = false);
       }
     });
   }
@@ -134,6 +147,9 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
       debugPrint(
         'SavedTripsProvider: cloud load failed, keeping Hive snapshot: $e',
       );
+      if (mounted && userId == _userId) {
+        setState(() => _loadError = e.toString());
+      }
     }
   }
 

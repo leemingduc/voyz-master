@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
+import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 
 class ShareDestinationBottomSheet extends StatefulWidget {
   const ShareDestinationBottomSheet({
@@ -219,7 +221,7 @@ class _ShareDestinationBottomSheetState
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
+              child: AivivuLoadingIndicator(size: 64),
             )
           else if (_error != null || _friends.isEmpty)
             Container(
@@ -344,10 +346,7 @@ class _ShareDestinationBottomSheetState
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: AivivuRocketMascot(size: 16),
                           )
                         : const Icon(Icons.send, size: 16),
                     label: Text('Gửi (${_selectedFriendshipIds.length})'),

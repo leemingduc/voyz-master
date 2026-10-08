@@ -777,13 +777,13 @@ Quy tắc:
   /// Generate a day-by-day itinerary plan for a destination.
   ///
   /// [numDays] number of days in the itinerary.
-  /// [limit] max activities per day (default 4).
+  /// [limit] maximum activities per day (default 6).
   /// [forceRefresh] if true, bypasses the cache.
   Future<ItineraryPlan> getItineraryPlan(
     String destinationName,
     int numDays,
     TripData trip, {
-    int limit = 4,
+    int limit = 6,
     bool forceRefresh = false,
     String languageCode = 'vi',
     String? additionalInstruction,
@@ -903,8 +903,10 @@ Trả về JSON object với cấu trúc:
   "proTip": "Mẹo hữu ích cho chuyến đi"
 }
 
-- Mỗi ngày có tối đa $limit hoạt động
+- Mỗi ngày có từ 5 đến 6 hoạt động có mốc thời gian, sắp xếp từ sáng đến tối
 - Tổng cộng $numDays ngày
+- Return exactly $numDays entries in `days`, numbered consecutively from 1 through $numDays. Do not omit, add, or combine days.
+- Every day must contain 5 to 6 time-stamped activities, ordered from morning to evening.
 - title: "Day X: Tiêu đề ngắn" — subtitle: 1 câu mô tả
 - items.time: "HH:MM AM/PM" — items.icon: flight_land|hotel|restaurant|beach_access
 - items.description: 1 câu ngắn gọn

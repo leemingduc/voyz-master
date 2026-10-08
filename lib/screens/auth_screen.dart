@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
+import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/utils/error_localizer.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
 
@@ -207,10 +208,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                              child: AivivuRocketMascot(size: 20),
                             )
                           : Text(_isRegister ? l10n.register : l10n.login),
                     ),

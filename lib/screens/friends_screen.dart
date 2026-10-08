@@ -14,6 +14,8 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/profile_avatar.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
+import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
+import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 
@@ -171,7 +173,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               _Header(onRefresh: _load),
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const AivivuLoadingIndicator(size: 80)
                     : _error != null
                     ? _ErrorState(error: _error!, onRetry: _load)
                     : ListView(
@@ -359,7 +361,7 @@ class _SearchPanel extends StatelessWidget {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: AivivuRocketMascot(size: 16),
                       )
                     : const Text('Search'),
               ),
@@ -1452,10 +1454,7 @@ class _ChatInputDock extends StatelessWidget {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: AivivuRocketMascot(size: 18),
                           )
                         : const Icon(
                             Icons.send_rounded,
