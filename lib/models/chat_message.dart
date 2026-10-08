@@ -1,30 +1,35 @@
 import 'package:uuid/uuid.dart';
+import 'package:voyz/models/ai_action.dart';
 
 /// Model for a single chat message in the AI Chatbot.
 class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  final AiAction? action;
 
   const ChatMessage({
     required this.text,
     required this.isUser,
     required this.timestamp,
+    this.action,
   });
 
   factory ChatMessage.user(String text) =>
       ChatMessage(text: text, isUser: true, timestamp: DateTime.now());
 
-  factory ChatMessage.ai(String text) =>
-      ChatMessage(text: text, isUser: false, timestamp: DateTime.now());
+  factory ChatMessage.ai(String text, {AiAction? action}) =>
+      ChatMessage(text: text, isUser: false, timestamp: DateTime.now(), action: action);
 
   factory ChatMessage.fromMap(Map<dynamic, dynamic> map) {
+    final rawAction = map['action'];
     return ChatMessage(
       text: map['text']?.toString() ?? '',
       isUser: map['isUser'] == true,
       timestamp:
           DateTime.tryParse(map['timestamp']?.toString() ?? '') ??
           DateTime.now(),
+      action: rawAction is Map ? AiAction.fromJson(Map<String, dynamic>.from(rawAction)) : null,
     );
   }
 
@@ -32,6 +37,7 @@ class ChatMessage {
     'text': text,
     'isUser': isUser,
     'timestamp': timestamp.toIso8601String(),
+    if (action != null) 'action': action!.toJson(),
   };
 }
 

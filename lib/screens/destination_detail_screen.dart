@@ -468,7 +468,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  Future<SavedItem> _saveCurrentDetail() {
+  Future<SavedItem> _saveCurrentDetail() async {
     final d = _detail!;
     final totalVotes = DestinationRatingCalculator.calculateReviewCount(
       _reviews.length,
@@ -476,6 +476,19 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     final average = DestinationRatingCalculator.calculateAverageRating(
       _reviews.map((r) => r.rating),
     );
+    final existingItem = _savedItem;
+    if (existingItem != null) {
+      final updated = existingItem.copyWith(
+        name: d.name,
+        imageUrl: d.imageUrl,
+        price: d.totalBudget,
+        rating: average ?? existingItem.rating,
+        reviewCount: totalVotes > 0 ? totalVotes : existingItem.reviewCount,
+        tripData: _trip,
+      );
+      await SavedTripsProvider.of(context).updateWorkspace(updated);
+      return updated;
+    }
     return SavedTripsProvider.of(context).saveFullTrip(
       name: d.name,
       imageUrl: d.imageUrl,
@@ -492,29 +505,6 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     if (_isSaving) return;
     if (_detail == null) return;
     final l10n = AppLocalizations.of(context)!;
-    final d = _detail!;
-    if (_savedItem != null) {
-      // Da luu roi (mo tu danh sach da luu, hoac da bam luu trong phien nay):
-      // khong tao ban sao moi, chi bao lai la da luu.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Expanded(child: Text(l10n.alreadySavedMessage(d.name))),
-            ],
-          ),
-          backgroundColor: const Color(0xFF475569),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
     _isSaving = true;
     try {
       final item = await _saveCurrentDetail();

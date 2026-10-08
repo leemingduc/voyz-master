@@ -8,6 +8,7 @@ import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/mock_data.dart';
 import 'package:voyz/data/trip_data.dart';
 import 'package:voyz/models/best_time_travel.dart';
+import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/models/cultural_tips.dart';
 import 'package:voyz/models/destination_comparison.dart';
@@ -987,6 +988,87 @@ Trả về JSON object với cấu trúc:
       throw Exception('noAiResponse');
     }
     return text.trim();
+  }
+
+  /// Parses a chat response that may contain an optional JSON action block.
+  ({String reply, AiAction? action}) parseChatActionResponse(String rawText) {
+    final jsonMatch = RegExp(r'```json\s*(\{[\s\S]*?\})\s*```').firstMatch(rawText);
+    if (jsonMatch == null) {
+      return (reply: rawText.trim(), action: null);
+    }
+    final jsonString = jsonMatch.group(1);
+    final replyText = rawText.replaceAll(jsonMatch.group(0)!, '').trim();
+    if (jsonString == null) {
+      return (reply: replyText.isNotEmpty ? replyText : rawText.trim(), action: null);
+    }
+
+    try {
+      final map = json.decode(jsonString);
+      if (map is Map<String, dynamic> && map['action'] is Map) {
+        final actionMap = Map<String, dynamic>.from(map['action'] as Map);
+        final action = AiAction.fromJson(actionMap);
+        return (reply: replyText, action: action);
+      }
+    } catch (_) {}
+    return (reply: replyText.isNotEmpty ? replyText : rawText.trim(), action: null);
+  }
+
+  /// Send chat message to AI assistant and receive text reply + optional AiAction.
+  Future<({String reply, AiAction? action})> chatWithActions(
+    String message, {
+    required List<ChatMessage> history,
+    String languageCode = 'vi',
+    String? destinationName,
+  }) async {
+    final langInst = chatLanguageInstruction(languageCode);
+    final contents = <Content>[];
+
+    contents.add(
+      Content.text(
+        'You are a friendly AI travel assistant for VOYZ app. Help users plan trips, '
+        'discover destinations, answer travel questions, and perform actions on the app when asked. '
+        'If the user asks to navigate to a destination (e.g. "Chuyển tới Phú Quốc", "Mở Phú Quốc"), '
+        'or open an app screen (e.g. "Mở trang đã lưu", "Khám phá", "Xem bạn bè", "Lên kế hoạch"), '
+        'include an action JSON block at the end of your message in this exact format:\n'
+        '```json\n'
+        '{\n'
+        '  "action": {\n'
+        '    "type": "navigateDestination" or "navigateScreen",\n'
+        '    "target": "destination name or screen name (saved, explore, friends, planner)",\n'
+        '    "label": "Button label in Vietnamese, e.g. Mở trang Phú Quốc"\n'
+        '  }\n'
+        '}\n'
+        '```\n'
+        'Keep the reply concise, friendly, and enthusiastic. '
+        '${destinationName == null || destinationName.isEmpty ? '' : 'The user is currently viewing $destinationName; keep the answer grounded in that destination. '} '
+        '$langInst',
+      ),
+    );
+
+    for (final msg in history) {
+      if (msg.isUser) {
+        contents.add(Content.text(msg.text));
+      } else {
+        contents.add(Content('model', [TextPart(msg.text)]));
+      }
+    }
+
+    contents.add(Content.text(message));
+
+    final chatModel = _createModel(
+      generationConfig: GenerationConfig(
+        responseMimeType: 'text/plain',
+        temperature: 0.7,
+        maxOutputTokens: 3072,
+      ),
+    );
+
+    final response = await chatModel.generateContent(contents);
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('noAiResponse');
+    }
+    return parseChatActionResponse(text);
   }
 
   // ── Compare Destinations ──────────────────────────────────────────────────

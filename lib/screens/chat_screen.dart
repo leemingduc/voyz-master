@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
+import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
+import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -173,7 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final response = await GeminiService.instance.chat(
+      final result = await GeminiService.instance.chatWithActions(
         text,
         // The current user message was just appended above; pass only prior
         // messages so it is not duplicated in the prompt.
@@ -183,12 +185,21 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (mounted) {
+        final aiMsg = ChatMessage.ai(result.reply, action: result.action);
         setState(() {
-          _messages.add(ChatMessage.ai(response));
+          _messages.add(aiMsg);
           _isSending = false;
         });
         unawaited(_persistMessages());
         _scrollToBottom();
+
+        if (result.action != null) {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted && result.action != null) {
+              _executeAiAction(result.action!);
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -200,6 +211,54 @@ class _ChatScreenState extends State<ChatScreen> {
         unawaited(_persistMessages());
         _scrollToBottom();
       }
+    }
+  }
+
+  void _executeAiAction(AiAction action) {
+    if (!mounted) return;
+    switch (action.type) {
+      case AiActionType.navigateDestination:
+        if (action.target.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DestinationDetailScreen(destinationName: action.target),
+            ),
+          );
+        }
+        break;
+      case AiActionType.navigateScreen:
+        final target = action.target.toLowerCase();
+        if (target.contains('saved') || target.contains('lưu')) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const SavedScreen()),
+            (route) => false,
+          );
+        } else if (target.contains('explore') || target.contains('khám phá')) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const ExploreScreen()),
+            (route) => false,
+          );
+        } else if (target.contains('friends') || target.contains('bạn')) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const FriendsScreen()),
+            (route) => false,
+          );
+        } else if (target.contains('planner') || target.contains('kế hoạch')) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const SmartPlannerScreen()),
+            (route) => false,
+          );
+        }
+        break;
+      case AiActionType.setTripData:
+        if (action.target.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DestinationDetailScreen(destinationName: action.target),
+            ),
+          );
+        }
+        break;
     }
   }
 
@@ -273,7 +332,10 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final message = _messages[index];
-                return _ChatBubble(message: message);
+                return _ChatBubble(
+                  message: message,
+                  onActionPressed: _executeAiAction,
+                );
               },
             ),
           ),
@@ -471,13 +533,15 @@ class _ChatConversationSheet extends StatelessWidget {
 }
 
 class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message});
+  const _ChatBubble({required this.message, this.onActionPressed});
 
   final ChatMessage message;
+  final ValueChanged<AiAction>? onActionPressed;
 
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
+    final action = message.action;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -503,32 +567,75 @@ class _ChatBubble extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? AppTheme.primaryPink.withValues(alpha: 0.2)
-                    : AppTheme.surfaceDark,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isUser ? 16 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 16),
+            child: Column(
+              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? AppTheme.primaryPink.withValues(alpha: 0.2)
+                        : AppTheme.surfaceDark,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isUser ? 16 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                    ),
+                    border: Border.all(
+                      color: isUser
+                          ? AppTheme.primaryPink.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Text(
+                    message.text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
                 ),
-                border: Border.all(
-                  color: isUser
-                      ? AppTheme.primaryPink.withValues(alpha: 0.3)
-                      : Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
+                if (action != null) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () => onActionPressed?.call(action),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.brandGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.cyan.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.rocket_launch, color: Colors.white, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            action.label.isNotEmpty ? action.label : 'Thực hiện ngay',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right, color: Colors.white, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           if (isUser) ...[
