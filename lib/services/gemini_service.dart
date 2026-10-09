@@ -305,7 +305,8 @@ Quy tắc:
 - "numDays": số ngày của phương án, khớp với độ dài chuyến người dùng muốn.
 - "stops": 3 đến 5 địa danh có tên riêng, theo thứ tự đi. Không dùng tên chung như "bãi biển", "chợ đêm", "nhà hàng hải sản".
 - "imageStop": địa danh tiêu biểu nhất cho chủ đề (một trong các "stops"), nhưng LUÔN viết bằng tên gốc tiếng địa phương có dấu đúng như tên bài Wikipedia (ví dụ "Nhà tù Côn Đảo", "Hòn Bảy Cạnh"), không dịch, dù các trường khác viết bằng ngôn ngữ nào. 3 phương án phải có "imageStop" khác nhau.
-- "price": chi phí ước tính thực tế cho 1 người cả chuyến, ghi kèm mã tiền tệ (ví dụ "~6.5M VND").
+- "price": dự toán cho 1 người cả chuyến, ghi kèm mã tiền tệ (ví dụ "~6.5M VND"); không phải giá đặt chỗ.
+- "price" chỉ là chi phí tại điểm đến cho một người: lưu trú, ăn uống và vui chơi. Không tính máy bay, xe khách, tàu hoặc chi phí di chuyển từ nơi xuất phát. Điều chỉnh theo số ngày, mức sinh hoạt địa phương và budgetTier.
 - "aiInsight": 1 câu vì sao phương án này hợp với người dùng.
 - Người dùng muốn chỉnh ("rẻ hơn", "thêm lặn biển") thì đưa bộ 3 phương án mới theo yêu cầu.
 - "budgetTier" và "interests" luôn viết bằng tiếng Anh theo đúng giá trị cho phép, không dịch. "imageStop" giữ tên gốc tiếng địa phương như quy tắc trên.
@@ -478,10 +479,10 @@ Trả về JSON array với đúng $limit phần tử, mỗi phần tử:
 }
 
 Quy tắc:
-- matchPercent thể hiện mức độ phù hợp và trending (65-99, sắp xếp giảm dần)
-- rating từ 4.2 - 4.9
-- reviewCount là ước tính số đánh giá thực tế (300 - 4500)
-- price là chi phí ước tính thực tế cho 1 người/chuyến (ghi kèm đơn vị tiền tệ)
+- Không tự tạo điểm xu hướng hoặc mức độ phù hợp: luôn trả matchPercent = 0 vì Explore chưa có nguồn xếp hạng đã xác minh.
+- price là dự toán cho 1 người/chuyến, phải ghi kèm đơn vị tiền tệ; không phải giá đặt chỗ hoặc khuyến mãi.
+- "price" chỉ là chi phí tại điểm đến cho một người: lưu trú, ăn uống và vui chơi. Không tính máy bay, xe khách, tàu hoặc chi phí di chuyển từ nơi xuất phát. Điều chỉnh theo thời lượng, mức sinh hoạt địa phương và không áp cùng mức cho các quốc gia có chi phí khác nhau.
+- Không tự tạo rating hoặc reviewCount: luôn trả rating = 0 và reviewCount = 0 vì ứng dụng chưa có nguồn đánh giá đã xác minh.
 - Phần tử đầu tiên có isTopMatch = true
 - CHỈ trả về JSON array, KHÔNG thêm markdown hay text khác
 - $langInst

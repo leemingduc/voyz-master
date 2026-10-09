@@ -1,0 +1,3 @@
+-- Marker for a migration already applied on the AIVIVU cloud project.
+-- The original SQL is unavailable in this repository; do not edit the
+-- existing cloud schema from this placeholder.

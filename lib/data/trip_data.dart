@@ -144,8 +144,6 @@ class SavedItem {
   final DateTime savedAt;
   final List<WorkspaceChecklistItem> checklist;
   final String workspaceNotes;
-  final List<String> bookingRefs;
-  final List<String> sharedWith;
 
   SavedItem({
     String? id,
@@ -160,13 +158,9 @@ class SavedItem {
     DateTime? savedAt,
     List<WorkspaceChecklistItem>? checklist,
     this.workspaceNotes = '',
-    List<String>? bookingRefs,
-    List<String>? sharedWith,
   }) : id = id ?? const Uuid().v4(),
        savedAt = savedAt ?? DateTime.now(),
-       checklist = checklist ?? _defaultChecklist(),
-       bookingRefs = bookingRefs ?? const [],
-       sharedWith = sharedWith ?? const [];
+       checklist = checklist ?? _defaultChecklist();
 
   factory SavedItem.fromMap(Map<dynamic, dynamic> map) {
     final tripMap = map['tripData'];
@@ -187,8 +181,6 @@ class SavedItem {
           .where((item) => item.text.isNotEmpty)
           .toList(),
       workspaceNotes: map['workspaceNotes']?.toString() ?? '',
-      bookingRefs: TripData.stringList(map['bookingRefs']),
-      sharedWith: TripData.stringList(map['sharedWith']),
     );
   }
 
@@ -204,8 +196,6 @@ class SavedItem {
     DateTime? savedAt,
     List<WorkspaceChecklistItem>? checklist,
     String? workspaceNotes,
-    List<String>? bookingRefs,
-    List<String>? sharedWith,
   }) {
     return SavedItem(
       id: id,
@@ -220,8 +210,6 @@ class SavedItem {
       savedAt: savedAt ?? this.savedAt,
       checklist: checklist ?? this.checklist,
       workspaceNotes: workspaceNotes ?? this.workspaceNotes,
-      bookingRefs: bookingRefs ?? this.bookingRefs,
-      sharedWith: sharedWith ?? this.sharedWith,
     );
   }
 
@@ -238,8 +226,6 @@ class SavedItem {
     'savedAt': savedAt.toIso8601String(),
     'checklist': checklist.map((item) => item.toMap()).toList(),
     'workspaceNotes': workspaceNotes,
-    'bookingRefs': bookingRefs,
-    'sharedWith': sharedWith,
   };
 
   static List<WorkspaceChecklistItem> _defaultChecklist() => const [
