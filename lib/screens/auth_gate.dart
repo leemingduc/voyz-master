@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/screens/auth_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/splash_screen.dart';
+import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/services/friend_message_notification_service.dart';
 
@@ -41,9 +42,13 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _syncFriendMessageNotifications() async {
     if (SupabaseService.instance.auth.currentSession == null) {
+      FriendMessageNotificationSettings.instance.clearUser();
       await FriendMessageNotificationService.instance.stop();
       return;
     }
+    final userId = SupabaseService.instance.auth.currentUser?.id;
+    if (userId == null) return;
+    await FriendMessageNotificationSettings.instance.loadForUser(userId);
     await FriendMessageNotificationService.instance.start();
   }
 

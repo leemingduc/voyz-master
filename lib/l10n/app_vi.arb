@@ -244,6 +244,7 @@
   "plannerSend": "Gửi",
   "newPlannerChat": "Cuộc trò chuyện mới",
   "plannerConversationHistory": "Lịch sử hội thoại",
+  "plannerSuggestionHistory": "Lịch sử gợi ý",
   "noPlannerConversations": "Chưa có hội thoại đã lưu",
   "messagesLabel": "tin nhắn",
   "deletePlannerConversation": "Xóa hội thoại",

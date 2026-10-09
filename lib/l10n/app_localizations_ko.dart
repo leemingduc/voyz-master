@@ -699,6 +699,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get plannerConversationHistory => '대화 기록';
 
   @override
+  String get plannerSuggestionHistory => '추천 기록';
+
+  @override
   String get noPlannerConversations => '저장된 대화가 아직 없습니다';
 
   @override

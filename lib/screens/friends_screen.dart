@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:voyz/data/friend_message_visibility_store.dart';
 import 'package:voyz/models/chat_theme_model.dart';
 import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/screens/chat_theme_screen.dart';
@@ -35,6 +37,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   bool _isLoading = true;
   bool _isSearching = false;
   String? _error;
+  _FriendsListTab _selectedTab = _FriendsListTab.friends;
 
   @override
   void initState() {
@@ -110,6 +113,47 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }
   }
 
+  Future<void> _removeFriend(Friendship friendship) async {
+    final friend = friendship.friend;
+    final name = friend.displayName.isEmpty ? friend.email : friend.displayName;
+    final shouldRemove = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1B2E),
+        title: const Text('Xóa bạn bè?', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Bạn sẽ xóa $name khỏi danh sách bạn bè. Cuộc trò chuyện của hai người cũng sẽ bị xóa.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Xóa bạn'),
+          ),
+        ],
+      ),
+    );
+    if (shouldRemove != true || !mounted) return;
+
+    try {
+      await FriendsService.instance.removeFriend(friendship.id);
+      await FriendMessageNotificationService.instance.refresh();
+      if (!mounted) return;
+      _showMessage('Đã xóa $name khỏi danh sách bạn bè');
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString(), isError: true);
+    }
+  }
+
   void _openChat(Friendship friendship) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -157,111 +201,240 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: FriendMessageNotificationSettings.instance.enabled,
-      builder: (context, notificationsEnabled, _) =>
-          ValueListenableBuilder<Map<String, int>>(
-            valueListenable:
-                FriendMessageNotificationService.instance.unreadByFriendship,
-            builder: (context, unreadByFriendship, _) {
-              final accepted = _friendships
-                  .where((f) => f.status == 'accepted')
-                  .toList();
-              final pending = _friendships
-                  .where((f) => f.status == 'pending')
-                  .toList();
+    return ValueListenableBuilder<Map<String, int>>(
+      valueListenable:
+          FriendMessageNotificationService.instance.unreadByFriendship,
+      builder: (context, unreadByFriendship, _) {
+        final accepted = _friendships
+            .where((f) => f.status == 'accepted')
+            .toList();
+        final pending = _friendships
+            .where((f) => f.status == 'pending')
+            .toList();
+        final friendUserIds = accepted
+            .map((friendship) => friendship.friend.userId)
+            .where((userId) => userId.isNotEmpty)
+            .toSet();
 
-              return Scaffold(
-                bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
-                body: Container(
-                  decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.topRight,
-                      radius: 1.4,
-                      colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
-                    ),
-                  ),
-                  child: SafeArea(
-                    child: Column(
-                      children: [
-                        _Header(onRefresh: _load),
-                        Expanded(
-                          child: _isLoading
-                              ? const AivivuLoadingIndicator(size: 80)
-                              : _error != null
-                              ? _ErrorState(error: _error!, onRetry: _load)
-                              : ListView(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    18,
-                                    12,
-                                    18,
-                                    32,
+        return Scaffold(
+          bottomSheet: BottomNavBar(currentIndex: 3, onTap: _onNavTap),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topRight,
+                radius: 1.4,
+                colors: [AppTheme.surfaceDark, AppTheme.backgroundDark],
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _Header(onRefresh: _load),
+                  Expanded(
+                    child: _isLoading
+                        ? const AivivuLoadingIndicator(size: 80)
+                        : _error != null
+                        ? _ErrorState(error: _error!, onRetry: _load)
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+                            children: [
+                              _SearchPanel(
+                                controller: _searchController,
+                                isSearching: _isSearching,
+                                results: _searchResults,
+                                friendUserIds: friendUserIds,
+                                onSearch: _search,
+                                onSendRequest: _sendRequest,
+                              ),
+                              const SizedBox(height: 18),
+                              _FriendsListTabs(
+                                selectedTab: _selectedTab,
+                                friendsCount: accepted.length,
+                                requestsCount: pending.length,
+                                onChanged: (tab) {
+                                  setState(() => _selectedTab = tab);
+                                },
+                              ),
+                              const SizedBox(height: 10),
+                              if (_selectedTab == _FriendsListTab.friends)
+                                if (accepted.isEmpty)
+                                  const _EmptyPanel(
+                                    icon: Icons.people_outline,
+                                    title: 'No friends yet',
+                                    subtitle:
+                                        'Search by email or display name to add someone.',
+                                  )
+                                else
+                                  ...accepted.map(
+                                    (friendship) => _FriendTile(
+                                      friendship: friendship,
+                                      onTap: () => _openChat(friendship),
+                                      onRemove: () => _removeFriend(friendship),
+                                      unreadCount:
+                                          unreadByFriendship[friendship.id] ??
+                                          0,
+                                    ),
+                                  )
+                              else if (pending.isEmpty)
+                                const _EmptyPanel(
+                                  icon: Icons.inbox_outlined,
+                                  title: 'No pending requests',
+                                  subtitle:
+                                      'Incoming and outgoing requests appear here.',
+                                )
+                              else
+                                ...pending.map(
+                                  (friendship) => _RequestTile(
+                                    friendship: friendship,
+                                    onAccept: () => _accept(friendship),
                                   ),
-                                  children: [
-                                    _SearchPanel(
-                                      controller: _searchController,
-                                      isSearching: _isSearching,
-                                      results: _searchResults,
-                                      onSearch: _search,
-                                      onSendRequest: _sendRequest,
-                                    ),
-                                    const SizedBox(height: 18),
-                                    _SectionTitle(
-                                      icon: Icons.people_alt_outlined,
-                                      title: 'Friends',
-                                      count: accepted.length,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    if (accepted.isEmpty)
-                                      const _EmptyPanel(
-                                        icon: Icons.people_outline,
-                                        title: 'No friends yet',
-                                        subtitle:
-                                            'Search by email or display name to add someone.',
-                                      )
-                                    else
-                                      ...accepted.map(
-                                        (friendship) => _FriendTile(
-                                          friendship: friendship,
-                                          onTap: () => _openChat(friendship),
-                                          unreadCount: notificationsEnabled
-                                              ? unreadByFriendship[friendship
-                                                        .id] ??
-                                                    0
-                                              : 0,
-                                        ),
-                                      ),
-                                    const SizedBox(height: 18),
-                                    _SectionTitle(
-                                      icon: Icons.mark_email_unread_outlined,
-                                      title: 'Requests',
-                                      count: pending.length,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    if (pending.isEmpty)
-                                      const _EmptyPanel(
-                                        icon: Icons.inbox_outlined,
-                                        title: 'No pending requests',
-                                        subtitle:
-                                            'Incoming and outgoing requests appear here.',
-                                      )
-                                    else
-                                      ...pending.map(
-                                        (friendship) => _RequestTile(
-                                          friendship: friendship,
-                                          onAccept: () => _accept(friendship),
-                                        ),
-                                      ),
-                                  ],
                                 ),
-                        ),
-                      ],
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+enum _FriendsListTab { friends, requests }
+
+class _FriendsListTabs extends StatelessWidget {
+  const _FriendsListTabs({
+    required this.selectedTab,
+    required this.friendsCount,
+    required this.requestsCount,
+    required this.onChanged,
+  });
+
+  final _FriendsListTab selectedTab;
+  final int friendsCount;
+  final int requestsCount;
+  final ValueChanged<_FriendsListTab> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FriendsTabButton(
+              label: 'Friends',
+              icon: Icons.people_alt_outlined,
+              count: friendsCount,
+              isSelected: selectedTab == _FriendsListTab.friends,
+              onTap: () => onChanged(_FriendsListTab.friends),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _FriendsTabButton(
+              label: 'Requests',
+              icon: Icons.mark_email_unread_outlined,
+              count: requestsCount,
+              isSelected: selectedTab == _FriendsListTab.requests,
+              onTap: () => onChanged(_FriendsListTab.requests),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FriendsTabButton extends StatelessWidget {
+  const _FriendsTabButton({
+    required this.label,
+    required this.icon,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foregroundColor = isSelected ? Colors.white : Colors.white70;
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: '$label, $count',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.primaryPink.withValues(alpha: 0.2)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected
+                    ? AppTheme.primaryPink.withValues(alpha: 0.7)
+                    : Colors.transparent,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: foregroundColor),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: foregroundColor,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-              );
-            },
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(
+                      alpha: isSelected ? 0.18 : 0.1,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      color: foregroundColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
     );
   }
 }
@@ -310,6 +483,7 @@ class _SearchPanel extends StatelessWidget {
     required this.controller,
     required this.isSearching,
     required this.results,
+    required this.friendUserIds,
     required this.onSearch,
     required this.onSendRequest,
   });
@@ -317,6 +491,7 @@ class _SearchPanel extends StatelessWidget {
   final TextEditingController controller;
   final bool isSearching;
   final List<SocialProfile> results;
+  final Set<String> friendUserIds;
   final VoidCallback onSearch;
   final ValueChanged<SocialProfile> onSendRequest;
 
@@ -413,14 +588,16 @@ class _SearchPanel extends StatelessWidget {
                   profile.email,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                 ),
-                trailing: IconButton(
-                  tooltip: 'Add friend',
-                  onPressed: () => onSendRequest(profile),
-                  icon: const Icon(
-                    Icons.person_add_alt_1,
-                    color: AppTheme.primaryPink,
-                  ),
-                ),
+                trailing: friendUserIds.contains(profile.userId)
+                    ? const _FriendStatusBadge()
+                    : IconButton(
+                        tooltip: 'Add friend',
+                        onPressed: () => onSendRequest(profile),
+                        icon: const Icon(
+                          Icons.person_add_alt_1,
+                          color: AppTheme.primaryPink,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -430,15 +607,44 @@ class _SearchPanel extends StatelessWidget {
   }
 }
 
+class _FriendStatusBadge extends StatelessWidget {
+  const _FriendStatusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Đã là bạn bè',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppTheme.cyan.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.cyan.withValues(alpha: 0.45)),
+        ),
+        child: const Text(
+          'Đã là bạn bè',
+          style: TextStyle(
+            color: AppTheme.cyan,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FriendTile extends StatelessWidget {
   const _FriendTile({
     required this.friendship,
     required this.onTap,
+    required this.onRemove,
     required this.unreadCount,
   });
 
   final Friendship friendship;
   final VoidCallback onTap;
+  final VoidCallback onRemove;
   final int unreadCount;
 
   @override
@@ -460,16 +666,29 @@ class _FriendTile extends StatelessWidget {
           friend.email,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
         ),
-        trailing: Stack(
-          clipBehavior: Clip.none,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.chat_bubble_outline, color: Colors.white70),
-            if (unreadCount > 0)
-              Positioned(
-                top: -8,
-                right: -10,
-                child: _UnreadBadge(count: unreadCount),
+            IconButton(
+              tooltip: 'Xóa bạn bè',
+              onPressed: onRemove,
+              icon: const Icon(
+                Icons.person_remove_outlined,
+                color: Colors.white70,
               ),
+            ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.chat_bubble_outline, color: Colors.white70),
+                if (unreadCount > 0)
+                  Positioned(
+                    top: -8,
+                    right: -10,
+                    child: _UnreadBadge(count: unreadCount),
+                  ),
+              ],
+            ),
           ],
         ),
         onTap: onTap,
@@ -555,10 +774,14 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   final _scrollController = ScrollController();
   List<FriendMessage> _messages = [];
   StreamSubscription<List<FriendMessage>>? _streamSub;
+  StreamSubscription<FriendChatTheme?>? _themeStreamSub;
+  RealtimeChannel? _themeBroadcastChannel;
   bool _isSending = false;
   bool _showEmojiPicker = false;
   // IDs of locally recalled messages — guards against stream restoring deleted rows
   final Set<String> _recalledIds = {};
+  final Set<String> _hiddenMessageIds = {};
+  DateTime? _clearedAt;
   // Active chat theme
   ChatThemePreset _chatTheme = kChatThemes.first;
 
@@ -581,14 +804,116 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     FriendMessageNotificationService.instance.openConversation(
       widget.friendship.id,
     );
-    _initRealtimeMessages();
+    _initializeMessages();
     _loadTheme();
   }
 
+  Future<void> _initializeMessages() async {
+    final userId = FriendsService.instance.currentUserId;
+    try {
+      final results = await Future.wait<Object?>([
+        FriendMessageVisibilityStore.hiddenMessageIdsForUser(userId),
+        FriendMessageVisibilityStore.clearedAtForUser(
+          userId: userId,
+          friendshipId: widget.friendship.id,
+        ),
+      ]);
+      if (!mounted) return;
+      _hiddenMessageIds.addAll(results[0]! as Set<String>);
+      _clearedAt = results[1] as DateTime?;
+    } catch (error) {
+      debugPrint('Friend message visibility setup error: $error');
+    }
+
+    try {
+      final remoteClearedAt = await FriendsService.instance
+          .conversationClearedAtForCurrentUser(widget.friendship.id);
+      if (mounted &&
+          remoteClearedAt != null &&
+          (_clearedAt == null || remoteClearedAt.isAfter(_clearedAt!))) {
+        _clearedAt = remoteClearedAt;
+        await FriendMessageVisibilityStore.clearConversationForUser(
+          userId: userId,
+          friendshipId: widget.friendship.id,
+          clearedAt: remoteClearedAt,
+        );
+      }
+    } catch (error) {
+      // Keep the on-device value as a fallback when the migration has not
+      // been applied yet or the device is temporarily offline.
+      debugPrint('Friend conversation clear sync error: $error');
+    }
+    if (mounted) _initRealtimeMessages();
+  }
+
   Future<void> _loadTheme() async {
-    final id = await ChatThemeStore.load(widget.friendship.id);
+    String? id;
+    try {
+      id = (await FriendsService.instance.getChatTheme(
+        widget.friendship.id,
+      ))?.themeId;
+    } catch (error) {
+      debugPrint('Friend chat theme load error: $error');
+    }
+    id ??= await ChatThemeStore.load(widget.friendship.id);
     if (!mounted) return;
     setState(() => _chatTheme = ChatThemeStore.resolve(id));
+    _listenToChatTheme();
+    _listenToChatThemeBroadcast();
+  }
+
+  void _listenToChatTheme() {
+    try {
+      _themeStreamSub = FriendsService.instance
+          .streamChatTheme(widget.friendship.id)
+          .listen(
+            (change) {
+              if (!mounted || change == null) return;
+              final theme = ChatThemeStore.resolve(change.themeId);
+              if (_chatTheme.id != theme.id) {
+                setState(() => _chatTheme = theme);
+              }
+              ChatThemeStore.save(widget.friendship.id, theme.id);
+            },
+            onError: (error) {
+              debugPrint('Friend chat theme stream error: $error');
+            },
+          );
+    } catch (error) {
+      debugPrint('Friend chat theme stream setup error: $error');
+    }
+  }
+
+  void _listenToChatThemeBroadcast() {
+    try {
+      _themeBroadcastChannel = FriendsService.instance
+          .subscribeToChatThemeBroadcast(
+            friendshipId: widget.friendship.id,
+            onThemeChanged: (payload) {
+              if (!mounted) return;
+              final themeId = payload['theme_id']?.toString();
+              final changedBy = payload['changed_by_user_id']?.toString();
+              if (themeId == null || changedBy == null) return;
+              _applyIncomingChatTheme(
+                themeId: themeId,
+                changedByUserId: changedBy,
+              );
+            },
+          );
+    } catch (error) {
+      debugPrint('Friend chat theme broadcast setup error: $error');
+    }
+  }
+
+  void _applyIncomingChatTheme({
+    required String themeId,
+    required String changedByUserId,
+  }) {
+    if (changedByUserId == FriendsService.instance.currentUserId) return;
+    final theme = ChatThemeStore.resolve(themeId);
+    if (_chatTheme.id == theme.id) return;
+    setState(() => _chatTheme = theme);
+    ChatThemeStore.save(widget.friendship.id, theme.id);
   }
 
   Future<void> _openThemePicker() async {
@@ -597,9 +922,31 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         builder: (_) => ChatThemeScreen(
           currentThemeId: _chatTheme.id,
           onThemeSelected: (theme) async {
-            await ChatThemeStore.save(widget.friendship.id, theme.id);
-            if (!mounted) return;
-            setState(() => _chatTheme = theme);
+            if (theme.id == _chatTheme.id) return;
+            try {
+              await FriendsService.instance.changeChatTheme(
+                friendshipId: widget.friendship.id,
+                themeId: theme.id,
+                themeName: theme.name,
+              );
+              final broadcastChannel = _themeBroadcastChannel;
+              if (broadcastChannel != null) {
+                try {
+                  await FriendsService.instance.broadcastChatThemeChange(
+                    channel: broadcastChannel,
+                    themeId: theme.id,
+                    changedByUserId: FriendsService.instance.currentUserId,
+                  );
+                } catch (error) {
+                  debugPrint('Friend chat theme broadcast error: $error');
+                }
+              }
+              await ChatThemeStore.save(widget.friendship.id, theme.id);
+              if (!mounted) return;
+              setState(() => _chatTheme = theme);
+            } catch (error) {
+              if (mounted) _showMessage(error.toString(), isError: true);
+            }
           },
         ),
       ),
@@ -615,10 +962,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
             (messages) {
               if (!mounted) return;
               // Filter out any messages recalled locally to prevent stream from restoring them
-              final filtered = messages
-                  .where((m) => !_recalledIds.contains(m.id))
-                  .toList();
+              final filtered = messages.where(_isVisibleMessage).toList();
               setState(() => _messages = filtered);
+              FriendMessageNotificationService.instance.markRead(
+                widget.friendship.id,
+              );
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => _scrollToBottom(),
               );
@@ -638,6 +986,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       widget.friendship.id,
     );
     _streamSub?.cancel();
+    _themeStreamSub?.cancel();
+    final broadcastChannel = _themeBroadcastChannel;
+    if (broadcastChannel != null) {
+      FriendsService.instance.closeRealtimeChannel(broadcastChannel);
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -650,10 +1003,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       );
       if (!mounted) return;
       // Filter out any locally recalled messages (guards against server race conditions)
-      final filtered = messages
-          .where((m) => !_recalledIds.contains(m.id))
-          .toList();
+      final filtered = messages.where(_isVisibleMessage).toList();
       setState(() => _messages = filtered);
+      FriendMessageNotificationService.instance.markRead(widget.friendship.id);
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (error) {
       if (!silent && mounted) {
@@ -665,6 +1017,13 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         );
       }
     }
+  }
+
+  bool _isVisibleMessage(FriendMessage message) {
+    final clearedAt = _clearedAt;
+    return !_recalledIds.contains(message.id) &&
+        !_hiddenMessageIds.contains(message.id) &&
+        (clearedAt == null || message.createdAt.isAfter(clearedAt));
   }
 
   Future<void> _send([String? customText]) async {
@@ -739,7 +1098,61 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     );
   }
 
-  Future<void> _deleteMessage(FriendMessage message) async {
+  Future<void> _deleteForMe(FriendMessage message) async {
+    setState(() {
+      _hiddenMessageIds.add(message.id);
+      _messages.removeWhere((item) => item.id == message.id);
+    });
+    try {
+      await FriendMessageVisibilityStore.hideForUser(
+        userId: FriendsService.instance.currentUserId,
+        messageId: message.id,
+      );
+      if (mounted) _showMessage('Đã xóa tin nhắn ở phía bạn');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _hiddenMessageIds.remove(message.id));
+      await _loadMessages(silent: true);
+      _showMessage(error.toString(), isError: true);
+    }
+  }
+
+  Future<void> _clearConversationForMe() async {
+    final clearedAt = DateTime.now();
+    final previousClearedAt = _clearedAt;
+    final previousMessages = List<FriendMessage>.from(_messages);
+    setState(() {
+      _clearedAt = clearedAt;
+      _messages = [];
+    });
+    try {
+      await FriendsService.instance.clearConversationForCurrentUser(
+        friendshipId: widget.friendship.id,
+        clearedAt: clearedAt,
+      );
+    } catch (error) {
+      // The local marker still keeps this device consistent while a later
+      // session can retry syncing to Supabase.
+      debugPrint('Friend conversation clear save error: $error');
+    }
+    try {
+      await FriendMessageVisibilityStore.clearConversationForUser(
+        userId: FriendsService.instance.currentUserId,
+        friendshipId: widget.friendship.id,
+        clearedAt: clearedAt,
+      );
+      if (mounted) _showMessage('Đã xóa cuộc trò chuyện ở phía bạn');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _clearedAt = previousClearedAt;
+        _messages = previousMessages;
+      });
+      _showMessage(error.toString(), isError: true);
+    }
+  }
+
+  Future<void> _recallForEveryone(FriendMessage message) async {
     // Optimistic update: hide immediately in UI
     setState(() {
       _recalledIds.add(message.id);
@@ -748,12 +1161,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     try {
       await FriendsService.instance.deleteMessage(message.id);
       if (!mounted) return;
-      _showMessage('Đã thu hồi tin nhắn');
-      // Reinitialize the realtime stream so its internal buffer re-fetches
-      // from the server and does not re-surface the deleted message.
-      await _streamSub?.cancel();
-      _streamSub = null;
-      _initRealtimeMessages();
+      _showMessage('Đã thu hồi tin nhắn cho cả hai bên');
     } catch (error) {
       if (!mounted) return;
       // Revert optimistic update on failure — message was not deleted on server
@@ -799,16 +1207,39 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
               if (isMine)
                 ListTile(
                   leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.white70,
+                  ),
+                  title: const Text(
+                    'Xóa ở phía bạn',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  subtitle: const Text(
+                    'Tin nhắn vẫn hiển thị với bạn bè',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteForMe(message);
+                  },
+                ),
+              if (isMine)
+                ListTile(
+                  leading: const Icon(
                     Icons.undo_rounded,
                     color: Colors.redAccent,
                   ),
                   title: const Text(
-                    'Thu hồi tin nhắn',
+                    'Thu hồi cho cả hai bên',
                     style: TextStyle(color: Colors.redAccent),
+                  ),
+                  subtitle: const Text(
+                    'Tin nhắn sẽ biến mất với cả hai người',
+                    style: TextStyle(color: Colors.white54),
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    _deleteMessage(message);
+                    _recallForEveryone(message);
                   },
                 ),
               const SizedBox(height: 8),
@@ -856,10 +1287,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
               children: [
                 _FriendChatHeaderBar(
                   friend: friend,
+                  friendshipId: widget.friendship.id,
                   accentColor: _chatTheme.accentColor,
-                  onClearChat: () {
-                    setState(() => _messages = []);
-                  },
+                  onClearChat: _clearConversationForMe,
                   onChangeTheme: _openThemePicker,
                 ),
                 Expanded(
@@ -880,6 +1310,16 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                           itemBuilder: (context, index) {
                             final message = _messages[index];
                             final isMine = message.senderId == currentId;
+                            final isLastMessageFromMe =
+                                isMine &&
+                                !message.isSystem &&
+                                !_messages
+                                    .skip(index + 1)
+                                    .any(
+                                      (item) =>
+                                          !item.isSystem &&
+                                          item.senderId == currentId,
+                                    );
                             final showDateHeader =
                                 index == 0 ||
                                 !_isSameDay(
@@ -893,21 +1333,32 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                                   _DateChip(
                                     label: _formatDateHeader(message.createdAt),
                                   ),
-                                _ChatMessageBubble(
-                                  message: message,
-                                  isMine: isMine,
-                                  friend: friend,
-                                  timeString: _formatTime(message.createdAt),
-                                  myBubbleGradient: _chatTheme.myBubbleGradient,
-                                  myBubbleTextColor:
-                                      _chatTheme.myBubbleTextColor,
-                                  theirBubbleColor: _chatTheme.theirBubbleColor,
-                                  theirBubbleTextColor:
-                                      _chatTheme.theirBubbleTextColor,
-                                  accentColor: _chatTheme.accentColor,
-                                  onLongPress: () =>
-                                      _showOptionsSheet(message, isMine),
-                                ),
+                                if (message.isSystem)
+                                  _SystemChatEvent(
+                                    message: message,
+                                    accentColor: _chatTheme.accentColor,
+                                  )
+                                else
+                                  _ChatMessageBubble(
+                                    message: message,
+                                    isMine: isMine,
+                                    showDeliveryStatus:
+                                        isLastMessageFromMe &&
+                                        message.isDelivered,
+                                    friend: friend,
+                                    timeString: _formatTime(message.createdAt),
+                                    myBubbleGradient:
+                                        _chatTheme.myBubbleGradient,
+                                    myBubbleTextColor:
+                                        _chatTheme.myBubbleTextColor,
+                                    theirBubbleColor:
+                                        _chatTheme.theirBubbleColor,
+                                    theirBubbleTextColor:
+                                        _chatTheme.theirBubbleTextColor,
+                                    accentColor: _chatTheme.accentColor,
+                                    onLongPress: () =>
+                                        _showOptionsSheet(message, isMine),
+                                  ),
                               ],
                             );
                           },
@@ -968,10 +1419,56 @@ class _DateChip extends StatelessWidget {
   }
 }
 
+/// A persistent conversation event. Unlike a snackbar, this is stored with the
+/// messages and is therefore visible to both participants on every device.
+class _SystemChatEvent extends StatelessWidget {
+  const _SystemChatEvent({required this.message, required this.accentColor});
+
+  final FriendMessage message;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 340),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: accentColor.withValues(alpha: 0.32)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.palette_outlined, size: 15, color: accentColor),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  message.body,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChatMessageBubble extends StatelessWidget {
   const _ChatMessageBubble({
     required this.message,
     required this.isMine,
+    required this.showDeliveryStatus,
     required this.friend,
     required this.timeString,
     required this.myBubbleGradient,
@@ -984,6 +1481,7 @@ class _ChatMessageBubble extends StatelessWidget {
 
   final FriendMessage message;
   final bool isMine;
+  final bool showDeliveryStatus;
   final SocialProfile friend;
   final String timeString;
   final Gradient myBubbleGradient;
@@ -992,6 +1490,11 @@ class _ChatMessageBubble extends StatelessWidget {
   final Color theirBubbleTextColor;
   final Color accentColor;
   final VoidCallback? onLongPress;
+
+  String get _deliveryStatusLabel => message.isRead ? 'Đã xem' : 'Đã nhận';
+
+  Color get _deliveryStatusColor =>
+      message.isRead ? AppTheme.cyan : Colors.white.withValues(alpha: 0.65);
 
   bool get _isDestinationShare => message.body.contains('📍 [Địa điểm]');
 
@@ -1145,12 +1648,40 @@ class _ChatMessageBubble extends StatelessWidget {
                           const SizedBox(height: 4),
                           Align(
                             alignment: Alignment.centerRight,
-                            child: Text(
-                              timeString,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 10,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  timeString,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                if (isMine) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    message.isDelivered
+                                        ? Icons.done_all_rounded
+                                        : Icons.done_rounded,
+                                    size: 13,
+                                    color: message.isRead
+                                        ? AppTheme.cyan
+                                        : Colors.white.withValues(alpha: 0.45),
+                                  ),
+                                  if (showDeliveryStatus) ...[
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      _deliveryStatusLabel,
+                                      style: TextStyle(
+                                        color: _deliveryStatusColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -1242,10 +1773,25 @@ class _ChatMessageBubble extends StatelessWidget {
                         if (isMine) ...[
                           const SizedBox(width: 4),
                           Icon(
-                            Icons.done_all,
+                            message.isDelivered
+                                ? Icons.done_all_rounded
+                                : Icons.done_rounded,
                             size: 14,
-                            color: myBubbleTextColor.withValues(alpha: 0.7),
+                            color: message.isRead
+                                ? AppTheme.cyan
+                                : myBubbleTextColor.withValues(alpha: 0.7),
                           ),
+                          if (showDeliveryStatus) ...[
+                            const SizedBox(width: 3),
+                            Text(
+                              _deliveryStatusLabel,
+                              style: TextStyle(
+                                color: _deliveryStatusColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -1558,41 +2104,6 @@ class _ChatInputDock extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.icon,
-    required this.title,
-    required this.count,
-  });
-
-  final IconData icon;
-  final String title;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppTheme.primaryPink, size: 18),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$count',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
-        ),
-      ],
-    );
-  }
-}
-
 class _Panel extends StatelessWidget {
   const _Panel({required this.child, this.margin});
 
@@ -1704,12 +2215,14 @@ class _ErrorState extends StatelessWidget {
 class _FriendChatHeaderBar extends StatelessWidget {
   const _FriendChatHeaderBar({
     required this.friend,
+    required this.friendshipId,
     required this.accentColor,
     this.onClearChat,
     this.onChangeTheme,
   });
 
   final SocialProfile friend;
+  final String friendshipId;
   final Color accentColor;
   final VoidCallback? onClearChat;
   final VoidCallback? onChangeTheme;
@@ -1817,6 +2330,42 @@ class _FriendChatHeaderBar extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                enabled: false,
+                height: 58,
+                child: ValueListenableBuilder<Set<String>>(
+                  valueListenable: FriendMessageNotificationSettings
+                      .instance
+                      .mutedFriendshipIds,
+                  builder: (context, mutedFriendshipIds, _) {
+                    final isEnabled = !mutedFriendshipIds.contains(
+                      friendshipId,
+                    );
+                    return SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      value: isEnabled,
+                      activeTrackColor: AppTheme.cyan,
+                      onChanged: (value) {
+                        FriendMessageNotificationSettings.instance.setEnabled(
+                          friendshipId,
+                          value,
+                        );
+                      },
+                      secondary: Icon(
+                        isEnabled
+                            ? Icons.notifications_active_outlined
+                            : Icons.notifications_off_outlined,
+                        color: isEnabled ? accentColor : Colors.white54,
+                      ),
+                      title: const Text(
+                        'Thông báo tin nhắn',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const PopupMenuDivider(),
               PopupMenuItem(
                 value: 'theme',
                 child: Row(
@@ -1837,7 +2386,7 @@ class _FriendChatHeaderBar extends StatelessWidget {
                     Icon(Icons.delete_outline, size: 20, color: Colors.white70),
                     SizedBox(width: 10),
                     Text(
-                      'Clear chat view',
+                      'Xóa toàn bộ cuộc trò chuyện',
                       style: TextStyle(color: Colors.white),
                     ),
                   ],
@@ -1881,6 +2430,8 @@ class WallpaperPainter extends CustomPainter {
         _drawHearts(canvas, size, paint);
       case ChatWallpaper.travel:
         _drawPlanes(canvas, size, paint);
+      case ChatWallpaper.tread:
+        _drawTread(canvas, size, paint);
       case ChatWallpaper.none:
         break;
     }
@@ -1979,6 +2530,28 @@ class WallpaperPainter extends CustomPainter {
       final y = rng.next(i * 8) * size.height;
       final s = rng.next(i) * 10 + 6;
       _drawPlane(canvas, Offset(x, y), s, p);
+    }
+  }
+
+  void _drawTread(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    const step = 42.0;
+    for (var y = -step; y <= size.height + step; y += step) {
+      for (var x = -step; x <= size.width + step; x += step) {
+        final path = Path()
+          ..moveTo(x, y + step * 0.2)
+          ..lineTo(x + step * 0.5, y + step * 0.5)
+          ..lineTo(x, y + step * 0.8);
+        canvas.drawPath(path, stroke);
+        final mirrored = Path()
+          ..moveTo(x + step, y + step * 0.2)
+          ..lineTo(x + step * 0.5, y + step * 0.5)
+          ..lineTo(x + step, y + step * 0.8);
+        canvas.drawPath(mirrored, stroke);
+      }
     }
   }
 

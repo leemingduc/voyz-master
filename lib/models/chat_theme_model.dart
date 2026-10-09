@@ -5,15 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 // Chat Theme Model
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum ChatWallpaper {
-  none,
-  bubbles,
-  stars,
-  waves,
-  grid,
-  hearts,
-  travel,
-}
+enum ChatWallpaper { none, bubbles, stars, waves, grid, hearts, travel, tread }
 
 class ChatThemePreset {
   const ChatThemePreset({
@@ -206,6 +198,30 @@ final List<ChatThemePreset> kChatThemes = [
     wallpaper: ChatWallpaper.travel,
     accentColor: Color(0xFFF59E0B),
     previewColors: [Color(0xFFF59E0B), Color(0xFFEF4444), Color(0xFF1A0B00)],
+  ),
+
+  // 7. Road Grip (tire tread)
+  const ChatThemePreset(
+    id: 'road_grip',
+    name: 'Road Grip',
+    emoji: '🛞',
+    backgroundGradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF111318), Color(0xFF252A32), Color(0xFF08090C)],
+    ),
+    myBubbleGradient: LinearGradient(
+      colors: [Color(0xFFFF7A00), Color(0xFFFFB000)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    myBubbleTextColor: Color(0xFF17120A),
+    theirBubbleColor: Color(0xFF2D333B),
+    theirBubbleTextColor: Color(0xFFF4F4F5),
+    inputBarColor: Color(0xFF171A20),
+    wallpaper: ChatWallpaper.tread,
+    accentColor: Color(0xFFFF8A00),
+    previewColors: [Color(0xFFFF8A00), Color(0xFF2D333B), Color(0xFF08090C)],
   ),
 ];
 

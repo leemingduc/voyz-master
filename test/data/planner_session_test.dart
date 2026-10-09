@@ -55,4 +55,43 @@ void main() {
 
     expect(restored.single.text, message.text);
   });
+
+  testWidgets('restores suggestion history after the planner is recreated', (
+    tester,
+  ) async {
+    final firstProviderKey = GlobalKey<SavedTripsProviderState>();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: SavedTripsProvider(
+          key: firstProviderKey,
+          child: const SizedBox(),
+        ),
+      ),
+    );
+    await firstProviderKey.currentState!.updatePlannerMessages([
+      PlannerMessage.user('Gợi ý chuyến đi cuối tuần'),
+    ]);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+
+    final restoredProviderKey = GlobalKey<SavedTripsProviderState>();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: SavedTripsProvider(
+          key: restoredProviderKey,
+          child: const SizedBox(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(restoredProviderKey.currentState!.plannerConversations, isNotEmpty);
+    expect(
+      restoredProviderKey.currentState!.plannerMessages.single.text,
+      'Gợi ý chuyến đi cuối tuần',
+    );
+  });
 }
