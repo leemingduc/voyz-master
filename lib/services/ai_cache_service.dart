@@ -84,6 +84,9 @@ class AiCacheService {
     await _box?.put(key, entry);
   }
 
+  /// Removes one unusable response so the next request can regenerate it.
+  Future<void> remove(String key) async => _box?.delete(key);
+
   Future<void> clear() async => _box?.clear();
 
   String get _userId {

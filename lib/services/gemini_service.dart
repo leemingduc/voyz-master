@@ -817,9 +817,15 @@ Quy tắc:
     if (!forceRefresh) {
       final cached = _aiCache.get(cacheKey);
       if (cached != null) {
-        final Map<String, dynamic> json =
-            safeJsonDecode(cached) as Map<String, dynamic>;
-        return ItineraryPlan.fromJson(json);
+        try {
+          final Map<String, dynamic> json =
+              safeJsonDecode(cached) as Map<String, dynamic>;
+          return ItineraryPlan.fromJson(json);
+        } catch (e) {
+          // Cache entry is corrupt or outdated — discard and re-generate.
+          debugPrint('Itinerary cache invalid, discarding: $e');
+          await _aiCache.remove(cacheKey);
+        }
       }
     }
 
@@ -884,6 +890,15 @@ Quy tắc:
         ? 'Korean'
         : 'English';
 
+    // Escape destinationName for safe embedding inside JSON example in the prompt.
+    // Without this, a name like `Hội An "phố cổ"` would break the JSON template.
+    final escapedName = destinationName
+        .replaceAll(r'\', r'\\')
+        .replaceAll('"', r'\"');
+    final escapedDateInfo = dateInfo
+        .replaceAll(r'\', r'\\')
+        .replaceAll('"', r'\"');
+
     return '''
 Bạn là chuyên gia du lịch AI. Hãy lên kế hoạch du lịch chi tiết $numDays ngày tại "$destinationName".
 
@@ -893,8 +908,8 @@ ${additionalInstruction == null || additionalInstruction.trim().isEmpty ? '' : '
 
 Trả về JSON object với cấu trúc:
 {
-  "destinationName": "$destinationName",
-  "dateRange": "$dateInfo",
+  "destinationName": "$escapedName",
+  "dateRange": "$escapedDateInfo",
   "days": [
     {
       "dayNumber": 1,
