@@ -29,6 +29,23 @@ void main() {
     expect(message.isSystem, isFalse);
   });
 
+  test('parses the quoted message attached to a reply', () {
+    final message = FriendMessage.fromMap({
+      'id': 'message-2',
+      'friendship_id': 'friendship-1',
+      'sender_id': 'user-1',
+      'body': 'Mình đồng ý!',
+      'reply_to_message_id': 'message-1',
+      'reply_to_body': 'Đi Đà Lạt cuối tuần nhé?',
+      'reply_to_sender_id': 'user-2',
+      'created_at': '2026-10-09T10:00:00.000Z',
+    });
+
+    expect(message.replyToMessageId, 'message-1');
+    expect(message.replyToBody, 'Đi Đà Lạt cuối tuần nhé?');
+    expect(message.replyToSenderId, 'user-2');
+  });
+
   group('SocialProfile presence and activity', () {
     test('parses last_active_at correctly from map', () {
       final profile = SocialProfile.fromMap({

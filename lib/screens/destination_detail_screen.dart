@@ -757,11 +757,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                               ),
                             ],
                             const SizedBox(height: 24),
-                            _WeatherCard(
-                              theme: theme,
-                              weather: d.weather,
-                              dateRange: d.dateRange,
-                            ),
+                            _WeatherCard(theme: theme, weather: d.weather),
                             const SizedBox(height: 16),
                             _BudgetCard(
                               theme: theme,
@@ -1528,14 +1524,9 @@ class _TagsRow extends StatelessWidget {
 }
 
 class _WeatherCard extends StatelessWidget {
-  const _WeatherCard({
-    required this.theme,
-    required this.weather,
-    required this.dateRange,
-  });
+  const _WeatherCard({required this.theme, required this.weather});
   final ThemeData theme;
   final String weather;
-  final String dateRange;
 
   @override
   Widget build(BuildContext context) {
@@ -1572,13 +1563,6 @@ class _WeatherCard extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
-                  ),
-                ),
-                Text(
-                  dateRange,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
                   ),
                 ),
               ],

@@ -790,6 +790,7 @@ class FriendChatScreen extends StatefulWidget {
 
 class _FriendChatScreenState extends State<FriendChatScreen> {
   final _messageController = TextEditingController();
+  final _messageFocusNode = FocusNode();
   final _scrollController = ScrollController();
   List<FriendMessage> _messages = [];
   StreamSubscription<List<FriendMessage>>? _streamSub;
@@ -802,6 +803,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   final Set<String> _hiddenMessageIds = {};
   DateTime? _clearedAt;
   String? _messageWithVisibleOptionsId;
+  FriendMessage? _replyingTo;
   // Active chat theme
   ChatThemePreset _chatTheme = kChatThemes.first;
 
@@ -1012,6 +1014,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       FriendsService.instance.closeRealtimeChannel(broadcastChannel);
     }
     _messageController.dispose();
+    _messageFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -1050,12 +1053,18 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     final textToSend = customText ?? _messageController.text;
     final body = textToSend.trim();
     if (body.isEmpty || _isSending) return;
+    final replyTo = _replyingTo;
     setState(() => _isSending = true);
     try {
-      await FriendsService.instance.sendMessage(widget.friendship.id, body);
+      await FriendsService.instance.sendMessage(
+        widget.friendship.id,
+        body,
+        replyTo: replyTo,
+      );
       if (customText == null) {
         _messageController.clear();
       }
+      if (mounted) setState(() => _replyingTo = null);
       await _loadMessages(silent: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -1125,6 +1134,20 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           : messageId;
     });
   }
+
+  void _startReply(FriendMessage message) {
+    if (message.isSystem) return;
+    setState(() {
+      _replyingTo = message;
+      _showEmojiPicker = false;
+      _messageWithVisibleOptionsId = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _messageFocusNode.requestFocus(),
+    );
+  }
+
+  void _cancelReply() => setState(() => _replyingTo = null);
 
   Future<void> _deleteForMe(FriendMessage message) async {
     setState(() {
@@ -1258,6 +1281,21 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              if (!isMine)
+                ListTile(
+                  leading: const Icon(
+                    Icons.reply_rounded,
+                    color: Colors.white70,
+                  ),
+                  title: const Text(
+                    'Tr\u1ea3 l\u1eddi',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _startReply(message);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.copy, color: Colors.white70),
                 title: const Text(
@@ -1376,6 +1414,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                           itemBuilder: (context, index) {
                             final message = _messages[index];
                             final isMine = message.senderId == currentId;
+                            final replyAuthor =
+                                message.replyToSenderId == currentId
+                                ? 'B\u1ea1n'
+                                : (friend.displayName.isEmpty
+                                      ? friend.email
+                                      : friend.displayName);
                             final isLastMessageFromMe =
                                 isMine &&
                                 !message.isSystem &&
@@ -1422,6 +1466,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                                     theirBubbleTextColor:
                                         _chatTheme.theirBubbleTextColor,
                                     accentColor: _chatTheme.accentColor,
+                                    replyAuthor: replyAuthor,
                                     showOptions:
                                         _messageWithVisibleOptionsId ==
                                         message.id,
@@ -1437,12 +1482,18 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                 ),
                 _ChatInputDock(
                   controller: _messageController,
+                  focusNode: _messageFocusNode,
                   isSending: _isSending,
                   showEmojiPicker: _showEmojiPicker,
                   quickEmojis: _quickEmojis,
                   accentColor: _chatTheme.accentColor,
                   sendGradient: _chatTheme.myBubbleGradient,
                   inputBarColor: _chatTheme.inputBarColor,
+                  replyingTo: _replyingTo,
+                  replyAuthor: friend.displayName.isEmpty
+                      ? friend.email
+                      : friend.displayName,
+                  onCancelReply: _cancelReply,
                   onToggleEmoji: () {
                     setState(() => _showEmojiPicker = !_showEmojiPicker);
                   },
@@ -1547,6 +1598,7 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.theirBubbleColor,
     required this.theirBubbleTextColor,
     required this.accentColor,
+    required this.replyAuthor,
     required this.showOptions,
     this.onTap,
     this.onOptionsPressed,
@@ -1562,6 +1614,7 @@ class _ChatMessageBubble extends StatelessWidget {
   final Color theirBubbleColor;
   final Color theirBubbleTextColor;
   final Color accentColor;
+  final String replyAuthor;
   final bool showOptions;
   final VoidCallback? onTap;
   final VoidCallback? onOptionsPressed;
@@ -1644,6 +1697,14 @@ class _ChatMessageBubble extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (message.replyToBody != null)
+                      _ReplyQuote(
+                        author: replyAuthor,
+                        body: message.replyToBody!,
+                        color: isMine
+                            ? myBubbleTextColor
+                            : theirBubbleTextColor,
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -1831,6 +1892,16 @@ class _ChatMessageBubble extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (message.replyToBody != null) ...[
+                      _ReplyQuote(
+                        author: replyAuthor,
+                        body: message.replyToBody!,
+                        color: isMine
+                            ? myBubbleTextColor
+                            : theirBubbleTextColor,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     Text(
                       message.body,
                       style: TextStyle(
@@ -1887,6 +1958,119 @@ class _ChatMessageBubble extends StatelessWidget {
             ),
           ),
           if (showOptions && !isMine) _optionsButton(Colors.white70),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyQuote extends StatelessWidget {
+  const _ReplyQuote({
+    required this.author,
+    required this.body,
+    required this.color,
+  });
+
+  final String author;
+  final String body;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(9),
+        border: Border(
+          left: BorderSide(color: color.withValues(alpha: 0.8), width: 3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            author,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            body,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.78),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReplyingToBanner extends StatelessWidget {
+  const _ReplyingToBanner({
+    required this.author,
+    required this.body,
+    required this.accentColor,
+    required this.onCancel,
+  });
+
+  final String author;
+  final String body;
+  final Color accentColor;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8, right: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Container(width: 3, height: 32, color: accentColor),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Trả lời $author',
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Hủy trả lời',
+            onPressed: onCancel,
+            icon: const Icon(Icons.close_rounded, color: Colors.white70),
+          ),
         ],
       ),
     );
@@ -2027,6 +2211,7 @@ class _QuickChip extends StatelessWidget {
 class _ChatInputDock extends StatelessWidget {
   const _ChatInputDock({
     required this.controller,
+    required this.focusNode,
     required this.isSending,
     required this.showEmojiPicker,
     required this.quickEmojis,
@@ -2036,9 +2221,13 @@ class _ChatInputDock extends StatelessWidget {
     required this.accentColor,
     required this.sendGradient,
     required this.inputBarColor,
+    required this.replyingTo,
+    required this.replyAuthor,
+    required this.onCancelReply,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool isSending;
   final bool showEmojiPicker;
   final List<String> quickEmojis;
@@ -2048,6 +2237,9 @@ class _ChatInputDock extends StatelessWidget {
   final Color accentColor;
   final Gradient sendGradient;
   final Color inputBarColor;
+  final FriendMessage? replyingTo;
+  final String replyAuthor;
+  final VoidCallback onCancelReply;
 
   @override
   Widget build(BuildContext context) {
@@ -2065,6 +2257,15 @@ class _ChatInputDock extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (replyingTo != null) ...[
+              _ReplyingToBanner(
+                author: replyAuthor,
+                body: replyingTo!.body,
+                accentColor: accentColor,
+                onCancel: onCancelReply,
+              ),
+              const SizedBox(height: 8),
+            ],
             if (showEmojiPicker) ...[
               SizedBox(
                 height: 40,
@@ -2111,6 +2312,7 @@ class _ChatInputDock extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: controller,
+                    focusNode: focusNode,
                     minLines: 1,
                     maxLines: 4,
                     textAlignVertical: TextAlignVertical.center,
