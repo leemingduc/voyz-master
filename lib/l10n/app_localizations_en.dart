@@ -718,6 +718,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plannerConversationHistory => 'Chat history';
 
   @override
+  String get plannerSuggestionHistory => 'Suggestion history';
+
+  @override
   String get noPlannerConversations => 'No saved conversations yet';
 
   @override

@@ -5,7 +5,6 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
-import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/services/avatar_image_picker.dart';
 import 'package:voyz/services/profile_service.dart';
@@ -377,8 +376,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                           _buildBackgroundMusicCard(),
                           const SizedBox(height: 16),
-                          _buildFriendMessageNotificationCard(),
-                          const SizedBox(height: 16),
                           _buildAiModelCard(),
                           const SizedBox(height: 16),
                           _buildPreferencesCard(theme),
@@ -690,38 +687,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(width: 12),
           BackgroundMusicButton(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFriendMessageNotificationCard() {
-    final settings = FriendMessageNotificationSettings.instance;
-    return ValueListenableBuilder<bool>(
-      valueListenable: settings.enabled,
-      builder: (context, enabled, _) => GlassCard(
-        padding: const EdgeInsets.all(18),
-        child: SwitchListTile.adaptive(
-          contentPadding: EdgeInsets.zero,
-          value: enabled,
-          onChanged: settings.save,
-          secondary: const Icon(
-            Icons.notifications_active_outlined,
-            color: Colors.white70,
-          ),
-          title: const Text(
-            'Thông báo tin nhắn',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          subtitle: const Text(
-            'Hiển thị banner và số tin nhắn mới từ bạn bè.',
-            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-          ),
-          activeTrackColor: AppTheme.cyan,
-        ),
       ),
     );
   }

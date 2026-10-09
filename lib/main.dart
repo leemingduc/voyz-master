@@ -7,7 +7,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/ai_model_settings.dart';
 import 'package:voyz/data/currency_provider.dart';
-import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/screens/friends_screen.dart';
@@ -43,7 +42,6 @@ Future<void> main() async {
     await ExchangeRateService.instance.init();
     initialDisplayCurrency = await CurrencySettingsStore.instance.load();
     await AiModelSettings.instance.load();
-    await FriendMessageNotificationSettings.instance.load();
     // Don't block app startup on background music init.
     BackgroundMusicService.instance.init();
   } catch (e, st) {
@@ -87,6 +85,8 @@ class _VoyzAppState extends State<VoyzApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   late final StreamSubscription<FriendMessageAlert> _friendMessageAlerts;
+  OverlayEntry? _friendMessageAlertEntry;
+  Timer? _friendMessageAlertTimer;
 
   @override
   void initState() {
@@ -102,31 +102,121 @@ class _VoyzAppState extends State<VoyzApp> {
     _localeController.dispose();
     _currencyController.dispose();
     _friendMessageAlerts.cancel();
+    _friendMessageAlertTimer?.cancel();
+    _friendMessageAlertEntry?.remove();
     super.dispose();
   }
 
   void _showFriendMessageAlert(FriendMessageAlert alert) {
-    final messenger = _scaffoldMessengerKey.currentState;
-    if (messenger == null) return;
+    final overlay = _navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
     final friend = alert.friendship.friend;
     final name = friend.displayName.isEmpty ? friend.email : friend.displayName;
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('$name: ${alert.message.body}'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Xem',
-          onPressed: () {
-            _navigatorKey.currentState?.push(
-              MaterialPageRoute(
-                builder: (_) => FriendChatScreen(friendship: alert.friendship),
+    _dismissFriendMessageAlert();
+
+    final entry = OverlayEntry(
+      builder: (context) => SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: InkWell(
+                  onTap: () {
+                    _dismissFriendMessageAlert();
+                    _navigatorKey.currentState?.push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            FriendChatScreen(friendship: alert.friendship),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Ink(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF172033),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF22D3EE).withValues(alpha: 0.7),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.mark_chat_unread_rounded,
+                          color: Color(0xFF22D3EE),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                alert.message.body,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Xem',
+                          style: TextStyle(
+                            color: Color(0xFF22D3EE),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
+    _friendMessageAlertEntry = entry;
+    overlay.insert(entry);
+    _friendMessageAlertTimer = Timer(const Duration(seconds: 3), () {
+      if (_friendMessageAlertEntry == entry) {
+        _dismissFriendMessageAlert();
+      }
+    });
+  }
+
+  void _dismissFriendMessageAlert() {
+    _friendMessageAlertTimer?.cancel();
+    _friendMessageAlertTimer = null;
+    _friendMessageAlertEntry?.remove();
+    _friendMessageAlertEntry = null;
   }
 
   @override

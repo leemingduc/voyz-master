@@ -1462,6 +1462,12 @@ abstract class AppLocalizations {
   /// **'Chat history'**
   String get plannerConversationHistory;
 
+  /// Title and tooltip for saved AI trip suggestions
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion history'**
+  String get plannerSuggestionHistory;
+
   /// Empty state for the AI planner conversation history
   ///
   /// In en, this message translates to:

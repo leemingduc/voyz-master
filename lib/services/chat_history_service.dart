@@ -12,6 +12,11 @@ class ChatHistoryService {
   static const _boxPrefix = 'ai_chat_history_';
   static const _conversationsBoxPrefix = 'ai_chat_conversations_';
 
+  // A message and its AI reply can be saved almost at the same time. Keep the
+  // read-modify-write operations in order so a later write never restores an
+  // older version of the conversation list.
+  Future<void> _conversationWriteQueue = Future<void>.value();
+
   /// Local multi-conversation history for the AI Tools chatbot. This keeps
   /// the existing cloud-backed single thread intact while offering the same
   /// ChatGPT-style history menu when users are offline or anonymous.
@@ -40,7 +45,7 @@ class ChatHistoryService {
     List<ChatMessage> messages, {
     String? conversationId,
     String? destinationName,
-  }) async {
+  }) => _enqueueConversationWrite(() async {
     if (messages.isEmpty) {
       return loadConversations(destinationName: destinationName);
     }
@@ -65,12 +70,12 @@ class ChatHistoryService {
     );
     await _saveConversationHistory(box, key, updated);
     return updated;
-  }
+  });
 
   Future<ChatConversationHistory> openConversation(
     String id, {
     String? destinationName,
-  }) async {
+  }) => _enqueueConversationWrite(() async {
     final box = await _openConversationsBox();
     final key = _conversationKey(destinationName);
     final current = await loadConversations(destinationName: destinationName);
@@ -83,12 +88,12 @@ class ChatHistoryService {
     );
     await _saveConversationHistory(box, key, updated);
     return updated;
-  }
+  });
 
   Future<ChatConversationHistory> deleteConversation(
     String id, {
     String? destinationName,
-  }) async {
+  }) => _enqueueConversationWrite(() async {
     final box = await _openConversationsBox();
     final key = _conversationKey(destinationName);
     final current = await loadConversations(destinationName: destinationName);
@@ -103,6 +108,14 @@ class ChatHistoryService {
     );
     await _saveConversationHistory(box, key, updated);
     return updated;
+  });
+
+  Future<T> _enqueueConversationWrite<T>(Future<T> Function() operation) {
+    final result = _conversationWriteQueue.then((_) => operation());
+    // Keep the queue usable when an individual Hive write fails; the caller
+    // still receives that error through [result].
+    _conversationWriteQueue = result.then<void>((_) {}, onError: (_, _) {});
+    return result;
   }
 
   Future<List<ChatMessage>> load({String? destinationName}) async {

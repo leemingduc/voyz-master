@@ -155,7 +155,9 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       if (text.isNotEmpty) _messages.add(PlannerMessage.user(text));
       _promptController.clear();
     });
-    _persistMessages();
+    // Finish writing the user's request before asking the AI so this
+    // suggestion thread remains available after the app is reopened.
+    await _persistMessages();
     await _runTurn(forceOptions: forceOptions);
   }
 
@@ -182,7 +184,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         _messages.add(message);
         _isSending = false;
       });
-      _persistMessages();
+      await _persistMessages();
       _scrollToBottom();
       if (turn.hasOptions) unawaited(_loadImages(message));
     } catch (e) {
@@ -208,7 +210,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     setState(() {
       _messages[index] = PlannerMessage.agent(turn.copyWith(options: options));
     });
-    _persistMessages();
+    unawaited(_persistMessages());
   }
 
   void _newChat() {
@@ -220,9 +222,8 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
     unawaited(SavedTripsProvider.of(context).startNewPlannerConversation());
   }
 
-  void _persistMessages() {
-    unawaited(SavedTripsProvider.of(context).updatePlannerMessages(_messages));
-  }
+  Future<void> _persistMessages() =>
+      SavedTripsProvider.of(context).updatePlannerMessages(_messages);
 
   Future<void> _openConversation(String id) async {
     final messages = await SavedTripsProvider.of(
@@ -416,7 +417,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                tooltip: l10n.plannerConversationHistory,
+                tooltip: l10n.plannerSuggestionHistory,
                 onPressed: _isSending ? null : _showConversationMenu,
                 icon: const Icon(Icons.more_vert, color: Colors.white),
               ),
@@ -664,7 +665,7 @@ class _PlannerConversationSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
               child: Text(
-                l10n.plannerConversationHistory,
+                l10n.plannerSuggestionHistory,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,

@@ -309,6 +309,11 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   }
 
   Future<void> updatePlannerMessages(Iterable<PlannerMessage> messages) async {
+    // The planner can be used as soon as the first screen is visible, while
+    // this provider may still be opening its Hive box. Wait for that initial
+    // load before changing the in-memory history, then write the exact turn
+    // that was supplied by the screen.
+    await _ensurePlannerStorage();
     final updated = List<PlannerMessage>.of(messages);
     if (updated.isEmpty) return;
     final active = _activePlannerConversation;
@@ -327,12 +332,14 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
 
   /// Starts a blank conversation while preserving every previous one.
   Future<void> startNewPlannerConversation() async {
+    await _ensurePlannerStorage();
     if (_activePlannerConversationId == null) return;
     setState(() => _activePlannerConversationId = null);
     await _persistPlannerConversations();
   }
 
   Future<List<PlannerMessage>> openPlannerConversation(String id) async {
+    await _ensurePlannerStorage();
     final conversation = _plannerConversations.where((item) => item.id == id);
     if (conversation.isEmpty) return const [];
     final selected = conversation.first;
@@ -348,6 +355,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   }
 
   Future<void> deletePlannerConversation(String id) async {
+    await _ensurePlannerStorage();
     setState(() {
       _plannerConversations = _plannerConversations
           .where((conversation) => conversation.id != id)
@@ -367,12 +375,15 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   }
 
   Future<void> _persistPlannerConversations() async {
+    await _ensurePlannerStorage();
     final box = _box;
-    if (box == null) {
-      unawaited(_syncPlannerConversationsAfterInitialLoad());
-      return;
-    }
+    if (box == null) return;
     await _writePlannerConversations(box);
+  }
+
+  Future<void> _ensurePlannerStorage() async {
+    if (_box != null) return;
+    await load();
   }
 
   Future<void> _writePlannerConversations(Box<Map> box) async {
@@ -388,16 +399,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
           .toList(),
     });
     await box.delete(_plannerMessagesKey);
-  }
-
-  /// Queue a write when the first chat turn happens before the initial Hive
-  /// snapshot is ready. Read the current state after loading to avoid an older
-  /// queued write replacing a newer message.
-  Future<void> _syncPlannerConversationsAfterInitialLoad() async {
-    await load();
-    final box = _box;
-    if (box == null) return;
-    await _writePlannerConversations(box);
   }
 
   // ── Ghi: cloud trước, thành công mới đổi state và Hive ─────────────────

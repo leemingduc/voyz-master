@@ -61,6 +61,9 @@ class FriendMessage {
     required this.senderId,
     required this.body,
     required this.createdAt,
+    this.type = FriendMessageType.text,
+    this.deliveredAt,
+    this.readAt,
   });
 
   final String id;
@@ -68,6 +71,14 @@ class FriendMessage {
   final String senderId;
   final String body;
   final DateTime createdAt;
+  final FriendMessageType type;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
+
+  /// A read message has necessarily reached the recipient too.
+  bool get isDelivered => deliveredAt != null || readAt != null;
+  bool get isRead => readAt != null;
+  bool get isSystem => type == FriendMessageType.system;
 
   factory FriendMessage.fromMap(Map<String, dynamic> map) {
     return FriendMessage(
@@ -75,8 +86,49 @@ class FriendMessage {
       friendshipId: map['friendship_id']?.toString() ?? '',
       senderId: map['sender_id']?.toString() ?? '',
       body: map['body']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
           DateTime.now(),
+      type: FriendMessageType.fromDatabaseValue(
+        map['message_type']?.toString(),
+      ),
+      deliveredAt: DateTime.tryParse(
+        map['delivered_at']?.toString() ?? '',
+      )?.toLocal(),
+      readAt: DateTime.tryParse(map['read_at']?.toString() ?? '')?.toLocal(),
+    );
+  }
+}
+
+enum FriendMessageType {
+  text,
+  system;
+
+  static FriendMessageType fromDatabaseValue(String? value) {
+    return value == 'system'
+        ? FriendMessageType.system
+        : FriendMessageType.text;
+  }
+}
+
+class FriendChatTheme {
+  const FriendChatTheme({
+    required this.themeId,
+    this.changedByUserId,
+    this.changedAt,
+  });
+
+  final String themeId;
+  final String? changedByUserId;
+  final DateTime? changedAt;
+
+  factory FriendChatTheme.fromMap(Map<String, dynamic> map) {
+    return FriendChatTheme(
+      themeId: map['chat_theme_id']?.toString() ?? 'aivivu',
+      changedByUserId: map['chat_theme_changed_by']?.toString(),
+      changedAt: DateTime.tryParse(
+        map['chat_theme_changed_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }
@@ -90,6 +142,15 @@ class FriendsService {
   GoTrueClient get _auth => SupabaseService.instance.auth;
 
   String get currentUserId => _requireUser().id;
+
+  String get currentUserDisplayName {
+    final user = _requireUser();
+    final metadata = user.userMetadata ?? {};
+    final displayName = (metadata['display_name'] ?? metadata['username'] ?? '')
+        .toString()
+        .trim();
+    return displayName.isEmpty ? (user.email ?? 'Bạn') : displayName;
+  }
 
   Future<void> syncCurrentProfile() async {
     final user = _requireUser();
@@ -177,10 +238,63 @@ class FriendsService {
 
   Future<void> acceptFriendRequest(String friendshipId) async {
     await _guardSchema(() async {
-      await _client.from('friendships').update({
-        'status': 'accepted',
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', friendshipId);
+      await _client
+          .from('friendships')
+          .update({
+            'status': 'accepted',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', friendshipId);
+    });
+  }
+
+  /// Removes the relationship for both people. The database cascades this to
+  /// the associated friend messages.
+  Future<void> removeFriend(String friendshipId) async {
+    await _guardSchema(() async {
+      final deleted = await _client
+          .from('friendships')
+          .delete()
+          .eq('id', friendshipId)
+          .select('id');
+      if (deleted.isEmpty) {
+        throw StateError('Friendship is no longer available.');
+      }
+    });
+  }
+
+  /// Records that the current user cleared this conversation. Messages remain
+  /// available to the other participant and messages sent afterwards still
+  /// appear for the current user.
+  Future<void> clearConversationForCurrentUser({
+    required String friendshipId,
+    required DateTime clearedAt,
+  }) async {
+    final userId = currentUserId;
+    await _guardSchema(() async {
+      await _client.from('friend_conversation_clears').upsert({
+        'friendship_id': friendshipId,
+        'user_id': userId,
+        'cleared_at': clearedAt.toUtc().toIso8601String(),
+      }, onConflict: 'friendship_id,user_id');
+    });
+  }
+
+  /// Reads the server-backed clear timestamp so clearing a conversation is
+  /// retained after the user signs out or uses another device.
+  Future<DateTime?> conversationClearedAtForCurrentUser(
+    String friendshipId,
+  ) async {
+    final userId = currentUserId;
+    return _guardSchema(() async {
+      final row = await _client
+          .from('friend_conversation_clears')
+          .select('cleared_at')
+          .eq('friendship_id', friendshipId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (row == null) return null;
+      return DateTime.tryParse(row['cleared_at']?.toString() ?? '')?.toLocal();
     });
   }
 
@@ -209,8 +323,9 @@ class FriendsService {
 
       final rows = byId.values.toList()
         ..sort(
-          (a, b) => (b['updated_at']?.toString() ?? '')
-              .compareTo(a['updated_at']?.toString() ?? ''),
+          (a, b) => (b['updated_at']?.toString() ?? '').compareTo(
+            a['updated_at']?.toString() ?? '',
+          ),
         );
 
       final friendIds = rows
@@ -233,9 +348,13 @@ class FriendsService {
           requesterId: requester,
           addresseeId: addressee,
           status: map['status']?.toString() ?? 'pending',
-          createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
+          createdAt:
+              DateTime.tryParse(
+                map['created_at']?.toString() ?? '',
+              )?.toLocal() ??
               DateTime.now(),
-          friend: profiles[friendId] ??
+          friend:
+              profiles[friendId] ??
               SocialProfile(
                 userId: friendId,
                 email: 'Unknown traveler',
@@ -278,6 +397,82 @@ class FriendsService {
         );
   }
 
+  Future<FriendChatTheme?> getChatTheme(String friendshipId) async {
+    return _guardSchema(() async {
+      final row = await _client
+          .from('friendships')
+          .select('chat_theme_id, chat_theme_changed_by, chat_theme_changed_at')
+          .eq('id', friendshipId)
+          .maybeSingle();
+      if (row == null) return null;
+      return FriendChatTheme.fromMap(Map<String, dynamic>.from(row));
+    });
+  }
+
+  Stream<FriendChatTheme?> streamChatTheme(String friendshipId) {
+    return _client
+        .from('friendships')
+        .stream(primaryKey: ['id'])
+        .eq('id', friendshipId)
+        .map((rows) {
+          if (rows.isEmpty) return null;
+          return FriendChatTheme.fromMap(Map<String, dynamic>.from(rows.first));
+        });
+  }
+
+  /// Opens a lightweight broadcast channel so an already-open chat changes
+  /// theme immediately. The database stream remains the durable fallback for
+  /// devices that were offline or opened the chat later.
+  RealtimeChannel subscribeToChatThemeBroadcast({
+    required String friendshipId,
+    required void Function(Map<String, dynamic> payload) onThemeChanged,
+  }) {
+    final channel = _client
+        .channel(
+          'friend-chat-theme-$friendshipId',
+          opts: const RealtimeChannelConfig(ack: true),
+        )
+        .onBroadcast(event: 'theme_changed', callback: onThemeChanged);
+    channel.subscribe();
+    return channel;
+  }
+
+  Future<void> broadcastChatThemeChange({
+    required RealtimeChannel channel,
+    required String themeId,
+    required String changedByUserId,
+  }) {
+    return channel.sendBroadcastMessage(
+      event: 'theme_changed',
+      payload: {'theme_id': themeId, 'changed_by_user_id': changedByUserId},
+    );
+  }
+
+  Future<void> closeRealtimeChannel(RealtimeChannel channel) {
+    return _client.removeChannel(channel);
+  }
+
+  /// Applies the shared theme and writes the matching system event together.
+  /// The database function keeps these operations atomic so the two devices
+  /// never receive only one half of the change.
+  Future<void> changeChatTheme({
+    required String friendshipId,
+    required String themeId,
+    required String themeName,
+  }) async {
+    await _guardSchema(() async {
+      await _client.rpc(
+        'change_friend_chat_theme',
+        params: {
+          'p_friendship_id': friendshipId,
+          'p_theme_id': themeId,
+          'p_system_message':
+              '$currentUserDisplayName đã đổi giao diện thành $themeName',
+        },
+      );
+    });
+  }
+
   Future<void> sendMessage(String friendshipId, String body) async {
     final trimmed = body.trim();
     if (trimmed.isEmpty) return;
@@ -287,6 +482,26 @@ class FriendsService {
         'sender_id': currentUserId,
         'body': trimmed,
       });
+    });
+  }
+
+  /// Marks all messages sent by the other participant as read.
+  Future<void> markMessagesRead(String friendshipId) async {
+    await _guardSchema(() async {
+      await _client.rpc(
+        'mark_friend_messages_read',
+        params: {'p_friendship_id': friendshipId},
+      );
+    });
+  }
+
+  /// Marks messages from the other participant as delivered to this device.
+  Future<void> markMessagesDelivered(String friendshipId) async {
+    await _guardSchema(() async {
+      await _client.rpc(
+        'mark_friend_messages_delivered',
+        params: {'p_friendship_id': friendshipId},
+      );
     });
   }
 
@@ -300,7 +515,9 @@ class FriendsService {
           .eq('sender_id', currentId)
           .select();
       if (deleted.isEmpty) {
-        throw Exception('Không thể thu hồi tin nhắn. Bạn chỉ có thể thu hồi tin nhắn của chính mình.');
+        throw Exception(
+          'Không thể thu hồi tin nhắn. Bạn chỉ có thể thu hồi tin nhắn của chính mình.',
+        );
       }
     });
   }

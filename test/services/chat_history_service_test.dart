@@ -46,4 +46,26 @@ void main() {
     expect(remaining.conversations, hasLength(1));
     expect(remaining.conversations.single.title, 'Plan a Hue heritage trip');
   });
+
+  test(
+    'serializes overlapping chatbot saves without dropping a conversation',
+    () async {
+      const destination = '__overlapping_history_test__';
+      final service = ChatHistoryService.instance;
+
+      await Future.wait([
+        service.saveConversation([
+          ChatMessage.user('First saved conversation'),
+        ], destinationName: destination),
+        service.saveConversation([
+          ChatMessage.user('Second saved conversation'),
+        ], destinationName: destination),
+      ]);
+
+      final reloaded = await service.loadConversations(
+        destinationName: destination,
+      );
+      expect(reloaded.conversations, hasLength(2));
+    },
+  );
 }

@@ -12,11 +12,10 @@ class FriendMessageAlert {
   final FriendMessage message;
 }
 
-/// Tracks incoming friend messages while the app is open.
+/// Tracks unread friend messages and in-app alerts.
 ///
-/// The service establishes one Supabase realtime listener per accepted
-/// friendship. Existing messages form the initial baseline; only messages
-/// received after that baseline create an unread count or an alert.
+/// Existing unread messages are restored from the server, but alerts are sent
+/// only for messages received after the realtime listener has started.
 class FriendMessageNotificationService {
   FriendMessageNotificationService._();
 
@@ -85,9 +84,27 @@ class FriendMessageNotificationService {
 
   void markRead(String friendshipId) {
     final current = unreadByFriendship.value;
-    if (!current.containsKey(friendshipId)) return;
-    final updated = Map<String, int>.from(current)..remove(friendshipId);
-    unreadByFriendship.value = Map<String, int>.unmodifiable(updated);
+    if (current.containsKey(friendshipId)) {
+      final updated = Map<String, int>.from(current)..remove(friendshipId);
+      unreadByFriendship.value = Map<String, int>.unmodifiable(updated);
+    }
+    unawaited(_markMessagesReadRemotely(friendshipId));
+  }
+
+  Future<void> _markMessagesReadRemotely(String friendshipId) async {
+    try {
+      await FriendsService.instance.markMessagesRead(friendshipId);
+    } catch (error) {
+      debugPrint('Friend message read update error: $error');
+    }
+  }
+
+  Future<void> _markMessagesDeliveredRemotely(String friendshipId) async {
+    try {
+      await FriendsService.instance.markMessagesDelivered(friendshipId);
+    } catch (error) {
+      debugPrint('Friend message delivery update error: $error');
+    }
   }
 
   Future<void> stop() async {
@@ -112,6 +129,19 @@ class FriendMessageNotificationService {
       if (!_isStarted || _currentUserId != currentUserId) return;
 
       _knownMessageIds[friendship.id] = existing.map((item) => item.id).toSet();
+      final unreadCount = existing
+          .where(
+            (message) => message.senderId != currentUserId && !message.isRead,
+          )
+          .length;
+      // Fetching this conversation means the signed-in recipient has received
+      // its pending messages on this device, including messages sent offline.
+      unawaited(_markMessagesDeliveredRemotely(friendship.id));
+      if (_activeFriendshipId == friendship.id) {
+        markRead(friendship.id);
+      } else {
+        _updateUnreadCount(friendship.id, unreadCount);
+      }
       _subscriptions[friendship.id] = FriendsService.instance
           .streamMessages(friendship.id)
           .listen(
@@ -138,19 +168,47 @@ class FriendMessageNotificationService {
 
     final known = _knownMessageIds.putIfAbsent(friendship.id, () => <String>{});
     final incoming = <FriendMessage>[];
+    var hasUndeliveredIncomingMessage = false;
     for (final message in messages) {
       if (!known.add(message.id)) continue;
-      if (message.senderId != currentUserId) incoming.add(message);
+      if (message.senderId != currentUserId && !message.isDelivered) {
+        hasUndeliveredIncomingMessage = true;
+      }
+      if (message.senderId != currentUserId && !message.isRead) {
+        incoming.add(message);
+      }
     }
-    if (incoming.isEmpty || _activeFriendshipId == friendship.id) return;
+    if (hasUndeliveredIncomingMessage) {
+      unawaited(_markMessagesDeliveredRemotely(friendship.id));
+    }
+    final unreadCount = messages
+        .where(
+          (message) => message.senderId != currentUserId && !message.isRead,
+        )
+        .length;
+    _updateUnreadCount(friendship.id, unreadCount);
 
-    final updated = Map<String, int>.from(unreadByFriendship.value);
-    updated[friendship.id] = (updated[friendship.id] ?? 0) + incoming.length;
-    unreadByFriendship.value = Map<String, int>.unmodifiable(updated);
+    if (_activeFriendshipId == friendship.id) {
+      markRead(friendship.id);
+      return;
+    }
+    if (incoming.isEmpty) return;
 
-    if (!FriendMessageNotificationSettings.instance.enabled.value) return;
+    if (!FriendMessageNotificationSettings.instance.isEnabled(friendship.id)) {
+      return;
+    }
     _alerts.add(
       FriendMessageAlert(friendship: friendship, message: incoming.last),
     );
+  }
+
+  void _updateUnreadCount(String friendshipId, int count) {
+    final updated = Map<String, int>.from(unreadByFriendship.value);
+    if (count > 0) {
+      updated[friendshipId] = count;
+    } else {
+      updated.remove(friendshipId);
+    }
+    unreadByFriendship.value = Map<String, int>.unmodifiable(updated);
   }
 }

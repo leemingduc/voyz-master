@@ -853,6 +853,8 @@
   "@newPlannerChat": {"description": "Tooltip of the button that restarts the planner chat"},
   "plannerConversationHistory": "Chat history",
   "@plannerConversationHistory": {"description": "Title and tooltip for the saved AI planner conversation history"},
+  "plannerSuggestionHistory": "Suggestion history",
+  "@plannerSuggestionHistory": {"description": "Title and tooltip for saved AI trip suggestions"},
   "noPlannerConversations": "No saved conversations yet",
   "@noPlannerConversations": {"description": "Empty state for the AI planner conversation history"},
   "messagesLabel": "messages",

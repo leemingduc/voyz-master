@@ -48,25 +48,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
     setState(() {
       _conversations = history.conversations;
-      _activeConversationId = history.activeConversationId;
+      // Opening AI Chatbot always starts a fresh conversation. Older threads
+      // remain available from the history menu and are only loaded when the
+      // user explicitly selects one.
+      _activeConversationId = null;
       _messages
         ..clear()
-        ..addAll(_activeMessages);
-      if (_messages.isEmpty) {
-        _messages.add(
-          ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome),
-        );
-      }
+        ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
     });
-  }
-
-  List<ChatMessage> get _activeMessages {
-    final id = _activeConversationId;
-    if (id == null) return const [];
-    for (final conversation in _conversations) {
-      if (conversation.id == id) return conversation.messages;
-    }
-    return const [];
   }
 
   Future<void> _persistMessages() async {
@@ -164,12 +153,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
 
     setState(() {
       _messages.add(ChatMessage.user(text));
       _isSending = true;
     });
-    unawaited(_persistMessages());
+    // Do not start the network request until the user's turn is on disk. This
+    // makes the conversation survive an immediate app close/background event.
+    await _persistMessages();
+    if (!mounted) return;
 
     _messageController.clear();
     _scrollToBottom();
@@ -180,7 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
         // The current user message was just appended above; pass only prior
         // messages so it is not duplicated in the prompt.
         history: _messages.take(_messages.length - 1).toList(),
-        languageCode: LocaleProvider.of(context).value.languageCode,
+        languageCode: languageCode,
         destinationName: widget.destinationName,
       );
 
@@ -190,7 +183,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.add(aiMsg);
           _isSending = false;
         });
-        unawaited(_persistMessages());
+        await _persistMessages();
         _scrollToBottom();
 
         if (result.action != null) {
@@ -208,7 +201,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.add(ChatMessage.ai(l10n.chatError));
           _isSending = false;
         });
-        unawaited(_persistMessages());
+        await _persistMessages();
         _scrollToBottom();
       }
     }

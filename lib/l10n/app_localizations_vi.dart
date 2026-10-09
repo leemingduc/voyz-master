@@ -718,6 +718,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get plannerConversationHistory => 'Lịch sử hội thoại';
 
   @override
+  String get plannerSuggestionHistory => 'Lịch sử gợi ý';
+
+  @override
   String get noPlannerConversations => 'Chưa có hội thoại đã lưu';
 
   @override

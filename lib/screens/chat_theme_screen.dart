@@ -88,7 +88,10 @@ class _ChatThemeScreenState extends State<ChatThemeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [_selectedTheme.accentColor, _selectedTheme.accentColor.withValues(alpha: 0.7)],
+                  colors: [
+                    _selectedTheme.accentColor,
+                    _selectedTheme.accentColor.withValues(alpha: 0.7),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -194,7 +197,10 @@ class _ChatPreviewPane extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // Wallpaper pattern overlay
-          _WallpaperOverlay(wallpaper: theme.wallpaper, color: theme.accentColor),
+          _WallpaperOverlay(
+            wallpaper: theme.wallpaper,
+            color: theme.accentColor,
+          ),
 
           // Chat bubbles preview
           Padding(
@@ -234,7 +240,10 @@ class _ChatPreviewPane extends StatelessWidget {
 
                 // Preview input dock
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.inputBarColor.withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(24),
@@ -286,7 +295,10 @@ class _ChatPreviewPane extends StatelessWidget {
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(20),
@@ -331,8 +343,9 @@ class _PreviewBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMine
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (!isMine) ...[
@@ -391,10 +404,11 @@ class _PreviewBubble extends StatelessWidget {
                     Text(
                       time,
                       style: TextStyle(
-                        color: (isMine
-                                ? theme.myBubbleTextColor
-                                : theme.theirBubbleTextColor)
-                            .withValues(alpha: 0.65),
+                        color:
+                            (isMine
+                                    ? theme.myBubbleTextColor
+                                    : theme.theirBubbleTextColor)
+                                .withValues(alpha: 0.65),
                         fontSize: 10,
                       ),
                     ),
@@ -466,8 +480,7 @@ class _ThemeTile extends StatelessWidget {
               // Background gradient
               Positioned.fill(
                 child: Container(
-                  decoration:
-                      BoxDecoration(gradient: theme.backgroundGradient),
+                  decoration: BoxDecoration(gradient: theme.backgroundGradient),
                 ),
               ),
 
@@ -630,6 +643,8 @@ class _PatternPainter extends CustomPainter {
         _drawHearts(canvas, size, paint);
       case ChatWallpaper.travel:
         _drawPlanes(canvas, size, paint);
+      case ChatWallpaper.tread:
+        _drawTread(canvas, size, paint);
       case ChatWallpaper.none:
         break;
     }
@@ -669,10 +684,7 @@ class _PatternPainter extends CustomPainter {
       final y0 = size.height * row / 10;
       path.moveTo(0, y0);
       for (var x = 0; x <= size.width; x += 20) {
-        path.lineTo(
-          x.toDouble(),
-          y0 + 6 * math.sin(x / 30.0 + row),
-        );
+        path.lineTo(x.toDouble(), y0 + 6 * math.sin(x / 30.0 + row));
       }
       canvas.drawPath(path, stroke);
     }
@@ -731,6 +743,28 @@ class _PatternPainter extends CustomPainter {
       final y = rng.next(i * 8) * size.height;
       final s = rng.next(i) * 8 + 6;
       _drawPlane(canvas, Offset(x, y), s, p);
+    }
+  }
+
+  void _drawTread(Canvas canvas, Size size, Paint p) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    const step = 42.0;
+    for (var y = -step; y <= size.height + step; y += step) {
+      for (var x = -step; x <= size.width + step; x += step) {
+        final path = Path()
+          ..moveTo(x, y + step * 0.2)
+          ..lineTo(x + step * 0.5, y + step * 0.5)
+          ..lineTo(x, y + step * 0.8);
+        canvas.drawPath(path, stroke);
+        final mirrored = Path()
+          ..moveTo(x + step, y + step * 0.2)
+          ..lineTo(x + step * 0.5, y + step * 0.5)
+          ..lineTo(x + step, y + step * 0.8);
+        canvas.drawPath(mirrored, stroke);
+      }
     }
   }
 
