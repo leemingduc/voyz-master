@@ -28,14 +28,10 @@ void main() {
           const WorkspaceChecklistItem(text: 'Check flight', isDone: false),
         ],
         workspaceNotes: 'Stay at Sunset Beach',
-        bookingRefs: ['VJ123', 'HTL999'],
-        sharedWith: ['friend@example.com'],
       );
 
       final map = item.toMap();
       expect(map['name'], equals('Phu Quoc, Vietnam'));
-      expect(map['bookingRefs'], contains('VJ123'));
-      expect(map['sharedWith'], contains('friend@example.com'));
 
       final restored = SavedItem.fromMap(map);
       expect(restored.name, equals(item.name));
@@ -44,7 +40,6 @@ void main() {
       expect(restored.checklist.length, equals(2));
       expect(restored.checklist[0].isDone, isTrue);
       expect(restored.checklist[1].isDone, isFalse);
-      expect(restored.bookingRefs, contains('HTL999'));
     });
     test('SavedItem tu sinh id UUID va giu nguyen qua toMap/fromMap', () {
       final item = SavedItem(

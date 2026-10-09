@@ -264,74 +264,6 @@ class _SavedItemCard extends StatelessWidget {
   final SavedItem item;
   final VoidCallback? onRemoved;
 
-  Future<void> _showAddDialog(
-    BuildContext context, {
-    required String title,
-    required String hint,
-    required ValueChanged<String> onSubmit,
-  }) async {
-    final controller = TextEditingController();
-    final value = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1B2E),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textAlignVertical: TextAlignVertical.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            height: 1.45,
-            letterSpacing: 0.2,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.35),
-              fontSize: 15,
-              height: 1.45,
-              letterSpacing: 0.2,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 15,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.cyan, width: 1.5),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value != null) onSubmit(value);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -491,7 +423,7 @@ class _SavedItemCard extends StatelessWidget {
                 ),
                 if (isFullTrip) ...[
                   const SizedBox(height: 14),
-                  _WorkspacePanel(item: item, showAddDialog: _showAddDialog),
+                  _WorkspacePanel(item: item),
                 ],
                 const SizedBox(height: 12),
                 Align(
@@ -585,28 +517,22 @@ class _TrustRow extends StatelessWidget {
 }
 
 class _WorkspacePanel extends StatefulWidget {
-  const _WorkspacePanel({required this.item, required this.showAddDialog});
+  const _WorkspacePanel({required this.item});
 
   final SavedItem item;
-  final Future<void> Function(
-    BuildContext context, {
-    required String title,
-    required String hint,
-    required ValueChanged<String> onSubmit,
-  })
-  showAddDialog;
-
   @override
   State<_WorkspacePanel> createState() => _WorkspacePanelState();
 }
 
 class _WorkspacePanelState extends State<_WorkspacePanel> {
   late String _notesDraft;
+  late List<WorkspaceChecklistItem> _checklistDraft;
 
   @override
   void initState() {
     super.initState();
     _notesDraft = widget.item.workspaceNotes;
+    _checklistDraft = List.of(widget.item.checklist);
   }
 
   @override
@@ -614,6 +540,9 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
     super.didUpdateWidget(oldWidget);
     if (widget.item.workspaceNotes != oldWidget.item.workspaceNotes) {
       _notesDraft = widget.item.workspaceNotes;
+    }
+    if (widget.item.checklist != oldWidget.item.checklist) {
+      _checklistDraft = List.of(widget.item.checklist);
     }
   }
 
@@ -626,11 +555,34 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
     );
   }
 
+  Future<void> _toggleChecklistItem(int index) async {
+    final previousChecklist = List<WorkspaceChecklistItem>.of(_checklistDraft);
+    final entry = _checklistDraft[index];
+    setState(() {
+      _checklistDraft[index] = WorkspaceChecklistItem(
+        text: entry.text,
+        isDone: !entry.isDone,
+      );
+    });
+
+    try {
+      await SavedTripsProvider.of(context).updateWorkspace(
+        widget.item.copyWith(
+          checklist: _checklistDraft,
+          workspaceNotes: _notesDraft.trim(),
+        ),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _checklistDraft = previousChecklist);
+      rethrow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final provider = SavedTripsProvider.of(context);
     final item = widget.item;
-    final doneCount = item.checklist.where((entry) => entry.isDone).length;
+    final checklist = _checklistDraft;
+    final doneCount = checklist.where((entry) => entry.isDone).length;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -660,7 +612,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               ),
               const Spacer(),
               Text(
-                '$doneCount/${item.checklist.length} ready',
+                '$doneCount/${checklist.length} ready',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
                   fontSize: 12,
@@ -671,17 +623,15 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
           const SizedBox(height: 10),
           _WorkspaceStatRow(item: item),
           const SizedBox(height: 12),
-          ...List.generate(item.checklist.length, (index) {
-            final entry = item.checklist[index];
+          ...List.generate(checklist.length, (index) {
+            final entry = checklist[index];
             return CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               value: entry.isDone,
-              onChanged: (_) => runSave(
-                context,
-                () => provider.toggleChecklistItem(item, index),
-              ),
+              onChanged: (_) =>
+                  runSave(context, () => _toggleChecklistItem(index)),
               title: Text(
                 entry.text,
                 style: TextStyle(
@@ -747,19 +697,6 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
             runSpacing: 8,
             children: [
               _ActionChipButton(
-                icon: Icons.confirmation_number,
-                label: 'Add booking',
-                onTap: () => widget.showAddDialog(
-                  context,
-                  title: 'Add booking',
-                  hint: 'Flight, hotel, tour code...',
-                  onSubmit: (value) => runSave(
-                    context,
-                    () => provider.addBookingRef(item, value),
-                  ),
-                ),
-              ),
-              _ActionChipButton(
                 icon: Icons.group_add,
                 label: 'Chia sẻ cho bạn bè',
                 onTap: () => ShareDestinationBottomSheet.show(
@@ -770,22 +707,6 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               ),
             ],
           ),
-          if (item.bookingRefs.isNotEmpty || item.sharedWith.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ...item.bookingRefs.map(
-                  (ref) =>
-                      _MiniBadge(icon: Icons.confirmation_number, label: ref),
-                ),
-                ...item.sharedWith.map(
-                  (person) => _MiniBadge(icon: Icons.person, label: person),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

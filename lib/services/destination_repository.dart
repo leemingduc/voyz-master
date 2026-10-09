@@ -10,7 +10,9 @@ class DestinationRepository {
   DestinationRepository._();
 
   static final DestinationRepository instance = DestinationRepository._();
-  static const _cacheBoxName = 'curated_destinations_cache';
+  // Bump after expanding the curated Explore seed so existing installs do not
+  // keep showing the previous six-hour cache.
+  static const _cacheBoxName = 'curated_destinations_cache_v2';
   static const _cacheTtl = Duration(hours: 6);
 
   SupabaseClient get _client => SupabaseService.instance.client;
@@ -33,7 +35,7 @@ class DestinationRepository {
         final items = rawItems
             .whereType<Map>()
             .map(DestinationSuggestion.fromMap)
-            .where((item) => item.name.isNotEmpty)
+            .where((item) => item.name.isNotEmpty && item.imageUrl.isNotEmpty)
             .toList();
         if (items.isNotEmpty) return items.take(limit).toList();
       }
@@ -44,34 +46,20 @@ class DestinationRepository {
       try {
         rows = await _client
             .from('featured_destinations')
-            .select('rank, destinations(*, community_reviews(rating))')
+            .select('destinations(*, community_reviews(rating))')
             .eq('category_key', categoryKey)
             .eq('is_active', true)
-            .order('rank', ascending: true)
             .limit(limit);
       } catch (_) {
         rows = await _client
             .from('featured_destinations')
-            .select('rank, destinations(*)')
+            .select('destinations(*)')
             .eq('category_key', categoryKey)
             .eq('is_active', true)
-            .order('rank', ascending: true)
             .limit(limit);
       }
 
-      final items = <DestinationSuggestion>[];
-      for (var index = 0; index < rows.length; index++) {
-        final row = Map<String, dynamic>.from(rows[index]);
-        final destination = row['destinations'];
-        if (destination is Map) {
-          items.add(
-            DestinationSuggestion.fromSupabase(
-              Map<String, dynamic>.from(destination),
-              isTopMatch: index == 0,
-            ),
-          );
-        }
-      }
+      final items = featuredSuggestionsFromRows(rows);
 
       final effectiveItems = items.isNotEmpty
           ? items
@@ -100,7 +88,7 @@ class DestinationRepository {
         return rawItems
             .whereType<Map>()
             .map(DestinationSuggestion.fromMap)
-            .where((item) => item.name.isNotEmpty)
+            .where((item) => item.name.isNotEmpty && item.imageUrl.isNotEmpty)
             .take(limit)
             .toList();
       }
@@ -112,7 +100,7 @@ class DestinationRepository {
         return rawItems
             .whereType<Map>()
             .map(DestinationSuggestion.fromMap)
-            .where((item) => item.name.isNotEmpty)
+            .where((item) => item.name.isNotEmpty && item.imageUrl.isNotEmpty)
             .take(limit)
             .toList();
       }
@@ -133,7 +121,6 @@ class DestinationRepository {
             .from('destinations')
             .select(selectQuery)
             .eq('is_active', true)
-            .order('match_percent', ascending: false)
             .limit(limit);
 
         rows = categoryKey == 'random'
@@ -143,14 +130,12 @@ class DestinationRepository {
                   .select(selectQuery)
                   .eq('is_active', true)
                   .eq('category', categoryKey)
-                  .order('match_percent', ascending: false)
                   .limit(limit);
       } catch (_) {
         final query = _client
             .from('destinations')
             .select()
             .eq('is_active', true)
-            .order('match_percent', ascending: false)
             .limit(limit);
 
         rows = categoryKey == 'random'
@@ -160,16 +145,15 @@ class DestinationRepository {
                   .select()
                   .eq('is_active', true)
                   .eq('category', categoryKey)
-                  .order('match_percent', ascending: false)
                   .limit(limit);
       }
 
-      return List.generate(rows.length, (index) {
-        return DestinationSuggestion.fromSupabase(
-          Map<String, dynamic>.from(rows[index]),
-          isTopMatch: index == 0,
-        );
-      });
+      return rows
+          .map((row) => DestinationSuggestion.fromSupabase(
+                Map<String, dynamic>.from(row),
+              ))
+          .where((item) => item.imageUrl.isNotEmpty)
+          .toList();
     } catch (e) {
       return [];
     }
@@ -225,6 +209,19 @@ class DestinationRepository {
         );
     return _client.storage.from('destination-media').getPublicUrl(path);
   }
+}
+
+/// Converts curated Explore query rows without assigning a featured rank.
+List<DestinationSuggestion> featuredSuggestionsFromRows(List<dynamic> rows) {
+  return rows
+      .map((row) => Map<String, dynamic>.from(row))
+      .map((row) => row['destinations'])
+      .whereType<Map>()
+      .map((destination) => DestinationSuggestion.fromSupabase(
+            Map<String, dynamic>.from(destination),
+          ))
+      .where((item) => item.imageUrl.isNotEmpty)
+      .toList();
 }
 
 DestinationDetail destinationDetailFromRow(Map<String, dynamic> row) {

@@ -12,7 +12,6 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/account_menu_button.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
-import 'package:voyz/utils/destination_rating_calculator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
@@ -402,7 +401,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final dest = _destinations[index];
       return _DestinationCard(
         destination: dest,
-        isTopMatch: dest.isTopMatch,
         onTap: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
@@ -454,12 +452,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
 class _DestinationCard extends StatelessWidget {
   const _DestinationCard({
     required this.destination,
-    required this.isTopMatch,
     required this.onTap,
   });
 
   final DestinationSuggestion destination;
-  final bool isTopMatch;
   final VoidCallback onTap;
 
   @override
@@ -470,12 +466,7 @@ class _DestinationCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: isTopMatch
-              ? Border.all(
-                  color: const Color(0xFF7C3AED).withValues(alpha: 0.5),
-                  width: 1.5,
-                )
-              : Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: Column(
           children: [
@@ -504,79 +495,6 @@ class _DestinationCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [Colors.transparent, Color(0xCC0D0A16)],
                           ),
-                        ),
-                      ),
-                    ),
-
-                    // Top match badge
-                    if (isTopMatch)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF7C3AED), Color(0xFF2563EB)],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.local_fire_department,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                AppLocalizations.of(context)!.hot,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Trending score
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.trending_up,
-                              size: 14,
-                              color: Color(0xFF22C55E),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${destination.matchPercent}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -613,62 +531,22 @@ class _DestinationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Rating and price row
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        size: 16,
-                        color: Color(0xFFFBBF24),
-                      ),
-                      const SizedBox(width: 4),
-                      if (destination.reviewCount > 0) ...[
-                        Text(
-                          destination.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Flexible(
-                          child: Text(
-                            ' (${DestinationRatingCalculator.formatVotes(destination.reviewCount)})',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ] else
-                        Flexible(
-                          child: Text(
-                            DestinationRatingCalculator.formatVotes(0),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      const Spacer(),
-                      CurrencyAmountText(
-                        destination.price,
-                        style: const TextStyle(
-                          color: Color(0xFF818CF8),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                        originalStyle: const TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 10,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ],
+                  CurrencyAmountText(
+                    destination.price,
+                    style: const TextStyle(
+                      color: Color(0xFF818CF8),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    originalStyle: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ước tính AI tại điểm đến · 1 người · không gồm vé/xe',
+                    style: TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                   const SizedBox(height: 8),
 

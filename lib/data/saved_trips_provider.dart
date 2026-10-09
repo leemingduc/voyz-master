@@ -454,36 +454,8 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
 
   Future<void> updateWorkspace(SavedItem updated) => _upsertItem(updated);
 
-  Future<void> toggleChecklistItem(SavedItem item, int index) {
-    if (index < 0 || index >= item.checklist.length) return Future.value();
-    final checklist = List<WorkspaceChecklistItem>.of(item.checklist);
-    final current = checklist[index];
-    checklist[index] = WorkspaceChecklistItem(
-      text: current.text,
-      isDone: !current.isDone,
-    );
-    return updateWorkspace(item.copyWith(checklist: checklist));
-  }
-
   Future<void> updateWorkspaceNotes(SavedItem item, String notes) =>
       updateWorkspace(item.copyWith(workspaceNotes: notes));
-
-  Future<void> addBookingRef(SavedItem item, String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return Future.value();
-    return updateWorkspace(
-      item.copyWith(bookingRefs: [...item.bookingRefs, trimmed]),
-    );
-  }
-
-  Future<void> addSharedPerson(SavedItem item, String value) async {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return;
-    await updateWorkspace(
-      item.copyWith(sharedWith: [...item.sharedWith, trimmed]),
-    );
-    await _syncCollaboratorToCloud(item, trimmed);
-  }
 
   Future<void> removeSavedItem(SavedItem item) async {
     final userId = _userId;
@@ -540,23 +512,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     await _box?.put(item.id, item.toMap());
   }
 
-  Future<void> _syncCollaboratorToCloud(
-    SavedItem item,
-    String emailOrName,
-  ) async {
-    final userId = _userId;
-    final email = emailOrName.trim().toLowerCase();
-    if (userId == 'anonymous' || !email.contains('@')) return;
-    await SupabaseService.instance.client.from('trip_collaborators').upsert({
-      'trip_id': item.id,
-      'owner_id': userId,
-      'collaborator_email': email,
-      'role': 'editor',
-      'status': 'pending',
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }, onConflict: 'trip_id,collaborator_email');
-  }
-
   // ── Mapping row Supabase <-> SavedItem ─────────────────────────────────
 
   Map<String, dynamic> _rowFromItem(SavedItem item, String userId) => {
@@ -573,8 +528,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     'trip_data': item.tripData?.toMap(),
     'checklist': item.checklist.map((e) => e.toMap()).toList(),
     'workspace_notes': item.workspaceNotes,
-    'booking_refs': item.bookingRefs,
-    'shared_with': item.sharedWith,
     'saved_at': item.savedAt.toUtc().toIso8601String(),
     'updated_at': DateTime.now().toUtc().toIso8601String(),
   };
@@ -602,8 +555,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
                 .toList()
           : null,
       workspaceNotes: map['workspace_notes']?.toString() ?? '',
-      bookingRefs: TripData.stringList(map['booking_refs']),
-      sharedWith: TripData.stringList(map['shared_with']),
     );
   }
 
