@@ -110,6 +110,9 @@ class FriendMessage {
     this.type = FriendMessageType.text,
     this.deliveredAt,
     this.readAt,
+    this.replyToMessageId,
+    this.replyToBody,
+    this.replyToSenderId,
   });
 
   final String id;
@@ -120,6 +123,9 @@ class FriendMessage {
   final FriendMessageType type;
   final DateTime? deliveredAt;
   final DateTime? readAt;
+  final String? replyToMessageId;
+  final String? replyToBody;
+  final String? replyToSenderId;
 
   /// A read message has necessarily reached the recipient too.
   bool get isDelivered => deliveredAt != null || readAt != null;
@@ -142,7 +148,15 @@ class FriendMessage {
         map['delivered_at']?.toString() ?? '',
       )?.toLocal(),
       readAt: DateTime.tryParse(map['read_at']?.toString() ?? '')?.toLocal(),
+      replyToMessageId: _nullableString(map['reply_to_message_id']),
+      replyToBody: _nullableString(map['reply_to_body']),
+      replyToSenderId: _nullableString(map['reply_to_sender_id']),
     );
+  }
+
+  static String? _nullableString(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 }
 
@@ -592,14 +606,26 @@ class FriendsService {
     });
   }
 
-  Future<void> sendMessage(String friendshipId, String body) async {
+  Future<void> sendMessage(
+    String friendshipId,
+    String body, {
+    FriendMessage? replyTo,
+  }) async {
     final trimmed = body.trim();
     if (trimmed.isEmpty) return;
+    if (replyTo != null && replyTo.friendshipId != friendshipId) {
+      throw ArgumentError('Reply message must belong to this conversation.');
+    }
     await _guardSchema(() async {
       await _client.from('friend_messages').insert({
         'friendship_id': friendshipId,
         'sender_id': currentUserId,
         'body': trimmed,
+        if (replyTo != null) ...{
+          'reply_to_message_id': replyTo.id,
+          'reply_to_body': replyTo.body,
+          'reply_to_sender_id': replyTo.senderId,
+        },
       });
     });
   }
