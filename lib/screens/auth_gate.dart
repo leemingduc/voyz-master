@@ -8,6 +8,7 @@ import 'package:voyz/screens/splash_screen.dart';
 import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/services/supabase_service.dart';
 import 'package:voyz/services/friend_message_notification_service.dart';
+import 'package:voyz/services/user_presence_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, this.showSplash = true});
@@ -44,12 +45,14 @@ class _AuthGateState extends State<AuthGate> {
     if (SupabaseService.instance.auth.currentSession == null) {
       FriendMessageNotificationSettings.instance.clearUser();
       await FriendMessageNotificationService.instance.stop();
+      UserPresenceService.instance.stop();
       return;
     }
     final userId = SupabaseService.instance.auth.currentUser?.id;
     if (userId == null) return;
     await FriendMessageNotificationSettings.instance.loadForUser(userId);
     await FriendMessageNotificationService.instance.start();
+    await UserPresenceService.instance.start();
   }
 
   @override

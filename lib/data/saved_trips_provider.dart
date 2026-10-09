@@ -32,6 +32,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   static const _itineraryPrefix = '__itinerary_';
   static const _plannerMessagesKey = '__planner_messages';
   static const _plannerConversationsKey = '__planner_conversations';
+  static const _plannerHistoryBoxPrefix = 'planner_conversation_history_';
   static const _oldBoxNames = ['saved_trip_workspaces', 'storage_migrations'];
 
   TripData _currentTrip = TripData();
@@ -41,8 +42,14 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   List<PlannerConversation> _plannerConversations = const [];
   String? _activePlannerConversationId;
   Box<Map>? _box;
+  Box<Map>? _plannerHistoryBox;
   StreamSubscription? _authSubscription;
   final Set<String> _deletedOldBoxes = {};
+  // Planner messages can be saved by the reply, the image enrichment and a
+  // new user prompt at nearly the same time. Keep the whole state/write
+  // sequence ordered so an older async write cannot replace a newer history
+  // after the app is reopened.
+  Future<void> _plannerWriteQueue = Future<void>.value();
   Future<void>? _inFlightLoad;
   String? _inFlightLoadUserId;
   bool _isLoading = true;
@@ -127,11 +134,36 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   Future<void> _loadInternal(String userId) async {
     await _deleteOldBoxesOnce(userId);
     final box = await Hive.openBox<Map>('$_boxPrefix$userId');
+    final plannerHistoryBox = await Hive.openBox<Map>(
+      '$_plannerHistoryBoxPrefix$userId',
+    );
     if (!mounted || userId != _userId) return; // user đổi trong lúc mở box
     _box = box;
+    _plannerHistoryBox = plannerHistoryBox;
     _readFromHive(box);
+    final hasDedicatedPlannerHistory = _readPlannerHistoryFromHive(
+      plannerHistoryBox,
+    );
+    final migratedLegacyPlannerHistory =
+        !hasDedicatedPlannerHistory && _plannerConversations.isNotEmpty;
+    if (migratedLegacyPlannerHistory) {
+      await _writePlannerConversations();
+    }
     if (userId == 'anonymous') return;
     try {
+      final cloudPlannerHistory = await _loadCloudPlannerHistory(userId);
+      if (!mounted || userId != _userId) return;
+      if (cloudPlannerHistory != null) {
+        setState(() {
+          _plannerConversations = cloudPlannerHistory.conversations;
+          _activePlannerConversationId = cloudPlannerHistory.activeId;
+        });
+        await _writePlannerConversations();
+      } else if (migratedLegacyPlannerHistory) {
+        // Preserve conversations created before the cloud table existed.
+        await _saveCloudPlannerHistory();
+      }
+
       final client = SupabaseService.instance.client;
       final tripRows = await client
           .from('saved_trips')
@@ -233,7 +265,7 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     return rawMessages
         .whereType<Map>()
         .map(PlannerMessage.fromMap)
-        .where((message) => message.text.isNotEmpty)
+        .where((message) => message.text.isNotEmpty || message.turn != null)
         .toList();
   }
 
@@ -275,7 +307,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   ) async {
     final keep = <String>{
       _currentTripKey,
-      if (_plannerConversations.isNotEmpty) _plannerConversationsKey,
       ...items.map((item) => item.id),
       ...plans.keys.map((tripId) => '$_itineraryPrefix$tripId'),
     };
@@ -288,7 +319,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
     for (final plan in plans.values) {
       await box.put('$_itineraryPrefix${plan.tripId}', plan.toMap());
     }
-    await _writePlannerConversations(box);
   }
 
   Future<void> _deleteOldBoxesOnce(String userId) async {
@@ -309,62 +339,70 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
   }
 
   Future<void> updatePlannerMessages(Iterable<PlannerMessage> messages) async {
-    // The planner can be used as soon as the first screen is visible, while
-    // this provider may still be opening its Hive box. Wait for that initial
-    // load before changing the in-memory history, then write the exact turn
-    // that was supplied by the screen.
-    await _ensurePlannerStorage();
-    final updated = List<PlannerMessage>.of(messages);
-    if (updated.isEmpty) return;
-    final active = _activePlannerConversation;
-    final conversation = active == null
-        ? PlannerConversation(messages: updated)
-        : active.copyWith(messages: updated, updatedAt: DateTime.now());
-    setState(() {
-      _plannerConversations = [
-        conversation,
-        ..._plannerConversations.where((item) => item.id != conversation.id),
-      ];
-      _activePlannerConversationId = conversation.id;
+    return _enqueuePlannerWrite(() async {
+      // The planner can be used as soon as the first screen is visible, while
+      // this provider may still be opening its Hive box. Wait for that initial
+      // load before changing the in-memory history, then write the exact turn
+      // that was supplied by the screen.
+      await _ensurePlannerStorage();
+      final updated = List<PlannerMessage>.of(messages);
+      if (updated.isEmpty) return;
+      final active = _activePlannerConversation;
+      final conversation = active == null
+          ? PlannerConversation(messages: updated)
+          : active.copyWith(messages: updated, updatedAt: DateTime.now());
+      setState(() {
+        _plannerConversations = [
+          conversation,
+          ..._plannerConversations.where((item) => item.id != conversation.id),
+        ];
+        _activePlannerConversationId = conversation.id;
+      });
+      await _persistPlannerConversations();
     });
-    await _persistPlannerConversations();
   }
 
   /// Starts a blank conversation while preserving every previous one.
   Future<void> startNewPlannerConversation() async {
-    await _ensurePlannerStorage();
-    if (_activePlannerConversationId == null) return;
-    setState(() => _activePlannerConversationId = null);
-    await _persistPlannerConversations();
+    return _enqueuePlannerWrite(() async {
+      await _ensurePlannerStorage();
+      if (_activePlannerConversationId == null) return;
+      setState(() => _activePlannerConversationId = null);
+      await _persistPlannerConversations();
+    });
   }
 
   Future<List<PlannerMessage>> openPlannerConversation(String id) async {
-    await _ensurePlannerStorage();
-    final conversation = _plannerConversations.where((item) => item.id == id);
-    if (conversation.isEmpty) return const [];
-    final selected = conversation.first;
-    setState(() {
-      _activePlannerConversationId = selected.id;
-      _plannerConversations = [
-        selected.copyWith(updatedAt: DateTime.now()),
-        ..._plannerConversations.where((item) => item.id != selected.id),
-      ];
+    return _enqueuePlannerWrite(() async {
+      await _ensurePlannerStorage();
+      final conversation = _plannerConversations.where((item) => item.id == id);
+      if (conversation.isEmpty) return const [];
+      final selected = conversation.first;
+      setState(() {
+        _activePlannerConversationId = selected.id;
+        _plannerConversations = [
+          selected.copyWith(updatedAt: DateTime.now()),
+          ..._plannerConversations.where((item) => item.id != selected.id),
+        ];
+      });
+      await _persistPlannerConversations();
+      return plannerMessages;
     });
-    await _persistPlannerConversations();
-    return plannerMessages;
   }
 
   Future<void> deletePlannerConversation(String id) async {
-    await _ensurePlannerStorage();
-    setState(() {
-      _plannerConversations = _plannerConversations
-          .where((conversation) => conversation.id != id)
-          .toList();
-      if (_activePlannerConversationId == id) {
-        _activePlannerConversationId = null;
-      }
+    return _enqueuePlannerWrite(() async {
+      await _ensurePlannerStorage();
+      setState(() {
+        _plannerConversations = _plannerConversations
+            .where((conversation) => conversation.id != id)
+            .toList();
+        if (_activePlannerConversationId == id) {
+          _activePlannerConversationId = null;
+        }
+      });
+      await _persistPlannerConversations();
     });
-    await _persistPlannerConversations();
   }
 
   /// Kept for older callers: clear only the active conversation.
@@ -376,20 +414,90 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
 
   Future<void> _persistPlannerConversations() async {
     await _ensurePlannerStorage();
-    final box = _box;
-    if (box == null) return;
-    await _writePlannerConversations(box);
+    if (_plannerHistoryBox == null) return;
+    await _writePlannerConversations();
+    await _saveCloudPlannerHistory();
+  }
+
+  Future<({List<PlannerConversation> conversations, String activeId})?>
+  _loadCloudPlannerHistory(String userId) async {
+    try {
+      final row = await SupabaseService.instance.client
+          .from('planner_conversation_histories')
+          .select('history')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final history = row?['history'];
+      if (history is! Map) return null;
+      final parsed = _plannerConversationsFromMap(history);
+      final activeId = parsed.conversations.any(
+        (conversation) => conversation.id == parsed.activeId,
+      )
+          ? parsed.activeId
+          : '';
+      return (conversations: parsed.conversations, activeId: activeId);
+    } catch (error) {
+      debugPrint('Planner cloud history load skipped: $error');
+      return null;
+    }
+  }
+
+  Future<void> _saveCloudPlannerHistory() async {
+    final userId = _userId;
+    if (userId == 'anonymous') return;
+    try {
+      await SupabaseService.instance.client
+          .from('planner_conversation_histories')
+          .upsert({
+            'user_id': userId,
+            'history': {
+              'activeId': _activePlannerConversationId,
+              'conversations': _plannerConversations
+                  .map((conversation) => conversation.toMap())
+                  .toList(),
+            },
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'user_id');
+    } catch (error) {
+      debugPrint('Planner cloud history save skipped: $error');
+    }
+  }
+
+  Future<T> _enqueuePlannerWrite<T>(Future<T> Function() operation) {
+    final result = _plannerWriteQueue.then((_) => operation());
+    // A failed disk write must not prevent the following update from being
+    // persisted. The caller still receives the original error.
+    _plannerWriteQueue = result.then<void>((_) {}, onError: (_, _) {});
+    return result;
   }
 
   Future<void> _ensurePlannerStorage() async {
-    if (_box != null) return;
+    if (_box != null && _plannerHistoryBox != null) return;
     await load();
   }
 
-  Future<void> _writePlannerConversations(Box<Map> box) async {
+  bool _readPlannerHistoryFromHive(Box<Map> box) {
+    final stored = box.get(_plannerConversationsKey);
+    if (stored is! Map) return false;
+    final history = _plannerConversationsFromMap(stored);
+    final activeId = history.conversations.any(
+      (conversation) => conversation.id == history.activeId,
+    )
+        ? history.activeId
+        : null;
+    if (!mounted) return true;
+    setState(() {
+      _plannerConversations = history.conversations;
+      _activePlannerConversationId = activeId;
+    });
+    return true;
+  }
+
+  Future<void> _writePlannerConversations() async {
+    final box = _plannerHistoryBox;
+    if (box == null) return;
     if (_plannerConversations.isEmpty) {
       await box.delete(_plannerConversationsKey);
-      await box.delete(_plannerMessagesKey);
       return;
     }
     await box.put(_plannerConversationsKey, {
@@ -398,7 +506,6 @@ class SavedTripsProviderState extends State<SavedTripsProvider> {
           .map((conversation) => conversation.toMap())
           .toList(),
     });
-    await box.delete(_plannerMessagesKey);
   }
 
   // ── Ghi: cloud trước, thành công mới đổi state và Hive ─────────────────

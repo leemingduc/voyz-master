@@ -192,7 +192,9 @@ class PlannerConversation {
           ? rawMessages
                 .whereType<Map>()
                 .map(PlannerMessage.fromMap)
-                .where((message) => message.text.isNotEmpty)
+                .where(
+                  (message) => message.text.isNotEmpty || message.turn != null,
+                )
                 .toList()
           : const [],
       createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? ''),
@@ -224,9 +226,14 @@ TripData tripForOption(
     ...userMessages.map((m) => m.trim()).where((m) => m.isNotEmpty),
     chosen,
   ];
+  final start =
+      turn.trip.departDate ?? DateTime.now().add(const Duration(days: 1));
+  final departDate = DateTime(start.year, start.month, start.day);
   return turn.trip.copyWith(
     destination: option.destination,
     numDays: option.numDays,
+    departDate: departDate,
+    returnDate: departDate.add(Duration(days: option.numDays - 1)),
     aiPrompt: lines.join('\n'),
   );
 }
