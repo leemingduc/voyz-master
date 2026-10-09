@@ -33,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
   List<ChatConversation> _conversations = const [];
   String? _activeConversationId;
+  bool _isLoadingHistory = true;
   bool _isSending = false;
 
   @override
@@ -42,19 +43,37 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await ChatHistoryService.instance.loadConversations(
-      destinationName: widget.destinationName,
-    );
+    ChatConversationHistory history;
+    try {
+      history = await ChatHistoryService.instance.loadConversations(
+        destinationName: widget.destinationName,
+      );
+    } catch (error) {
+      debugPrint('Chat history load skipped: $error');
+      history = const ChatConversationHistory(conversations: []);
+    }
     if (!mounted) return;
     setState(() {
       _conversations = history.conversations;
-      // Opening AI Chatbot always starts a fresh conversation. Older threads
-      // remain available from the history menu and are only loaded when the
-      // user explicitly selects one.
-      _activeConversationId = null;
-      _messages
-        ..clear()
-        ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
+      final activeId = history.activeConversationId;
+      final activeConversation = activeId != null
+          ? history.conversations
+                .where((conversation) => conversation.id == activeId)
+                .firstOrNull
+          : null;
+      if (activeConversation != null &&
+          activeConversation.messages.isNotEmpty) {
+        _activeConversationId = activeId;
+        _messages
+          ..clear()
+          ..addAll(activeConversation.messages);
+      } else {
+        _activeConversationId = null;
+        _messages
+          ..clear()
+          ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
+      }
+      _isLoadingHistory = false;
     });
   }
 
@@ -80,6 +99,11 @@ class _ChatScreenState extends State<ChatScreen> {
         ..clear()
         ..add(ChatMessage.ai(l10n.chatWelcome));
     });
+    unawaited(
+      ChatHistoryService.instance.startNewConversation(
+        destinationName: widget.destinationName,
+      ),
+    );
   }
 
   Future<void> _openConversation(String id) async {
@@ -152,7 +176,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _isSending) return;
+    if (text.isEmpty || _isSending || _isLoadingHistory) return;
     final languageCode = LocaleProvider.of(context).value.languageCode;
 
     setState(() {
@@ -214,7 +238,8 @@ class _ChatScreenState extends State<ChatScreen> {
         if (action.target.isNotEmpty) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => DestinationDetailScreen(destinationName: action.target),
+              builder: (_) =>
+                  DestinationDetailScreen(destinationName: action.target),
             ),
           );
         }
@@ -247,7 +272,8 @@ class _ChatScreenState extends State<ChatScreen> {
         if (action.target.isNotEmpty) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => DestinationDetailScreen(destinationName: action.target),
+              builder: (_) =>
+                  DestinationDetailScreen(destinationName: action.target),
             ),
           );
         }
@@ -311,7 +337,9 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             tooltip: AppLocalizations.of(context)!.plannerConversationHistory,
             icon: const Icon(Icons.more_vert),
-            onPressed: _isSending ? null : _showConversationMenu,
+            onPressed: _isSending || _isLoadingHistory
+                ? null
+                : _showConversationMenu,
           ),
         ],
       ),
@@ -398,7 +426,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                     textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
+                    onSubmitted: _isLoadingHistory
+                        ? null
+                        : (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -409,7 +439,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _isSending ? null : _sendMessage,
+                    onPressed: _isSending || _isLoadingHistory
+                        ? null
+                        : _sendMessage,
                   ),
                 ),
               ],
@@ -561,7 +593,9 @@ class _ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -596,7 +630,10 @@ class _ChatBubble extends StatelessWidget {
                     onTap: () => onActionPressed?.call(action),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         gradient: AppTheme.brandGradient,
                         borderRadius: BorderRadius.circular(12),
@@ -611,10 +648,16 @@ class _ChatBubble extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.rocket_launch, color: Colors.white, size: 16),
+                          const Icon(
+                            Icons.rocket_launch,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                           const SizedBox(width: 6),
                           Text(
-                            action.label.isNotEmpty ? action.label : 'Thực hiện ngay',
+                            action.label.isNotEmpty
+                                ? action.label
+                                : 'Thực hiện ngay',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -622,7 +665,11 @@ class _ChatBubble extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.chevron_right, color: Colors.white, size: 16),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ],
                       ),
                     ),

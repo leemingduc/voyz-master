@@ -107,6 +107,8 @@ void main() {
       ]);
       expect(trip.destination, 'Côn Đảo, Việt Nam');
       expect(trip.numDays, 4);
+      expect(trip.departDate, isNotNull);
+      expect(trip.returnDate, trip.departDate!.add(const Duration(days: 3)));
       expect(trip.participants, '2');
       expect(
         trip.aiPrompt,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:voyz/models/chat_message.dart';
@@ -28,17 +30,44 @@ class ChatHistoryService {
     final stored = box.get(key);
     if (stored is Map) return _historyFromMap(stored);
 
-    final legacy = await _loadLocal();
-    if (legacy.isEmpty) {
-      return const ChatConversationHistory(conversations: []);
+    // A Flutter web debug run may use a new browser profile, so Hive can be
+    // empty even though this account already has conversations. Restore the
+    // cloud copy before falling back to the legacy single-thread cache.
+    final cloudHistory = await _loadCloudConversationHistory(destinationName);
+    if (cloudHistory != null) {
+      await _saveConversationHistory(box, key, cloudHistory);
+      return cloudHistory;
     }
-    final conversation = ChatConversation(messages: legacy);
-    final history = ChatConversationHistory(
-      conversations: [conversation],
-      activeConversationId: conversation.id,
-    );
-    await _saveConversationHistory(box, key, history);
-    return history;
+
+    final legacy = await _loadLocal();
+    if (legacy.isNotEmpty) {
+      final conversation = ChatConversation(messages: legacy);
+      final history = ChatConversationHistory(
+        conversations: [conversation],
+        activeConversationId: conversation.id,
+      );
+      await _saveConversationHistory(box, key, history);
+      return history;
+    }
+
+    if (_userId != 'anonymous') {
+      try {
+        final cloudMessages = await load(destinationName: destinationName);
+        if (cloudMessages.isNotEmpty) {
+          final conversation = ChatConversation(messages: cloudMessages);
+          final history = ChatConversationHistory(
+            conversations: [conversation],
+            activeConversationId: conversation.id,
+          );
+          await _saveConversationHistory(box, key, history);
+          return history;
+        }
+      } catch (error) {
+        debugPrint('Chat cloud fallback load skipped: $error');
+      }
+    }
+
+    return const ChatConversationHistory(conversations: []);
   }
 
   Future<ChatConversationHistory> saveConversation(
@@ -69,6 +98,23 @@ class ChatHistoryService {
       activeConversationId: conversation.id,
     );
     await _saveConversationHistory(box, key, updated);
+    await _saveCloudConversationHistory(destinationName, updated);
+    return updated;
+  });
+
+  Future<ChatConversationHistory> startNewConversation({
+    String? destinationName,
+  }) => _enqueueConversationWrite(() async {
+    final box = await _openConversationsBox();
+    final key = _conversationKey(destinationName);
+    final current = await loadConversations(destinationName: destinationName);
+    if (current.activeConversationId == null) return current;
+    final updated = ChatConversationHistory(
+      conversations: current.conversations,
+      activeConversationId: null,
+    );
+    await _saveConversationHistory(box, key, updated);
+    await _saveCloudConversationHistory(destinationName, updated);
     return updated;
   });
 
@@ -87,6 +133,7 @@ class ChatHistoryService {
       activeConversationId: id,
     );
     await _saveConversationHistory(box, key, updated);
+    await _saveCloudConversationHistory(destinationName, updated);
     return updated;
   });
 
@@ -107,6 +154,7 @@ class ChatHistoryService {
           : current.activeConversationId,
     );
     await _saveConversationHistory(box, key, updated);
+    await _saveCloudConversationHistory(destinationName, updated);
     return updated;
   });
 
@@ -284,17 +332,57 @@ class ChatHistoryService {
     Box<Map> box,
     String key,
     ChatConversationHistory history,
-  ) => box.put(key, {
+  ) => box.put(key, _historyToMap(history));
+
+  Future<ChatConversationHistory?> _loadCloudConversationHistory(
+    String? destinationName,
+  ) async {
+    if (_userId == 'anonymous') return null;
+    try {
+      final row = await SupabaseService.instance.client
+          .from('ai_chat_conversation_histories')
+          .select('history')
+          .eq('user_id', _userId)
+          .eq('destination_name', _conversationKey(destinationName))
+          .maybeSingle();
+      final history = row?['history'];
+      return history is Map ? _historyFromMap(history) : null;
+    } catch (error) {
+      debugPrint('Chat cloud history load skipped: $error');
+      return null;
+    }
+  }
+
+  Future<void> _saveCloudConversationHistory(
+    String? destinationName,
+    ChatConversationHistory history,
+  ) async {
+    if (_userId == 'anonymous') return;
+    try {
+      await SupabaseService.instance.client
+          .from('ai_chat_conversation_histories')
+          .upsert({
+            'user_id': _userId,
+            'destination_name': _conversationKey(destinationName),
+            'history': _historyToMap(history),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'user_id,destination_name');
+    } catch (error) {
+      debugPrint('Chat cloud history save skipped: $error');
+    }
+  }
+
+  Map<String, dynamic> _historyToMap(ChatConversationHistory history) => {
     'activeId': history.activeConversationId,
     'conversations': history.conversations
         .map((conversation) => conversation.toMap())
         .toList(),
-  });
+  };
 
   String get _userId {
     try {
       return SupabaseService.instance.auth.currentUser?.id ?? 'anonymous';
-    } on AssertionError {
+    } catch (_) {
       return 'anonymous';
     }
   }

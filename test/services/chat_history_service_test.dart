@@ -68,4 +68,22 @@ void main() {
       expect(reloaded.conversations, hasLength(2));
     },
   );
+
+  test('startNewConversation resets activeConversationId while keeping saved conversations', () async {
+    const destination = '__new_chat_test__';
+    final service = ChatHistoryService.instance;
+    await service.saveConversation([
+      ChatMessage.user('First message'),
+      ChatMessage.ai('First reply'),
+    ], destinationName: destination);
+
+    final beforeNew = await service.loadConversations(destinationName: destination);
+    expect(beforeNew.activeConversationId, isNotNull);
+    expect(beforeNew.conversations, hasLength(1));
+
+    await service.startNewConversation(destinationName: destination);
+    final afterNew = await service.loadConversations(destinationName: destination);
+    expect(afterNew.activeConversationId, isNull);
+    expect(afterNew.conversations, hasLength(1));
+  });
 }

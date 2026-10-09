@@ -16,20 +16,66 @@ class SocialProfile {
     required this.email,
     required this.displayName,
     this.avatarUrl,
+    this.lastActiveAt,
   });
 
   final String userId;
   final String email;
   final String displayName;
   final String? avatarUrl;
+  final DateTime? lastActiveAt;
+
+  /// Returns true if the user has been active within [threshold] (default 3 minutes).
+  bool isCurrentlyActive({DateTime? now, Duration threshold = const Duration(minutes: 3)}) {
+    if (lastActiveAt == null) return false;
+    final current = now ?? DateTime.now();
+    final difference = current.difference(lastActiveAt!);
+    return !difference.isNegative && difference <= threshold;
+  }
+
+  /// Formats the last active timestamp into a human-readable string.
+  /// When active: "Đang hoạt động"
+  /// When < 1 min: "Vừa mới truy cập"
+  /// When < 60 min: "Hoạt động X phút trước"
+  /// When < 24 hrs: "Hoạt động X giờ trước"
+  /// When < 7 days: "Hoạt động X ngày trước"
+  /// Otherwise: "Hoạt động dd/MM"
+  String formatLastActiveText({DateTime? now, String activeText = 'Đang hoạt động'}) {
+    if (lastActiveAt == null) return 'Không hoạt động';
+    final current = now ?? DateTime.now();
+    final difference = current.difference(lastActiveAt!);
+    if (difference.isNegative || difference.inMinutes < 3) {
+      return activeText;
+    }
+    final minutes = difference.inMinutes;
+    if (minutes < 60) {
+      return 'Hoạt động $minutes phút trước';
+    }
+    final hours = difference.inHours;
+    if (hours < 24) {
+      return 'Hoạt động $hours giờ trước';
+    }
+    final days = difference.inDays;
+    if (days == 1) {
+      return 'Hoạt động hôm qua';
+    }
+    if (days < 7) {
+      return 'Hoạt động $days ngày trước';
+    }
+    final day = lastActiveAt!.day.toString().padLeft(2, '0');
+    final month = lastActiveAt!.month.toString().padLeft(2, '0');
+    return 'Hoạt động $day/$month';
+  }
 
   factory SocialProfile.fromMap(Map<String, dynamic> map) {
     final avatar = map['avatar_url']?.toString() ?? '';
+    final lastActiveRaw = map['last_active_at'] ?? map['updated_at'];
     return SocialProfile(
       userId: map['user_id']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
       displayName: map['display_name']?.toString() ?? '',
       avatarUrl: avatar.isEmpty ? null : avatar,
+      lastActiveAt: DateTime.tryParse(lastActiveRaw?.toString() ?? '')?.toLocal(),
     );
   }
 }
@@ -158,18 +204,91 @@ class FriendsService {
     final displayName = (metadata['display_name'] ?? metadata['username'] ?? '')
         .toString();
     final avatarUrl = metadata['avatar_url']?.toString();
+    final nowIso = DateTime.now().toUtc().toIso8601String();
 
     await _guardSchema(() async {
-      await _client.from('social_profiles').upsert({
-        'user_id': user.id,
-        'email': user.email ?? '',
-        'display_name': displayName.isEmpty
-            ? (user.email ?? 'Traveler')
-            : displayName,
-        'avatar_url': avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id');
+      try {
+        await _client.from('social_profiles').upsert({
+          'user_id': user.id,
+          'email': user.email ?? '',
+          'display_name': displayName.isEmpty
+              ? (user.email ?? 'Traveler')
+              : displayName,
+          'avatar_url': avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
+          'updated_at': nowIso,
+          'last_active_at': nowIso,
+        }, onConflict: 'user_id');
+      } on PostgrestException catch (error) {
+        // If last_active_at column has not been added to remote Supabase yet,
+        // fall back to updating updated_at.
+        if (error.code == '42703' ||
+            error.code == 'PGRST204' ||
+            error.message.contains('last_active_at')) {
+          await _client.from('social_profiles').upsert({
+            'user_id': user.id,
+            'email': user.email ?? '',
+            'display_name': displayName.isEmpty
+                ? (user.email ?? 'Traveler')
+                : displayName,
+            'avatar_url':
+                avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
+            'updated_at': nowIso,
+          }, onConflict: 'user_id');
+        } else {
+          rethrow;
+        }
+      }
     });
+  }
+
+  /// Updates the current user's last_active_at timestamp in social_profiles.
+  Future<void> updateLastActive() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _guardSchema(() async {
+      try {
+        await _client.from('social_profiles').update({
+          'last_active_at': nowIso,
+          'updated_at': nowIso,
+        }).eq('user_id', user.id);
+      } on PostgrestException catch (error) {
+        if (error.code == '42703' ||
+            error.code == 'PGRST204' ||
+            error.message.contains('last_active_at')) {
+          await _client.from('social_profiles').update({
+            'updated_at': nowIso,
+          }).eq('user_id', user.id);
+        } else {
+          rethrow;
+        }
+      }
+    });
+  }
+
+  /// Fetches the profile of a single user.
+  Future<SocialProfile?> getProfile(String userId) async {
+    return _guardSchema(() async {
+      final row = await _client
+          .from('social_profiles')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (row == null) return null;
+      return SocialProfile.fromMap(Map<String, dynamic>.from(row));
+    });
+  }
+
+  /// Realtime stream of a user's social profile.
+  Stream<SocialProfile?> streamProfile(String userId) {
+    return _client
+        .from('social_profiles')
+        .stream(primaryKey: ['user_id'])
+        .eq('user_id', userId)
+        .map((rows) {
+          if (rows.isEmpty) return null;
+          return SocialProfile.fromMap(Map<String, dynamic>.from(rows.first));
+        });
   }
 
   Future<List<SocialProfile>> searchProfiles(String query) async {

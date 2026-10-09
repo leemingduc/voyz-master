@@ -482,6 +482,70 @@ Please let me know if you need anything else!
     });
   });
 
+  group('normalizePlanTurnDates', () {
+    final service = GeminiService.instance;
+
+    const option = TripOption(
+      title: 'Lich bien',
+      destination: 'Da Nang, Viet Nam',
+      numDays: 4,
+      stops: ['My Khe'],
+      imageStop: 'My Khe',
+      price: '',
+      aiInsight: '',
+    );
+
+    test(
+      'uses the next day and option duration when an offered trip has no dates',
+      () {
+        final normalized = service.normalizePlanTurnDates(
+          PlanTurn(reply: 'r', trip: TripData(numDays: 4), options: [option]),
+          DateTime(2026, 10, 9),
+        );
+
+        expect(normalized.trip.departDate, DateTime(2026, 10, 10));
+        expect(normalized.trip.returnDate, DateTime(2026, 10, 13));
+        expect(normalized.trip.dayCount(), 4);
+      },
+    );
+
+    test('keeps dates explicitly provided by the traveler', () {
+      final normalized = service.normalizePlanTurnDates(
+        PlanTurn(
+          reply: 'r',
+          trip: TripData(
+            departDate: DateTime(2026, 11, 3),
+            returnDate: DateTime(2026, 11, 6),
+            numDays: 4,
+          ),
+          options: const [option],
+        ),
+        DateTime(2026, 10, 9),
+      );
+
+      expect(normalized.trip.departDate, DateTime(2026, 11, 3));
+      expect(normalized.trip.returnDate, DateTime(2026, 11, 6));
+    });
+
+    test('keeps an explicitly supplied date range unchanged', () {
+      final normalized = service.normalizePlanTurnDates(
+        PlanTurn(
+          reply: 'r',
+          trip: TripData(
+            departDate: DateTime(2026, 10, 1),
+            returnDate: DateTime(2026, 10, 4),
+            numDays: 4,
+          ),
+          options: const [option],
+        ),
+        DateTime(2026, 10, 9),
+      );
+
+      expect(normalized.trip.departDate, DateTime(2026, 10, 1));
+      expect(normalized.trip.returnDate, DateTime(2026, 10, 4));
+    });
+  });
+
   group('questionsSinceLastOptions', () {
     PlannerMessage ask() =>
         PlannerMessage.agent(PlanTurn(reply: 'q', trip: TripData()));

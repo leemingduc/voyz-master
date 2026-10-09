@@ -253,7 +253,7 @@ class GeminiService {
     );
     final text = (await model.generateContent([Content.text(prompt)])).text;
     if (text == null || text.isEmpty) throw Exception('noAiResponse');
-    return parsePlanTurn(text);
+    return normalizePlanTurnDates(parsePlanTurn(text), DateTime.now());
   }
 
   /// Số lượt AI hỏi thêm kể từ lượt gần nhất có phương án.
@@ -296,7 +296,7 @@ Nhiệm vụ: trả lời lượt tiếp theo bằng JSON theo schema, gồm "re
 
 Quy tắc:
 - "trip" chứa mọi thông tin đã biết từ cả hội thoại. Không bỏ giá trị người dùng đã nêu. Không có thì để null.
-- Độ dài chuyến: người dùng nêu ngày đi và ngày về thì điền "departDate" và "returnDate" (yyyy-MM-dd, tính từ hôm nay nếu nói "tuần sau"). Người dùng nêu thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần") thì điền "numDays" (1 tuần là 7, cuối tuần là 2).
+- Độ dài chuyến: người dùng nêu ngày đi và ngày về thì điền "departDate" và "returnDate" (yyyy-MM-dd, tính từ hôm nay nếu nói "tuần sau"). Người dùng nêu thời lượng ("4 ngày 3 đêm", "1 tuần", "cuối tuần") thì điền "numDays" (1 tuần là 7, cuối tuần là 2). Khi đưa phương án mà chưa có ngày cụ thể, đặt departDate là ngày mai và returnDate theo đúng numDays. Không tự chọn ngày trong quá khứ.
 - Cần đủ hai thứ mới đưa phương án: điểm đến (hoặc kiểu chuyến như "đi biển") và độ dài chuyến. Thiếu thì hỏi đúng 1 câu ngắn trong "reply" và để "options" là mảng rỗng. Đủ thì đưa phương án ngay, không hỏi thêm.
 - Mỗi lượt chỉ hỏi đúng MỘT điều còn thiếu (ưu tiên độ dài chuyến), không gộp hai câu hỏi làm một. Ngân sách, số người và sở thích không bắt buộc: không hỏi, tự giả định.$forceRule
 - Khi đưa phương án: đúng 3 phần tử trong "options"; "reply" là 1 câu giới thiệu ngắn.
@@ -341,6 +341,36 @@ Quy tắc:
       trip: trip,
       options: options,
       raw: text.trim(),
+    );
+  }
+
+  /// Một phương án phải luôn mang theo khoảng ngày cụ thể để màn chi tiết
+  /// không rơi về trạng thái "Linh hoạt". Nếu người dùng chưa nêu ngày,
+  /// chuyến đi mặc định khởi hành vào ngày mai. Khoảng ngày người dùng nêu
+  /// luôn được giữ nguyên để thời tiết và lịch trình bám đúng yêu cầu.
+  @visibleForTesting
+  PlanTurn normalizePlanTurnDates(PlanTurn turn, DateTime today) {
+    if (!turn.hasOptions) return turn;
+
+    final trip = turn.trip;
+    final days = (trip.numDays ?? turn.options.first.numDays).clamp(1, 7);
+    final nextDay = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).add(const Duration(days: 1));
+    final requestedStart = trip.departDate;
+    final start = requestedStart ?? nextDay;
+    final expectedEnd = start.add(Duration(days: days - 1));
+    final end = trip.returnDate == null || trip.returnDate!.isBefore(start)
+        ? expectedEnd
+        : trip.returnDate!;
+
+    return PlanTurn(
+      reply: turn.reply,
+      trip: trip.copyWith(departDate: start, returnDate: end, numDays: days),
+      options: turn.options,
+      raw: turn.raw,
     );
   }
 
@@ -653,7 +683,13 @@ Quy tắc:
     // Check cache
     if (!forceRefresh) {
       final cached = _aiCache.get(cacheKey);
-      if (cached != null) return _parseDetail(cached, destinationName);
+      if (cached != null) {
+        return _parseDetail(
+          cached,
+          destinationName,
+          dateRange: _tripDateRange(trip),
+        );
+      }
     }
 
     // Cache miss — call Gemini API
@@ -667,7 +703,7 @@ Quy tắc:
     // Save to cache
     await _aiCache.put(cacheKey, text);
 
-    return _parseDetail(text, destinationName);
+    return _parseDetail(text, destinationName, dateRange: _tripDateRange(trip));
   }
 
   /// Landmark AI đặt tên thường không có trang Wikipedia riêng. Ô nào rỗng
@@ -693,10 +729,12 @@ Quy tắc:
   /// Parse raw JSON text into a DestinationDetail with image and photo gallery.
   Future<DestinationDetail> _parseDetail(
     String text,
-    String destinationName,
-  ) async {
+    String destinationName, {
+    required String dateRange,
+  }) async {
     final Map<String, dynamic> json =
         safeJsonDecode(text) as Map<String, dynamic>;
+    if (dateRange != 'Linh hoạt') json['dateRange'] = dateRange;
     final name = json['name'] as String? ?? destinationName;
     final imageUrl = await ImageService.instance.getImageUrl(name);
 
@@ -730,9 +768,7 @@ Quy tắc:
   ) {
     final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
 
-    final dateInfo = trip.departDate != null && trip.returnDate != null
-        ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'Linh hoạt';
+    final dateInfo = _tripDateRange(trip);
 
     final tripDescription = hasTripDescription
         ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
@@ -779,7 +815,9 @@ Quy tắc:
 - budgetBreakdown: Phân chia chi phí thực tế thành 4 nhóm (Transport - Đi lại, Stay - Lưu trú, Food - Ăn uống, Activities - Vui chơi/Tham quan). Tổng 4 khoản tiền phải bằng đúng totalBudget, và tổng fraction = 1.0.
 - icon chỉ dùng: flight, hotel, restaurant, kayaking
 - tags: 4 thẻ ngắn gọn, đặc trưng nhất cho điểm đến, có kèm emoji.
-- weather: Dự báo thời tiết thực tế theo mùa của điểm đến.
+- dateRange: Giữ chính xác khoảng ngày ở phần "Thời gian dự kiến"; không tự đổi ngày.
+- weather: Mô tả thời tiết dự kiến phù hợp với đúng khoảng ngày ở trên và
+  mùa thực tế tại điểm đến; không dùng thời tiết của một mùa khác.
 - Mọi trường tiền tệ phải ghi số tiền kèm mã ${trip.currency}.
 - CHỈ trả về JSON object, KHÔNG thêm markdown hay text khác.$dateRule
 - $langInst
@@ -820,6 +858,7 @@ Quy tắc:
         try {
           final Map<String, dynamic> json =
               safeJsonDecode(cached) as Map<String, dynamic>;
+          _applyTripDateRange(json, trip);
           return ItineraryPlan.fromJson(json);
         } catch (e) {
           // Cache entry is corrupt or outdated — discard and re-generate.
@@ -850,6 +889,7 @@ Quy tắc:
     try {
       final Map<String, dynamic> json =
           safeJsonDecode(text) as Map<String, dynamic>;
+      _applyTripDateRange(json, trip);
       return ItineraryPlan.fromJson(json);
     } catch (e, stackTrace) {
       debugPrint('=== JSON Parse Error ===');
@@ -872,9 +912,7 @@ Quy tắc:
   ) {
     final hasTripDescription = trip.aiPrompt.trim().isNotEmpty;
 
-    final dateInfo = trip.departDate != null && trip.returnDate != null
-        ? '${_formatDateShort(trip.departDate!)} - ${_formatDateShort(trip.returnDate!)}'
-        : 'Linh hoạt';
+    final dateInfo = _tripDateRange(trip);
 
     final tripDescription = hasTripDescription
         ? '\nMô tả chuyến đi của người dùng: ${trip.aiPrompt.trim()}'
@@ -1389,6 +1427,21 @@ Quy tắc:
       'DEC',
     ];
     return '${months[date.month - 1]} ${date.day}';
+  }
+
+  String _formatDateWithYear(DateTime date) =>
+      '${_formatDateShort(date)}, ${date.year}';
+
+  String _tripDateRange(TripData trip) {
+    if (trip.departDate == null || trip.returnDate == null) {
+      return 'Linh hoạt';
+    }
+    return '${_formatDateWithYear(trip.departDate!)} - ${_formatDateWithYear(trip.returnDate!)}';
+  }
+
+  void _applyTripDateRange(Map<String, dynamic> json, TripData trip) {
+    final dateRange = _tripDateRange(trip);
+    if (dateRange != 'Linh hoạt') json['dateRange'] = dateRange;
   }
 
   /// Safely decodes JSON from AI response, removing any markdown code block wrappers

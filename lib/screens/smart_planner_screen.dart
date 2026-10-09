@@ -43,6 +43,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   List<String> _profileInterests = const [];
 
   final List<PlannerMessage> _messages = [];
+  bool _isRestoringHistory = true;
   bool _isSending = false;
   Object? _error;
 
@@ -81,11 +82,17 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 
   Future<void> _restoreSavedMessages() async {
     final provider = SavedTripsProvider.of(context);
-    await provider.load();
-    if (!mounted || _messages.isNotEmpty) return;
+    try {
+      await provider.load();
+    } catch (error) {
+      debugPrint('Planner history load skipped: $error');
+    }
+    if (!mounted) return;
     final savedMessages = provider.plannerMessages;
-    if (savedMessages.isEmpty) return;
-    setState(() => _messages.addAll(savedMessages));
+    setState(() {
+      if (_messages.isEmpty) _messages.addAll(savedMessages);
+      _isRestoringHistory = false;
+    });
     _loadMissingImages(savedMessages);
   }
 
@@ -145,7 +152,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   /// Gửi tin nhắn đang gõ. "Gợi ý luôn" được bấm khi ô trống: không thêm
   /// tin mới, chỉ bắt AI đưa phương án.
   Future<void> _send({bool forceOptions = false}) async {
-    if (_isSending) return;
+    if (_isSending || _isRestoringHistory) return;
     final text = _promptController.text.trim();
     if (text.isEmpty && !(forceOptions && _inChat)) {
       if (!_inChat) _showPromptRequired();
@@ -418,13 +425,17 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             children: [
               IconButton(
                 tooltip: l10n.plannerSuggestionHistory,
-                onPressed: _isSending ? null : _showConversationMenu,
+                onPressed: _isSending || _isRestoringHistory
+                    ? null
+                    : _showConversationMenu,
                 icon: const Icon(Icons.more_vert, color: Colors.white),
               ),
               if (_inChat)
                 IconButton(
                   tooltip: l10n.goBack,
-                  onPressed: _isSending ? null : _newChat,
+                  onPressed: _isSending || _isRestoringHistory
+                      ? null
+                      : _newChat,
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
               const AccountMenuButton(),
@@ -508,10 +519,12 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             maxLines: 3,
             actionLabel: _isSending ? l10n.analyzingTrip : l10n.plannerSend,
             actionIcon: Icons.send,
-            onAction: _isSending ? null : _send,
+            onAction: _isSending || _isRestoringHistory ? null : _send,
             secondaryLabel: l10n.suggestNow,
             secondaryIcon: Icons.auto_awesome_outlined,
-            onSecondary: _isSending ? null : () => _send(forceOptions: true),
+            onSecondary: _isSending || _isRestoringHistory
+                ? null
+                : () => _send(forceOptions: true),
           ),
         ),
       ),
@@ -584,7 +597,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       ),
       actionLabel: _isSending ? l10n.analyzingTrip : l10n.getAiSuggestions,
       actionIcon: Icons.auto_awesome,
-      onAction: _isSending ? null : _send,
+      onAction: _isSending || _isRestoringHistory ? null : _send,
       secondaryLabel: l10n.explore,
       secondaryIcon: Icons.explore_outlined,
       onSecondary: () {
