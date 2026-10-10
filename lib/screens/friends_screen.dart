@@ -798,8 +798,6 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   RealtimeChannel? _themeBroadcastChannel;
   bool _isSending = false;
   bool _showEmojiPicker = false;
-  // IDs of locally recalled messages — guards against stream restoring deleted rows
-  final Set<String> _recalledIds = {};
   final Set<String> _hiddenMessageIds = {};
   DateTime? _clearedAt;
   String? _messageWithVisibleOptionsId;
@@ -983,7 +981,6 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           .listen(
             (messages) {
               if (!mounted) return;
-              // Filter out any messages recalled locally to prevent stream from restoring them
               final filtered = messages.where(_isVisibleMessage).toList();
               setState(() => _messages = filtered);
               FriendMessageNotificationService.instance.markRead(
@@ -1025,7 +1022,6 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         widget.friendship.id,
       );
       if (!mounted) return;
-      // Filter out any locally recalled messages (guards against server race conditions)
       final filtered = messages.where(_isVisibleMessage).toList();
       setState(() => _messages = filtered);
       FriendMessageNotificationService.instance.markRead(widget.friendship.id);
@@ -1044,8 +1040,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
   bool _isVisibleMessage(FriendMessage message) {
     final clearedAt = _clearedAt;
-    return !_recalledIds.contains(message.id) &&
-        !_hiddenMessageIds.contains(message.id) &&
+    return !_hiddenMessageIds.contains(message.id) &&
         (clearedAt == null || message.createdAt.isAfter(clearedAt));
   }
 
@@ -1066,6 +1061,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       }
       if (mounted) setState(() => _replyingTo = null);
       await _loadMessages(silent: true);
+    } catch (error) {
+      if (mounted) _showMessage(error.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -1242,20 +1239,13 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   }
 
   Future<void> _recallForEveryone(FriendMessage message) async {
-    // Optimistic update: hide immediately in UI
-    setState(() {
-      _recalledIds.add(message.id);
-      _messages.removeWhere((m) => m.id == message.id);
-    });
     try {
-      await FriendsService.instance.deleteMessage(message.id);
+      await FriendsService.instance.recallMessage(message.id);
       if (!mounted) return;
+      await _loadMessages(silent: true);
       _showMessage('Đã thu hồi tin nhắn cho cả hai bên');
     } catch (error) {
       if (!mounted) return;
-      // Revert optimistic update on failure — message was not deleted on server
-      setState(() => _recalledIds.remove(message.id));
-      await _loadMessages(silent: true);
       _showMessage(error.toString(), isError: true);
     }
   }
@@ -1443,7 +1433,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                                   _DateChip(
                                     label: _formatDateHeader(message.createdAt),
                                   ),
-                                if (message.isSystem)
+                                if (message.isSystem && !message.isRecalled)
                                   _SystemChatEvent(
                                     message: message,
                                     accentColor: _chatTheme.accentColor,
@@ -1468,12 +1458,19 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                                     accentColor: _chatTheme.accentColor,
                                     replyAuthor: replyAuthor,
                                     showOptions:
+                                        !message.isRecalled &&
                                         _messageWithVisibleOptionsId ==
-                                        message.id,
-                                    onTap: () =>
-                                        _toggleMessageOptions(message.id),
-                                    onOptionsPressed: () =>
-                                        _showOptionsSheet(message, isMine),
+                                            message.id,
+                                    onTap: message.isRecalled
+                                        ? null
+                                        : () =>
+                                              _toggleMessageOptions(message.id),
+                                    onOptionsPressed: message.isRecalled
+                                        ? null
+                                        : () => _showOptionsSheet(
+                                            message,
+                                            isMine,
+                                          ),
                                   ),
                               ],
                             );
@@ -1843,6 +1840,10 @@ class _ChatMessageBubble extends StatelessWidget {
   }
 
   Widget _buildNormalBubble(BuildContext context) {
+    final isRecalled = message.isRecalled;
+    final textColor = isRecalled
+        ? Colors.white.withValues(alpha: 0.9)
+        : (isMine ? myBubbleTextColor : theirBubbleTextColor);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1867,9 +1868,11 @@ class _ChatMessageBubble extends StatelessWidget {
                   vertical: 11,
                 ),
                 decoration: BoxDecoration(
-                  gradient: isMine ? myBubbleGradient : null,
-                  color: isMine ? null : theirBubbleColor,
-                  boxShadow: isMine
+                  gradient: isMine && !isRecalled ? myBubbleGradient : null,
+                  color: isRecalled
+                      ? const Color(0xFF64748B)
+                      : (isMine ? null : theirBubbleColor),
+                  boxShadow: isMine && !isRecalled
                       ? [
                           BoxShadow(
                             color: accentColor.withValues(alpha: 0.25),
@@ -1878,9 +1881,13 @@ class _ChatMessageBubble extends StatelessWidget {
                           ),
                         ]
                       : null,
-                  border: isMine
-                      ? null
-                      : Border.all(color: accentColor.withValues(alpha: 0.15)),
+                  border: isRecalled
+                      ? Border.all(color: Colors.white.withValues(alpha: 0.16))
+                      : (isMine
+                            ? null
+                            : Border.all(
+                                color: accentColor.withValues(alpha: 0.15),
+                              )),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -1896,9 +1903,7 @@ class _ChatMessageBubble extends StatelessWidget {
                       _ReplyQuote(
                         author: replyAuthor,
                         body: message.replyToBody!,
-                        color: isMine
-                            ? myBubbleTextColor
-                            : theirBubbleTextColor,
+                        color: textColor,
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -1919,11 +1924,7 @@ class _ChatMessageBubble extends StatelessWidget {
                         Text(
                           timeString,
                           style: TextStyle(
-                            color:
-                                (isMine
-                                        ? myBubbleTextColor
-                                        : theirBubbleTextColor)
-                                    .withValues(alpha: 0.65),
+                            color: textColor.withValues(alpha: 0.65),
                             fontSize: 11,
                           ),
                         ),
@@ -1936,7 +1937,7 @@ class _ChatMessageBubble extends StatelessWidget {
                             size: 14,
                             color: message.isRead
                                 ? AppTheme.cyan
-                                : myBubbleTextColor.withValues(alpha: 0.7),
+                                : textColor.withValues(alpha: 0.7),
                           ),
                           if (showDeliveryStatus) ...[
                             const SizedBox(width: 3),

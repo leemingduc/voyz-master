@@ -29,6 +29,34 @@ void main() {
     expect(message.isSystem, isFalse);
   });
 
+  test('parses a recalled message as a shared recall event', () {
+    final message = FriendMessage.fromMap({
+      'id': 'message-3',
+      'friendship_id': 'friendship-1',
+      'sender_id': 'user-1',
+      'body': 'Tin nhắn đã được thu hồi',
+      'message_type': 'system',
+      'recalled_at': '2026-10-10T10:00:00.000Z',
+      'created_at': '2026-10-09T10:00:00.000Z',
+    });
+
+    expect(message.isRecalled, isTrue);
+    expect(message.isSystem, isTrue);
+  });
+
+  test('recognizes a recalled message when realtime omits recalled_at', () {
+    final message = FriendMessage.fromMap({
+      'id': 'message-4',
+      'friendship_id': 'friendship-1',
+      'sender_id': 'user-1',
+      'body': FriendMessage.recalledBody,
+      'message_type': 'system',
+      'created_at': '2026-10-10T10:00:00.000Z',
+    });
+
+    expect(message.isRecalled, isTrue);
+  });
+
   test('parses the quoted message attached to a reply', () {
     final message = FriendMessage.fromMap({
       'id': 'message-2',
