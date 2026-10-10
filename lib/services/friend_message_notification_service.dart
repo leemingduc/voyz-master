@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:voyz/data/friend_message_notification_settings.dart';
 import 'package:voyz/services/friends_service.dart';
+import 'package:voyz/utils/destination_share.dart';
 
 /// An incoming message that can be presented by the app shell.
 class FriendMessageAlert {
@@ -144,6 +145,25 @@ class FriendMessageNotificationService {
         markRead(friendship.id);
       } else {
         _updateUnreadCount(friendship.id, unreadCount);
+      }
+      FriendMessage? pendingDestinationShare;
+      for (final message in existing.reversed) {
+        if (message.senderId != currentUserId &&
+            !message.isRecalled &&
+            !message.isRead &&
+            destinationNameFromShareMessage(message.body) != null) {
+          pendingDestinationShare = message;
+          break;
+        }
+      }
+      if (pendingDestinationShare != null &&
+          FriendMessageNotificationSettings.instance.isEnabled(friendship.id)) {
+        _alerts.add(
+          FriendMessageAlert(
+            friendship: friendship,
+            message: pendingDestinationShare,
+          ),
+        );
       }
       _subscriptions[friendship.id] = FriendsService.instance
           .streamMessages(friendship.id)
