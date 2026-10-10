@@ -2,28 +2,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/models/ai_action.dart';
 
 void main() {
-  group('AiAction Tests', () {
-    test('fromJson parses navigateDestination action correctly', () {
-      final json = {
-        'type': 'navigateDestination',
-        'target': 'Phú Quốc',
-        'label': 'Mở trang Phú Quốc',
-        'parameters': {'numDays': 3},
-      };
-
-      final action = AiAction.fromJson(json);
-      expect(action.type, equals(AiActionType.navigateDestination));
-      expect(action.target, equals('Phú Quốc'));
-      expect(action.label, equals('Mở trang Phú Quốc'));
-      expect(action.parameters?['numDays'], equals(3));
+  group('background music chatbot command', () {
+    test('uses a state-setting action instead of a toggle action', () {
+      final action = AiActionType.fromString('setBackgroundMusic');
+      expect(action, AiActionType.setBackgroundMusic);
+      expect(action.toFormattedString(), 'setBackgroundMusic');
     });
 
-    test('fromJson handles invalid or missing fields gracefully', () {
-      final json = <String, dynamic>{};
-      final action = AiAction.fromJson(json);
-      expect(action.type, equals(AiActionType.navigateScreen));
-      expect(action.target, equals(''));
-      expect(action.label, equals(''));
+    test('recognises explicit on and off commands without toggling', () {
+      expect(AiAction.backgroundMusicEnabled('on'), isTrue);
+      expect(AiAction.backgroundMusicEnabled('off'), isFalse);
+      expect(AiAction.backgroundMusicEnabled('b\u1eadt'), isTrue);
+      expect(AiAction.backgroundMusicEnabled('t\u1eaft'), isFalse);
+      expect(AiAction.backgroundMusicEnabled(''), isNull);
+      expect(AiAction.backgroundMusicEnabled('toggle'), isNull);
+    });
+    test('creates both music actions directly from a user prompt', () {
+      final on = AiAction.backgroundMusicActionForPrompt(
+        'b\u1eadt nh\u1ea1c n\u1ec1n',
+      );
+      final off = AiAction.backgroundMusicActionForPrompt(
+        't\u1eaft nh\u1ea1c n\u1ec1n',
+      );
+
+      expect(on?.type, AiActionType.setBackgroundMusic);
+      expect(on?.target, 'on');
+      expect(off?.type, AiActionType.setBackgroundMusic);
+      expect(off?.target, 'off');
     });
   });
 }
