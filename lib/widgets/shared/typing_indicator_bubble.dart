@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:voyz/theme/app_theme.dart';
 
-/// Hiệu ứng gõ chữ 3 chấm nảy (Messenger style typing indicator) của AI.
+/// Hiệu ứng gõ chữ 3 chấm nảy theo kiểu Messenger.
 class TypingIndicatorBubble extends StatefulWidget {
-  const TypingIndicatorBubble({super.key, this.label});
+  const TypingIndicatorBubble({
+    super.key,
+    this.label,
+    this.leading,
+    this.bubbleColor,
+    this.dotColor,
+  });
 
   final String? label;
+  final Widget? leading;
+  final Color? bubbleColor;
+  final Color? dotColor;
 
   @override
   State<TypingIndicatorBubble> createState() => _TypingIndicatorBubbleState();
@@ -38,32 +47,31 @@ class _TypingIndicatorBubbleState extends State<TypingIndicatorBubble>
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              gradient: AppTheme.brandGradient,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.auto_awesome,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
+          widget.leading ??
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.brandGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceDark,
+              color: widget.bubbleColor ?? AppTheme.surfaceDark,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
                 bottomLeft: Radius.circular(4),
                 bottomRight: Radius.circular(16),
               ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -112,7 +120,9 @@ class _TypingIndicatorBubbleState extends State<TypingIndicatorBubble>
             width: 7,
             height: 7,
             decoration: BoxDecoration(
-              color: AppTheme.primaryPink.withValues(alpha: 0.85),
+              color: (widget.dotColor ?? AppTheme.primaryPink).withValues(
+                alpha: 0.85,
+              ),
               shape: BoxShape.circle,
             ),
           ),

@@ -3,13 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
 
 void main() {
-  testWidgets('TypingIndicatorBubble renders AI avatar and 3 dots', (tester) async {
+  testWidgets('TypingIndicatorBubble renders AI avatar and 3 dots', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: TypingIndicatorBubble(),
-        ),
-      ),
+      const MaterialApp(home: Scaffold(body: TypingIndicatorBubble())),
     );
 
     // Verify AI sparkle icon exists
@@ -23,7 +21,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   });
 
-  testWidgets('TypingIndicatorBubble renders label when provided', (tester) async {
+  testWidgets('TypingIndicatorBubble renders label when provided', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -34,4 +34,24 @@ void main() {
 
     expect(find.text('AI đang soạn câu trả lời...'), findsOneWidget);
   });
+
+  testWidgets(
+    'TypingIndicatorBubble supports a friend avatar and chat colors',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: TypingIndicatorBubble(
+            leading: Icon(Icons.person),
+            bubbleColor: Colors.blueGrey,
+            dotColor: Colors.cyan,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.person), findsOneWidget);
+      expect(find.byIcon(Icons.auto_awesome), findsNothing);
+    },
+  );
 }

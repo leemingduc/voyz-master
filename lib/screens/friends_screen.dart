@@ -23,6 +23,7 @@ import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/aivivu_wordmark.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
+import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -796,7 +797,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   StreamSubscription<List<FriendMessage>>? _streamSub;
   StreamSubscription<FriendChatTheme?>? _themeStreamSub;
   RealtimeChannel? _themeBroadcastChannel;
+  RealtimeChannel? _typingBroadcastChannel;
+  Timer? _typingIdleTimer;
+  Timer? _friendTypingTimer;
   bool _isSending = false;
+  bool _isTyping = false;
+  bool _isFriendTyping = false;
   bool _showEmojiPicker = false;
   final Set<String> _hiddenMessageIds = {};
   DateTime? _clearedAt;
@@ -826,6 +832,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     );
     _initializeMessages();
     _loadTheme();
+    _listenToTypingBroadcast();
   }
 
   Future<void> _initializeMessages() async {
@@ -925,6 +932,71 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     }
   }
 
+  void _listenToTypingBroadcast() {
+    try {
+      _typingBroadcastChannel = FriendsService.instance
+          .subscribeToTypingBroadcast(
+            friendshipId: widget.friendship.id,
+            onTypingChanged: (payload) {
+              final senderId = payload['sender_id']?.toString();
+              if (!mounted ||
+                  senderId == FriendsService.instance.currentUserId) {
+                return;
+              }
+              final isTyping = payload['is_typing'] == true;
+              _friendTypingTimer?.cancel();
+              if (_isFriendTyping != isTyping) {
+                setState(() => _isFriendTyping = isTyping);
+                _scrollToBottomAfterTypingIndicatorChange();
+              }
+              if (isTyping) {
+                _friendTypingTimer = Timer(const Duration(seconds: 3), () {
+                  if (!mounted) return;
+                  setState(() => _isFriendTyping = false);
+                  _scrollToBottomAfterTypingIndicatorChange();
+                });
+              }
+            },
+          );
+    } catch (error) {
+      debugPrint('Friend chat typing broadcast setup error: $error');
+    }
+  }
+
+  void _onMessageChanged(String value) {
+    final isTyping = value.trim().isNotEmpty;
+    _setTypingStatus(isTyping);
+    _typingIdleTimer?.cancel();
+    if (isTyping) {
+      _typingIdleTimer = Timer(const Duration(seconds: 2), () {
+        _setTypingStatus(false);
+      });
+    }
+  }
+
+  void _setTypingStatus(bool isTyping) {
+    if (_isTyping == isTyping) return;
+    _isTyping = isTyping;
+    final channel = _typingBroadcastChannel;
+    if (channel == null) return;
+    unawaited(_broadcastTypingStatus(channel, isTyping));
+  }
+
+  Future<void> _broadcastTypingStatus(
+    RealtimeChannel channel,
+    bool isTyping,
+  ) async {
+    try {
+      await FriendsService.instance.broadcastTypingStatus(
+        channel: channel,
+        senderId: FriendsService.instance.currentUserId,
+        isTyping: isTyping,
+      );
+    } catch (error) {
+      debugPrint('Friend chat typing broadcast error: $error');
+    }
+  }
+
   void _applyIncomingChatTheme({
     required String themeId,
     required String changedByUserId,
@@ -1006,9 +1078,15 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     );
     _streamSub?.cancel();
     _themeStreamSub?.cancel();
+    _typingIdleTimer?.cancel();
+    _friendTypingTimer?.cancel();
     final broadcastChannel = _themeBroadcastChannel;
     if (broadcastChannel != null) {
       FriendsService.instance.closeRealtimeChannel(broadcastChannel);
+    }
+    final typingChannel = _typingBroadcastChannel;
+    if (typingChannel != null) {
+      FriendsService.instance.closeRealtimeChannel(typingChannel);
     }
     _messageController.dispose();
     _messageFocusNode.dispose();
@@ -1048,6 +1126,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     final textToSend = customText ?? _messageController.text;
     final body = textToSend.trim();
     if (body.isEmpty || _isSending) return;
+    _typingIdleTimer?.cancel();
+    _setTypingStatus(false);
     final replyTo = _replyingTo;
     setState(() => _isSending = true);
     try {
@@ -1075,6 +1155,16 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOut,
     );
+  }
+
+  void _scrollToBottomAfterTypingIndicatorChange() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scrollToBottom();
+      Future<void>.delayed(const Duration(milliseconds: 220), () {
+        if (mounted) _scrollToBottom();
+      });
+    });
   }
 
   String _formatTime(DateTime dt) {
@@ -1387,95 +1477,134 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   onRemoveFriend: _removeFriend,
                 ),
                 Expanded(
-                  child: _messages.isEmpty
-                      ? _EmptyChatView(
-                          friend: friend,
-                          accentColor: _chatTheme.accentColor,
-                          bubbleGradient: _chatTheme.myBubbleGradient,
-                          onSendQuick: (text) => _send(text),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          itemCount: _messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _messages[index];
-                            final isMine = message.senderId == currentId;
-                            final replyAuthor =
-                                message.replyToSenderId == currentId
-                                ? 'B\u1ea1n'
-                                : (friend.displayName.isEmpty
-                                      ? friend.email
-                                      : friend.displayName);
-                            final isLastMessageFromMe =
-                                isMine &&
-                                !message.isSystem &&
-                                !_messages
-                                    .skip(index + 1)
-                                    .any(
-                                      (item) =>
-                                          !item.isSystem &&
-                                          item.senderId == currentId,
-                                    );
-                            final showDateHeader =
-                                index == 0 ||
-                                !_isSameDay(
-                                  _messages[index - 1].createdAt,
-                                  message.createdAt,
-                                );
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _messages.isEmpty
+                            ? _EmptyChatView(
+                                friend: friend,
+                                accentColor: _chatTheme.accentColor,
+                                bubbleGradient: _chatTheme.myBubbleGradient,
+                                onSendQuick: (text) => _send(text),
+                              )
+                            : ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                itemCount: _messages.length,
+                                itemBuilder: (context, index) {
+                                  final message = _messages[index];
+                                  final isMine = message.senderId == currentId;
+                                  final replyAuthor =
+                                      message.replyToSenderId == currentId
+                                      ? 'B\u1ea1n'
+                                      : (friend.displayName.isEmpty
+                                            ? friend.email
+                                            : friend.displayName);
+                                  final isLastMessageFromMe =
+                                      isMine &&
+                                      !message.isSystem &&
+                                      !_messages
+                                          .skip(index + 1)
+                                          .any(
+                                            (item) =>
+                                                !item.isSystem &&
+                                                item.senderId == currentId,
+                                          );
+                                  final showDateHeader =
+                                      index == 0 ||
+                                      !_isSameDay(
+                                        _messages[index - 1].createdAt,
+                                        message.createdAt,
+                                      );
 
-                            return Column(
-                              children: [
-                                if (showDateHeader)
-                                  _DateChip(
-                                    label: _formatDateHeader(message.createdAt),
-                                  ),
-                                if (message.isSystem && !message.isRecalled)
-                                  _SystemChatEvent(
-                                    message: message,
-                                    accentColor: _chatTheme.accentColor,
-                                  )
-                                else
-                                  _ChatMessageBubble(
-                                    message: message,
-                                    isMine: isMine,
-                                    showDeliveryStatus:
-                                        isLastMessageFromMe &&
-                                        message.isDelivered,
-                                    friend: friend,
-                                    timeString: _formatTime(message.createdAt),
-                                    myBubbleGradient:
-                                        _chatTheme.myBubbleGradient,
-                                    myBubbleTextColor:
-                                        _chatTheme.myBubbleTextColor,
-                                    theirBubbleColor:
-                                        _chatTheme.theirBubbleColor,
-                                    theirBubbleTextColor:
-                                        _chatTheme.theirBubbleTextColor,
-                                    accentColor: _chatTheme.accentColor,
-                                    replyAuthor: replyAuthor,
-                                    showOptions:
-                                        !message.isRecalled &&
-                                        _messageWithVisibleOptionsId ==
-                                            message.id,
-                                    onTap: message.isRecalled
-                                        ? null
-                                        : () =>
-                                              _toggleMessageOptions(message.id),
-                                    onOptionsPressed: message.isRecalled
-                                        ? null
-                                        : () => _showOptionsSheet(
-                                            message,
-                                            isMine,
+                                  return Column(
+                                    children: [
+                                      if (showDateHeader)
+                                        _DateChip(
+                                          label: _formatDateHeader(
+                                            message.createdAt,
                                           ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
+                                        ),
+                                      if (message.isSystem &&
+                                          !message.isRecalled)
+                                        _SystemChatEvent(
+                                          message: message,
+                                          accentColor: _chatTheme.accentColor,
+                                        )
+                                      else
+                                        _ChatMessageBubble(
+                                          message: message,
+                                          isMine: isMine,
+                                          showDeliveryStatus:
+                                              isLastMessageFromMe &&
+                                              message.isDelivered,
+                                          friend: friend,
+                                          timeString: _formatTime(
+                                            message.createdAt,
+                                          ),
+                                          myBubbleGradient:
+                                              _chatTheme.myBubbleGradient,
+                                          myBubbleTextColor:
+                                              _chatTheme.myBubbleTextColor,
+                                          theirBubbleColor:
+                                              _chatTheme.theirBubbleColor,
+                                          theirBubbleTextColor:
+                                              _chatTheme.theirBubbleTextColor,
+                                          accentColor: _chatTheme.accentColor,
+                                          replyAuthor: replyAuthor,
+                                          showOptions:
+                                              !message.isRecalled &&
+                                              _messageWithVisibleOptionsId ==
+                                                  message.id,
+                                          onTap: message.isRecalled
+                                              ? null
+                                              : () => _toggleMessageOptions(
+                                                  message.id,
+                                                ),
+                                          onOptionsPressed: message.isRecalled
+                                              ? null
+                                              : () => _showOptionsSheet(
+                                                  message,
+                                                  isMine,
+                                                ),
+                                        ),
+                                    ],
+                                  );
+                                },
+                              ),
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 180),
+                        child: _isFriendTyping
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_isFriendTyping)
+                                      TypingIndicatorBubble(
+                                        leading: ProfileAvatar(
+                                          avatarUrl: friend.avatarUrl,
+                                          radius: 16,
+                                        ),
+                                        label: 'Đang nhập...',
+                                        bubbleColor:
+                                            _chatTheme.theirBubbleColor,
+                                        dotColor: _chatTheme.accentColor,
+                                      ),
+                                  ],
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
                 ),
                 _ChatInputDock(
                   controller: _messageController,
@@ -1499,8 +1628,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                     _messageController.selection = TextSelection.fromPosition(
                       TextPosition(offset: _messageController.text.length),
                     );
+                    _onMessageChanged(_messageController.text);
                   },
                   onSend: () => _send(),
+                  onChanged: _onMessageChanged,
                 ),
               ],
             ),
@@ -2219,6 +2350,7 @@ class _ChatInputDock extends StatelessWidget {
     required this.onToggleEmoji,
     required this.onEmojiSelect,
     required this.onSend,
+    required this.onChanged,
     required this.accentColor,
     required this.sendGradient,
     required this.inputBarColor,
@@ -2235,6 +2367,7 @@ class _ChatInputDock extends StatelessWidget {
   final VoidCallback onToggleEmoji;
   final ValueChanged<String> onEmojiSelect;
   final VoidCallback onSend;
+  final ValueChanged<String> onChanged;
   final Color accentColor;
   final Gradient sendGradient;
   final Color inputBarColor;
@@ -2354,6 +2487,7 @@ class _ChatInputDock extends StatelessWidget {
                         borderSide: BorderSide(color: accentColor, width: 1.5),
                       ),
                     ),
+                    onChanged: onChanged,
                     onSubmitted: (_) => onSend(),
                   ),
                 ),
