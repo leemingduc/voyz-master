@@ -4,6 +4,7 @@ import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
+import 'package:voyz/widgets/shared/profile_avatar.dart';
 
 class ShareDestinationBottomSheet extends StatefulWidget {
   const ShareDestinationBottomSheet({
@@ -286,20 +287,9 @@ class _ShareDestinationBottomSheetState
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircleAvatar(
+                          ProfileAvatar(
+                            avatarUrl: friend.avatarUrl,
                             radius: 20,
-                            backgroundColor: AppTheme.primaryPink.withValues(
-                              alpha: 0.3,
-                            ),
-                            child: Text(
-                              friend.displayName.isNotEmpty
-                                  ? friend.displayName[0].toUpperCase()
-                                  : 'T',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(

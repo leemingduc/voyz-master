@@ -101,6 +101,8 @@ class Friendship {
 }
 
 class FriendMessage {
+  static const recalledBody = 'Tin nhắn đã được thu hồi';
+
   const FriendMessage({
     required this.id,
     required this.friendshipId,
@@ -113,6 +115,7 @@ class FriendMessage {
     this.replyToMessageId,
     this.replyToBody,
     this.replyToSenderId,
+    this.recalledAt,
   });
 
   final String id;
@@ -126,11 +129,13 @@ class FriendMessage {
   final String? replyToMessageId;
   final String? replyToBody;
   final String? replyToSenderId;
+  final DateTime? recalledAt;
 
   /// A read message has necessarily reached the recipient too.
   bool get isDelivered => deliveredAt != null || readAt != null;
   bool get isRead => readAt != null;
   bool get isSystem => type == FriendMessageType.system;
+  bool get isRecalled => recalledAt != null || body == recalledBody;
 
   factory FriendMessage.fromMap(Map<String, dynamic> map) {
     return FriendMessage(
@@ -151,6 +156,9 @@ class FriendMessage {
       replyToMessageId: _nullableString(map['reply_to_message_id']),
       replyToBody: _nullableString(map['reply_to_body']),
       replyToSenderId: _nullableString(map['reply_to_sender_id']),
+      recalledAt: DateTime.tryParse(
+        map['recalled_at']?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -650,20 +658,13 @@ class FriendsService {
     });
   }
 
-  Future<void> deleteMessage(String messageId) async {
-    final currentId = currentUserId;
+  /// Replaces a sent message with the shared recall event for both people.
+  Future<void> recallMessage(String messageId) async {
     await _guardSchema(() async {
-      final deleted = await _client
-          .from('friend_messages')
-          .delete()
-          .eq('id', messageId)
-          .eq('sender_id', currentId)
-          .select();
-      if (deleted.isEmpty) {
-        throw Exception(
-          'Không thể thu hồi tin nhắn. Bạn chỉ có thể thu hồi tin nhắn của chính mình.',
-        );
-      }
+      await _client.rpc(
+        'recall_friend_message',
+        params: {'p_message_id': messageId},
+      );
     });
   }
 

@@ -131,7 +131,10 @@ class FriendMessageNotificationService {
       _knownMessageIds[friendship.id] = existing.map((item) => item.id).toSet();
       final unreadCount = existing
           .where(
-            (message) => message.senderId != currentUserId && !message.isRead,
+            (message) =>
+                message.senderId != currentUserId &&
+                !message.isRead &&
+                !message.isRecalled,
           )
           .length;
       // Fetching this conversation means the signed-in recipient has received
@@ -171,10 +174,14 @@ class FriendMessageNotificationService {
     var hasUndeliveredIncomingMessage = false;
     for (final message in messages) {
       if (!known.add(message.id)) continue;
-      if (message.senderId != currentUserId && !message.isDelivered) {
+      if (message.senderId != currentUserId &&
+          !message.isRecalled &&
+          !message.isDelivered) {
         hasUndeliveredIncomingMessage = true;
       }
-      if (message.senderId != currentUserId && !message.isRead) {
+      if (message.senderId != currentUserId &&
+          !message.isRecalled &&
+          !message.isRead) {
         incoming.add(message);
       }
     }
@@ -183,7 +190,10 @@ class FriendMessageNotificationService {
     }
     final unreadCount = messages
         .where(
-          (message) => message.senderId != currentUserId && !message.isRead,
+          (message) =>
+              message.senderId != currentUserId &&
+              !message.isRead &&
+              !message.isRecalled,
         )
         .length;
     _updateUnreadCount(friendship.id, unreadCount);
