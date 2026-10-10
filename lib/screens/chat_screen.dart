@@ -151,10 +151,6 @@ class _ChatScreenState extends State<ChatScreen> {
       showDragHandle: true,
       builder: (sheetContext) => _ChatConversationSheet(
         conversations: _conversations,
-        onNewConversation: () {
-          Navigator.pop(sheetContext);
-          _newChat();
-        },
         onOpenConversation: (id) {
           Navigator.pop(sheetContext);
           unawaited(_openConversation(id));
@@ -335,8 +331,13 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: AppLocalizations.of(context)!.newPlannerChat,
+            icon: const Icon(Icons.add_comment_outlined),
+            onPressed: _isSending || _isLoadingHistory ? null : _newChat,
+          ),
+          IconButton(
             tooltip: AppLocalizations.of(context)!.plannerConversationHistory,
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.history_outlined),
             onPressed: _isSending || _isLoadingHistory
                 ? null
                 : _showConversationMenu,
@@ -457,13 +458,11 @@ class _ChatScreenState extends State<ChatScreen> {
 class _ChatConversationSheet extends StatelessWidget {
   const _ChatConversationSheet({
     required this.conversations,
-    required this.onNewConversation,
     required this.onOpenConversation,
     required this.onDeleteConversation,
   });
 
   final List<ChatConversation> conversations;
-  final VoidCallback onNewConversation;
   final ValueChanged<String> onOpenConversation;
   final ValueChanged<String> onDeleteConversation;
 
@@ -489,21 +488,6 @@ class _ChatConversationSheet extends StatelessWidget {
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.add_comment_outlined,
-                color: AppTheme.cyan,
-              ),
-              title: Text(
-                l10n.newPlannerChat,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              onTap: onNewConversation,
-            ),
-            const Divider(height: 1),
             if (conversations.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(24),
