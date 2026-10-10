@@ -589,6 +589,33 @@ class FriendsService {
     );
   }
 
+  /// Opens an ephemeral channel used to show the other participant's typing
+  /// state. This is intentionally not stored in the database.
+  RealtimeChannel subscribeToTypingBroadcast({
+    required String friendshipId,
+    required void Function(Map<String, dynamic> payload) onTypingChanged,
+  }) {
+    final channel = _client
+        .channel(
+          'friend-chat-typing-$friendshipId',
+          opts: const RealtimeChannelConfig(ack: true),
+        )
+        .onBroadcast(event: 'typing_changed', callback: onTypingChanged);
+    channel.subscribe();
+    return channel;
+  }
+
+  Future<void> broadcastTypingStatus({
+    required RealtimeChannel channel,
+    required String senderId,
+    required bool isTyping,
+  }) {
+    return channel.sendBroadcastMessage(
+      event: 'typing_changed',
+      payload: {'sender_id': senderId, 'is_typing': isTyping},
+    );
+  }
+
   Future<void> closeRealtimeChannel(RealtimeChannel channel) {
     return _client.removeChannel(channel);
   }
