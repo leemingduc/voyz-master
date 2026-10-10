@@ -2,6 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/services/supabase_service.dart';
 
+/// Returns a public reviewer name, or null when the profile still uses email.
+String? reviewerDisplayName({
+  required String displayName,
+  required String email,
+}) {
+  final name = displayName.trim();
+  final normalizedEmail = email.trim();
+  if (name.isEmpty || name.toLowerCase() == normalizedEmail.toLowerCase()) {
+    return null;
+  }
+  return name;
+}
+
 class CommunityReview {
   const CommunityReview({
     required this.id,
@@ -90,22 +103,25 @@ class CommunityReviewService {
     }).toList();
   }
 
-  /// Fetch display_name từ bảng profiles cho danh sách user_id.
-  /// Nếu bảng/cột không tồn tại, trả về map rỗng (không crash).
+  /// Fetch tên công khai từ social_profiles cho danh sách user_id.
+  /// Nếu tên vẫn là email, trả về rỗng để UI hiển thị Anonymous.
   Future<Map<String, String>> _fetchDisplayNames(
     List<String> userIds,
   ) async {
     if (userIds.isEmpty) return {};
     try {
       final rows = await _client
-          .from('profiles')
-          .select('user_id, display_name')
+          .from('social_profiles')
+          .select('user_id, email, display_name')
           .inFilter('user_id', userIds);
       final map = <String, String>{};
       for (final row in rows) {
         final uid = row['user_id']?.toString() ?? '';
-        final name = row['display_name']?.toString() ?? '';
-        if (uid.isNotEmpty && name.isNotEmpty) {
+        final name = reviewerDisplayName(
+          displayName: row['display_name']?.toString() ?? '',
+          email: row['email']?.toString() ?? '',
+        );
+        if (uid.isNotEmpty && name != null) {
           map[uid] = name;
         }
       }
