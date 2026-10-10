@@ -1733,58 +1733,103 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        GradientButton(
-          label: AppLocalizations.of(context)!.generateAiItinerary,
-          icon: Icons.auto_awesome,
-          height: 56,
-          onPressed: onGenerateItinerary,
+    final itineraryButton = GradientButton(
+      label: AppLocalizations.of(context)!.generateAiItinerary,
+      icon: Icons.auto_awesome,
+      height: 56,
+      onPressed: onGenerateItinerary,
+    );
+    final culturalTipsButton = GradientButton(
+      label: AppLocalizations.of(context)!.culturalTipsButton,
+      icon: Icons.theater_comedy,
+      height: 56,
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CulturalTipsScreen(destinationName: destinationName),
         ),
-        const SizedBox(height: 12),
-        _OutlineBtn(
-          label: AppLocalizations.of(context)!.contextBestTime,
-          icon: Icons.calendar_month,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  BestTimeScreen(initialDestination: destinationName),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 700) {
+          return Column(
+            children: [
+              itineraryButton,
+              const SizedBox(height: 12),
+              _bestTimeButton(context),
+              const SizedBox(height: 12),
+              culturalTipsButton,
+              const SizedBox(height: 12),
+              _OutlineBtn(
+                label: AppLocalizations.of(context)!.saveInfo,
+                icon: Icons.bookmark,
+                onPressed: onSaveInfo,
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(child: itineraryButton),
+                const SizedBox(width: 12),
+                Expanded(child: _bestTimeButton(context, height: 56)),
+              ],
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        GradientButton(
-          label: AppLocalizations.of(context)!.culturalTipsButton,
-          icon: Icons.theater_comedy,
-          height: 56,
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  CulturalTipsScreen(destinationName: destinationName),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: culturalTipsButton),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _OutlineBtn(
+                    label: AppLocalizations.of(context)!.saveInfo,
+                    icon: Icons.bookmark,
+                    height: 56,
+                    onPressed: onSaveInfo,
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
+        );
+      },
+    );
+  }
+
+  _OutlineBtn _bestTimeButton(BuildContext context, {double height = 48}) {
+    return _OutlineBtn(
+      label: AppLocalizations.of(context)!.contextBestTime,
+      icon: Icons.calendar_month,
+      height: height,
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BestTimeScreen(initialDestination: destinationName),
         ),
-        const SizedBox(height: 12),
-        _OutlineBtn(
-          label: AppLocalizations.of(context)!.saveInfo,
-          icon: Icons.bookmark,
-          onPressed: onSaveInfo,
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _OutlineBtn extends StatelessWidget {
-  const _OutlineBtn({required this.label, required this.icon, this.onPressed});
+  const _OutlineBtn({
+    required this.label,
+    required this.icon,
+    this.height = 48,
+    this.onPressed,
+  });
   final String label;
   final IconData icon;
+  final double height;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
+      height: height,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
