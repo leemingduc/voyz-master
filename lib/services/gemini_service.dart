@@ -1046,14 +1046,19 @@ Trả về JSON object với cấu trúc:
 
   /// Parses a chat response that may contain an optional JSON action block.
   ({String reply, AiAction? action}) parseChatActionResponse(String rawText) {
-    final jsonMatch = RegExp(r'```json\s*(\{[\s\S]*?\})\s*```').firstMatch(rawText);
+    final jsonMatch = RegExp(
+      r'```json\s*(\{[\s\S]*?\})\s*```',
+    ).firstMatch(rawText);
     if (jsonMatch == null) {
       return (reply: rawText.trim(), action: null);
     }
     final jsonString = jsonMatch.group(1);
     final replyText = rawText.replaceAll(jsonMatch.group(0)!, '').trim();
     if (jsonString == null) {
-      return (reply: replyText.isNotEmpty ? replyText : rawText.trim(), action: null);
+      return (
+        reply: replyText.isNotEmpty ? replyText : rawText.trim(),
+        action: null,
+      );
     }
 
     try {
@@ -1064,7 +1069,10 @@ Trả về JSON object với cấu trúc:
         return (reply: replyText, action: action);
       }
     } catch (_) {}
-    return (reply: replyText.isNotEmpty ? replyText : rawText.trim(), action: null);
+    return (
+      reply: replyText.isNotEmpty ? replyText : rawText.trim(),
+      action: null,
+    );
   }
 
   /// Send chat message to AI assistant and receive text reply + optional AiAction.
@@ -1080,15 +1088,15 @@ Trả về JSON object với cấu trúc:
     contents.add(
       Content.text(
         'You are a friendly AI travel assistant for VOYZ app. Help users plan trips, '
-        'discover destinations, answer travel questions, and perform actions on the app when asked. '
+        'discover destinations, answer travel questions, and perform actions on the app when asked. For explicit user requests, use action types updateLanguage (target: vi, en, or ko), updateDisplayName (target: exact name), updatePhoneNumber (target: exact phone), or saveDestination (target: destination only), and setBackgroundMusic (target: on or off). '
         'If the user asks to navigate to a destination (e.g. "Chuyển tới Phú Quốc", "Mở Phú Quốc"), '
         'or open an app screen (e.g. "Mở trang đã lưu", "Khám phá", "Xem bạn bè", "Lên kế hoạch"), '
         'include an action JSON block at the end of your message in this exact format:\n'
         '```json\n'
         '{\n'
         '  "action": {\n'
-        '    "type": "navigateDestination" or "navigateScreen",\n'
-        '    "target": "destination name or screen name (saved, explore, friends, planner)",\n'
+        '    "type": "navigateDestination", "navigateScreen", "updateLanguage", "updateDisplayName", "updatePhoneNumber", "saveDestination", or "setBackgroundMusic",\n'
+        '    "target": "destination name; screen name (saved, explore, friends, planner); profile value; or music state (on, off)",\n'
         '    "label": "Button label in Vietnamese, e.g. Mở trang Phú Quốc"\n'
         '  }\n'
         '}\n'
