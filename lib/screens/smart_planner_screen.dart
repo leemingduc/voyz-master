@@ -256,10 +256,6 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       showDragHandle: true,
       builder: (sheetContext) => _PlannerConversationSheet(
         conversations: provider.plannerConversations,
-        onNewConversation: () {
-          Navigator.pop(sheetContext);
-          _newChat();
-        },
         onOpenConversation: (id) {
           Navigator.pop(sheetContext);
           unawaited(_openConversation(id));
@@ -424,20 +420,20 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                tooltip: l10n.newPlannerChat,
+                onPressed: _isSending || _isRestoringHistory ? null : _newChat,
+                icon: const Icon(
+                  Icons.add_comment_outlined,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
                 tooltip: l10n.plannerSuggestionHistory,
                 onPressed: _isSending || _isRestoringHistory
                     ? null
                     : _showConversationMenu,
-                icon: const Icon(Icons.more_vert, color: Colors.white),
+                icon: const Icon(Icons.history_outlined, color: Colors.white),
               ),
-              if (_inChat)
-                IconButton(
-                  tooltip: l10n.goBack,
-                  onPressed: _isSending || _isRestoringHistory
-                      ? null
-                      : _newChat,
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                ),
               const AccountMenuButton(),
             ],
           ),
@@ -654,13 +650,11 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
 class _PlannerConversationSheet extends StatelessWidget {
   const _PlannerConversationSheet({
     required this.conversations,
-    required this.onNewConversation,
     required this.onOpenConversation,
     required this.onDeleteConversation,
   });
 
   final List<PlannerConversation> conversations;
-  final VoidCallback onNewConversation;
   final ValueChanged<String> onOpenConversation;
   final ValueChanged<String> onDeleteConversation;
 
@@ -686,21 +680,6 @@ class _PlannerConversationSheet extends StatelessWidget {
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.add_comment_outlined,
-                color: AppTheme.cyan,
-              ),
-              title: Text(
-                l10n.newPlannerChat,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              onTap: onNewConversation,
-            ),
-            const Divider(height: 1),
             if (conversations.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(24),
