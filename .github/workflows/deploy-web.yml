@@ -1,5 +1,10 @@
 name: Deploy Flutter Web to GitHub Pages
 
+# The build is uploaded as a Pages artifact, never committed to a branch.
+# A commit in this public repo that contains .env lets GitHub secret scanning
+# report the Gemini key to Google, and Google blocks the key within minutes.
+# Requires: Settings > Pages > Source = "GitHub Actions".
+
 on:
   push:
     branches:
@@ -7,12 +12,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,10 +47,24 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release --base-href /voyz-master/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Check that .env is in the build
+        run: test -s build/web/assets/.env
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
-          publish_branch: gh-pages
-          force_orphan: true
+          path: ./build/web
+          # assets/.env is a dotfile; without this the app starts with no keys.
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
