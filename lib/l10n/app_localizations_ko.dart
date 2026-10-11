@@ -737,7 +737,444 @@ class AppLocalizationsKo extends AppLocalizations {
   String get viewDetails => '자세히 보기';
 
   @override
+  String get friendsTitle => '친구';
+
+  @override
+  String get friendRequests => '요청';
+
+  @override
+  String get noFriendsYet => '아직 친구가 없습니다';
+
+  @override
+  String get noFriendsYetHint => '이메일 또는 표시 이름으로 검색해 친구를 추가하세요.';
+
+  @override
+  String get noPendingRequests => '대기 중인 요청이 없습니다';
+
+  @override
+  String get noPendingRequestsHint => '받은 요청과 보낸 요청이 여기에 표시됩니다.';
+
+  @override
+  String get findFriends => '친구 찾기';
+
+  @override
+  String get friendSearchHint => '이메일 또는 표시 이름';
+
+  @override
+  String get addFriend => '친구 추가';
+
+  @override
+  String get friendStatus => '친구';
+
+  @override
+  String get accept => '수락';
+
+  @override
+  String get wantsToConnect => '친구 신청';
+
+  @override
+  String get friendRequestSent => '요청을 보냈습니다';
+
+  @override
+  String get tryAgain => '다시 시도';
+
+  @override
+  String get removeFriendTitle => '친구를 삭제할까요?';
+
+  @override
+  String removeFriendMessage(String name) {
+    return '친구 목록에서 $name을 삭제합니다. 두 분의 대화도 삭제됩니다.';
+  }
+
+  @override
+  String get removeFriend => '친구 삭제';
+
+  @override
+  String get typing => '입력 중...';
+
+  @override
+  String get messageInputHint => '메시지 작성...';
+
+  @override
+  String get messageOptions => '메시지 옵션';
+
+  @override
+  String get cancelReply => '답장 취소';
+
+  @override
+  String replyingTo(String name) {
+    return '$name에게 답장';
+  }
+
+  @override
+  String chatWith(String name) {
+    return '$name님과의 채팅';
+  }
+
+  @override
+  String get noMessagesYet => '아직 메시지가 없습니다. 간단한 인사로 시작해 보세요!';
+
+  @override
+  String get sayHi => '안녕';
+
+  @override
+  String get planTrip => '여행 계획';
+
+  @override
+  String get howAreYou => '잘 지내세요?';
+
+  @override
+  String get quickHiMessage => '안녕하세요!';
+
+  @override
+  String get quickTripMessage => '함께 여행 계획을 세워 볼까요?';
+
+  @override
+  String get quickHowAreYouMessage => '오늘 어떻게 지내세요?';
+
+  @override
+  String get reviewSaved => '리뷰가 저장되었습니다';
+
+  @override
+  String get communityReviews => '커뮤니티 리뷰';
+
+  @override
+  String get reviewHint => '다른 여행자에게 간단한 팁을 공유해 주세요';
+
+  @override
+  String get postReview => '리뷰 작성';
+
+  @override
+  String get randomDestination => '무작위로 새로운 장소 탐색';
+
+  @override
+  String get shareDestination => '장소 공유';
+
+  @override
+  String get shareNoteHint => '메모 추가...';
+
+  @override
+  String get selectFriends => '앱에서 친구 선택:';
+
+  @override
+  String get noConnectedFriends => '앱에 연결된 친구가 아직 없습니다.';
+
+  @override
+  String get copyLink => '링크 복사';
+
+  @override
+  String get destinationLinkCopied => '장소 링크를 복사했습니다!';
+
+  @override
+  String shareDestinationSuccess(String name, int count) {
+    return '$name을 친구 $count명과 공유했습니다!';
+  }
+
+  @override
+  String sendFailed(String error) {
+    return '전송 실패: $error';
+  }
+
+  @override
+  String get tripWorkspace => '여행 작업 공간';
+
+  @override
+  String workspaceSummary(int workspaceCount, int wishlistCount) {
+    return '작업 공간 $workspaceCount개 / 위시리스트 $wishlistCount개';
+  }
+
+  @override
+  String get unableToLoadSaved => '저장한 장소를 불러올 수 없습니다. 다시 시도해 주세요';
+
+  @override
+  String get aiMatch => 'AI 적합도';
+
+  @override
+  String get costEstimate => '비용 추정';
+
+  @override
+  String get reference => '참고';
+
+  @override
+  String get budgetTbd => '예산 미정';
+
+  @override
+  String get noNotes => '메모 없음';
+
+  @override
+  String get notesSaved => '메모 저장됨';
+
+  @override
+  String get saveName => '이름 저장';
+
+  @override
+  String get uploadImageTab => '이미지 업로드';
+
+  @override
+  String get presetAvatarTab => '기본 아바타';
+
+  @override
+  String get uploadFromDevice => '기기에서 이미지 업로드';
+
+  @override
+  String get uploadImageHelp => 'JPG, PNG를 지원합니다. 선택한 후 자르거나 편집할 수 있습니다.';
+
+  @override
+  String get chooseImage => '이미지 선택';
+
+  @override
+  String get plannerAnalyzing => '관심사와 선호를 분석하는 중...';
+
+  @override
+  String get plannerFinding => '가장 적합한 여행지를 탐색하고 선별하는 중...';
+
+  @override
+  String get plannerCalculating => '최적의 일정과 예상 예산을 계산하는 중...';
+
+  @override
+  String get plannerFinishing => '멋진 여행 옵션을 마무리하는 중...';
+
+  @override
+  String get flexibleDates => '유동적인 날짜';
+
+  @override
+  String get itineraryReady => '일정 준비 완료';
+
+  @override
+  String get notes => '메모';
+
+  @override
+  String get reply => '답장';
+
+  @override
+  String get copyMessage => '메시지 복사';
+
+  @override
+  String get messageCopied => '메시지를 복사했습니다';
+
+  @override
+  String get deleteForMe => '나에게서 삭제';
+
+  @override
+  String get deleteForMeHint => '이 메시지는 내 기기에서만 삭제됩니다';
+
+  @override
+  String get recallForEveryone => '모두에게서 회수';
+
+  @override
+  String get recallForEveryoneHint => '이 메시지는 두 사람에게서 사라집니다';
+
+  @override
+  String get messageNotifications => '메시지 알림';
+
+  @override
+  String get chatAppearance => '채팅 화면';
+
+  @override
+  String get clearConversation => '대화 모두 지우기';
+
+  @override
+  String get conversationCleared => '내 화면에서 대화를 삭제했습니다';
+
+  @override
+  String get messageRecalled => '모두의 대화에서 메시지를 회수했습니다';
+
+  @override
+  String get emoji => '이모지';
+
+  @override
+  String get changeDestination => '장소 변경';
+
+  @override
+  String get compareOptions => '옵션 비교';
+
+  @override
+  String get activeNow => '현재 활동 중';
+
+  @override
+  String get inactive => '비활성';
+
+  @override
+  String activeMinutesAgo(int count) {
+    return '$count분 전 활동';
+  }
+
+  @override
+  String activeHoursAgo(int count) {
+    return '$count시간 전 활동';
+  }
+
+  @override
+  String get activeYesterday => '어제 활동';
+
+  @override
+  String activeDaysAgo(int count) {
+    return '$count일 전 활동';
+  }
+
+  @override
+  String activeOnDate(String date) {
+    return '$date에 활동';
+  }
+
+  @override
+  String get today => '오늘';
+
+  @override
+  String get yesterday => '어제';
+
+  @override
+  String get seen => '읽음';
+
+  @override
+  String get delivered => '전달됨';
+
+  @override
+  String get view => '보기';
+
+  @override
+  String get chatTheme => '채팅 테마';
+
+  @override
+  String get apply => '적용';
+
+  @override
+  String get chooseTheme => '테마 선택';
+
+  @override
+  String get music => '배경 음악';
+
+  @override
+  String get musicDescription => '앱을 사용하는 동안 음악을 켜거나 끕니다';
+
+  @override
+  String get travelPreferences => '여행 환경설정';
+
+  @override
+  String get preferredCurrency => '기본 통화';
+
+  @override
+  String get travelStyles => '여행 스타일';
+
+  @override
+  String get savePreferences => '환경설정 저장';
+
+  @override
+  String get chooseAvatar => '아바타 선택';
+
+  @override
+  String get destinationEstimate => '여행지 AI 추정 · 1인 · 입장권 및 교통 제외';
+
+  @override
+  String get iconicSights => '대표 명소 및 실제 사진';
+
+  @override
+  String get previewMessageOne => '안녕하세요! 어디에 계세요? 😊';
+
+  @override
+  String get previewMessageTwo => '저는 다낭에 있어요 ✈️ 정말 멋져요!';
+
+  @override
+  String get previewMessageThree => '정말 좋네요! 저도 가고 싶어요 🌊';
+
+  @override
+  String get previewMessageFour => '함께 여행을 계획해요!';
+
+  @override
+  String get criterion => '기준';
+
+  @override
+  String get sharedDestination => '공유된 장소';
+
+  @override
+  String get performAction => '실행하기';
+
+  @override
+  String get anonymousReviewer => '익명';
+
+  @override
+  String get noReviews => '아직 리뷰가 없습니다';
+
+  @override
+  String reviewCount(int count) {
+    return '리뷰 $count개';
+  }
+
+  @override
+  String get exploreCategoryRandom => '🎲 무작위';
+
+  @override
+  String get exploreCategoryBeach => '🏖️ 섬과 해변';
+
+  @override
+  String get exploreCategoryMountain => '🏔️ 산과 고개';
+
+  @override
+  String get exploreCategoryHeritage => '🏯 유산';
+
+  @override
+  String get exploreCategoryCity => '🏙️ 활기찬 도시';
+
+  @override
+  String get exploreCategoryWellness => '🌿 자연 휴양';
+
+  @override
+  String get exploreCategoryHiddenGems => '💎 숨은 명소';
+
+  @override
+  String get nature => '자연';
+
+  @override
+  String get luxury => '럭셔리';
+
+  @override
+  String get slowTravel => '느긋한 여행';
+
+  @override
+  String workspaceReady(int doneCount, int totalCount) {
+    return '준비 완료 $doneCount/$totalCount';
+  }
+
+  @override
   String tripDays(int n) {
     return '$n일';
   }
+
+  @override
+  String get themeAivivu => 'AIVIVU';
+
+  @override
+  String get themeTwilight => '황혼';
+
+  @override
+  String get themeOcean => '바다';
+
+  @override
+  String get themeSakura => '벚';
+
+  @override
+  String get themeForest => '숲';
+
+  @override
+  String get themeGolden => '황금 시간';
+
+  @override
+  String get themeRoadGrip => '타이어 자국';
+
+  @override
+  String chatThemeChanged(String name, String theme) {
+    return '$name님이 테마를 $theme(으)로 변경했습니다';
+  }
+
+  @override
+  String get budgetTransport => '교통';
+
+  @override
+  String get budgetStay => '숙박';
+
+  @override
+  String get budgetFood => '식비';
+
+  @override
+  String get budgetActivities => '활동';
 }

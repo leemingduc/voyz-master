@@ -253,7 +253,10 @@ class GeminiService {
     );
     final text = (await model.generateContent([Content.text(prompt)])).text;
     if (text == null || text.isEmpty) throw Exception('noAiResponse');
-    return normalizePlanTurnDates(parsePlanTurn(text), DateTime.now());
+    return normalizePlanTurnDates(
+      parsePlanTurn(text),
+      DateTime.now(),
+    ).copyWith(languageCode: languageCode, localizedContentVersion: 3);
   }
 
   /// Số lượt AI hỏi thêm kể từ lượt gần nhất có phương án.
@@ -859,7 +862,9 @@ Quy tắc:
           final Map<String, dynamic> json =
               safeJsonDecode(cached) as Map<String, dynamic>;
           _applyTripDateRange(json, trip);
-          return ItineraryPlan.fromJson(json);
+          return ItineraryPlan.fromJson(
+            json,
+          ).copyWith(languageCode: languageCode);
         } catch (e) {
           // Cache entry is corrupt or outdated — discard and re-generate.
           debugPrint('Itinerary cache invalid, discarding: $e');
@@ -890,7 +895,7 @@ Quy tắc:
       final Map<String, dynamic> json =
           safeJsonDecode(text) as Map<String, dynamic>;
       _applyTripDateRange(json, trip);
-      return ItineraryPlan.fromJson(json);
+      return ItineraryPlan.fromJson(json).copyWith(languageCode: languageCode);
     } catch (e, stackTrace) {
       debugPrint('=== JSON Parse Error ===');
       debugPrint('Error: $e');
@@ -1044,6 +1049,139 @@ Trả về JSON object với cấu trúc:
     return text.trim();
   }
 
+  /// Translates an existing AI response for display after the app language
+  /// changes. User messages are intentionally never passed to this method.
+  Future<String> translateAssistantReply(
+    String reply, {
+    required String languageCode,
+  }) async {
+    if (reply.trim().isEmpty) return reply;
+    final language = switch (languageCode) {
+      'vi' => 'Vietnamese',
+      'ko' => 'Korean',
+      _ => 'English',
+    };
+    final response =
+        await _createModel(
+          generationConfig: GenerationConfig(
+            responseMimeType: 'text/plain',
+            temperature: 0,
+            maxOutputTokens: 3072,
+          ),
+        ).generateContent([
+          Content.text(
+            'Translate this AI travel-assistant reply into $language. '
+            'Return only the translated reply. Preserve proper place names, '
+            'numbers, dates, prices, links, and formatting.\n\n$reply',
+          ),
+        ]);
+    return response.text?.trim().isNotEmpty == true
+        ? response.text!.trim()
+        : reply;
+  }
+
+  /// Translates every reader-facing value in a saved Planner turn. Route-stop
+  /// labels translate their generic place type while retaining the unique
+  /// name, day counts and image lookup values so an option still opens the
+  /// same destination.
+  Future<PlanTurn> translatePlannerTurn(
+    PlanTurn turn, {
+    required String languageCode,
+  }) async {
+    final language = switch (languageCode) {
+      'vi' => 'Vietnamese',
+      'ko' => 'Korean',
+      _ => 'English',
+    };
+    final source = {
+      'reply': turn.reply,
+      'options': turn.options
+          .map(
+            (option) => {
+              'title': option.title,
+              'stops': option.stops,
+              'price': option.price,
+              'aiInsight': option.aiInsight,
+            },
+          )
+          .toList(),
+    };
+    final response =
+        await _createModel(
+          generationConfig: GenerationConfig(
+            responseMimeType: 'application/json',
+            temperature: 0,
+            maxOutputTokens: 3072,
+          ),
+        ).generateContent([
+          Content.text(
+            'Translate only the string values in this JSON object into '
+            '$language. Keep every key, array order, number and currency '
+            'unchanged. For every route stop, translate generic place-type '
+            'words while keeping its unique proper name. For example, render '
+            '"Dinh Bao Dai" as "Bao Dai Palace", "Biet thu Hang Nga" as '
+            '"Hang Nga Villa", and "Ga Da Lat" as "Da Lat Station" in '
+            'English. Apply the equivalent convention in the target language. '
+            'Return only valid JSON.\n\n'
+            '${jsonEncode(source)}',
+          ),
+        ]);
+    final text = response.text;
+    if (text == null || text.trim().isEmpty) return turn;
+
+    try {
+      final translated = safeJsonDecode(text);
+      if (translated is! Map) return turn;
+      final reply = translated['reply']?.toString().trim();
+      final optionMaps = translated['options'];
+      final options = <TripOption>[];
+      for (var index = 0; index < turn.options.length; index++) {
+        final original = turn.options[index];
+        final values = optionMaps is List && index < optionMaps.length
+            ? optionMaps[index]
+            : null;
+        if (values is! Map) {
+          options.add(original);
+          continue;
+        }
+        String translatedValue(String key, String fallback) {
+          final value = values[key]?.toString().trim();
+          return value == null || value.isEmpty ? fallback : value;
+        }
+
+        List<String> translatedStops() {
+          final value = values['stops'];
+          if (value is! List || value.length != original.stops.length) {
+            return original.stops;
+          }
+          return List<String>.generate(original.stops.length, (stopIndex) {
+            final translated = value[stopIndex]?.toString().trim();
+            return translated == null || translated.isEmpty
+                ? original.stops[stopIndex]
+                : translated;
+          });
+        }
+
+        options.add(
+          original.copyWith(
+            title: translatedValue('title', original.title),
+            stops: translatedStops(),
+            price: translatedValue('price', original.price),
+            aiInsight: translatedValue('aiInsight', original.aiInsight),
+          ),
+        );
+      }
+      return turn.copyWith(
+        reply: reply == null || reply.isEmpty ? turn.reply : reply,
+        options: options,
+        languageCode: languageCode,
+        localizedContentVersion: 3,
+      );
+    } catch (_) {
+      return turn;
+    }
+  }
+
   /// Parses a chat response that may contain an optional JSON action block.
   ({String reply, AiAction? action}) parseChatActionResponse(String rawText) {
     final jsonMatch = RegExp(
@@ -1088,15 +1226,15 @@ Trả về JSON object với cấu trúc:
     contents.add(
       Content.text(
         'You are a friendly AI travel assistant for VOYZ app. Help users plan trips, '
-        'discover destinations, answer travel questions, and perform actions on the app when asked. For explicit user requests, use action types updateLanguage (target: vi, en, or ko), updateDisplayName (target: exact name), updatePhoneNumber (target: exact phone), or saveDestination (target: destination only), and setBackgroundMusic (target: on or off). '
+        'discover destinations, answer travel questions, and perform actions on the app when asked. '
         'If the user asks to navigate to a destination (e.g. "Chuyển tới Phú Quốc", "Mở Phú Quốc"), '
         'or open an app screen (e.g. "Mở trang đã lưu", "Khám phá", "Xem bạn bè", "Lên kế hoạch"), '
         'include an action JSON block at the end of your message in this exact format:\n'
         '```json\n'
         '{\n'
         '  "action": {\n'
-        '    "type": "navigateDestination", "navigateScreen", "updateLanguage", "updateDisplayName", "updatePhoneNumber", "saveDestination", or "setBackgroundMusic",\n'
-        '    "target": "destination name; screen name (saved, explore, friends, planner); profile value; or music state (on, off)",\n'
+        '    "type": "navigateDestination" or "navigateScreen",\n'
+        '    "target": "destination name or screen name (saved, explore, friends, planner)",\n'
         '    "label": "Button label in Vietnamese, e.g. Mở trang Phú Quốc"\n'
         '  }\n'
         '}\n'

@@ -26,7 +26,10 @@ class SocialProfile {
   final DateTime? lastActiveAt;
 
   /// Returns true if the user has been active within [threshold] (default 3 minutes).
-  bool isCurrentlyActive({DateTime? now, Duration threshold = const Duration(minutes: 3)}) {
+  bool isCurrentlyActive({
+    DateTime? now,
+    Duration threshold = const Duration(minutes: 3),
+  }) {
     if (lastActiveAt == null) return false;
     final current = now ?? DateTime.now();
     final difference = current.difference(lastActiveAt!);
@@ -40,8 +43,17 @@ class SocialProfile {
   /// When < 24 hrs: "Hoạt động X giờ trước"
   /// When < 7 days: "Hoạt động X ngày trước"
   /// Otherwise: "Hoạt động dd/MM"
-  String formatLastActiveText({DateTime? now, String activeText = 'Đang hoạt động'}) {
-    if (lastActiveAt == null) return 'Không hoạt động';
+  String formatLastActiveText({
+    DateTime? now,
+    String activeText = 'Đang hoạt động',
+    String inactiveText = 'Không hoạt động',
+    String Function(int count) minutesAgo = _defaultMinutesAgo,
+    String Function(int count) hoursAgo = _defaultHoursAgo,
+    String yesterdayText = 'Hoạt động hôm qua',
+    String Function(int count) daysAgo = _defaultDaysAgo,
+    String Function(String date) activeOnDate = _defaultActiveOnDate,
+  }) {
+    if (lastActiveAt == null) return inactiveText;
     final current = now ?? DateTime.now();
     final difference = current.difference(lastActiveAt!);
     if (difference.isNegative || difference.inMinutes < 3) {
@@ -49,23 +61,28 @@ class SocialProfile {
     }
     final minutes = difference.inMinutes;
     if (minutes < 60) {
-      return 'Hoạt động $minutes phút trước';
+      return minutesAgo(minutes);
     }
     final hours = difference.inHours;
     if (hours < 24) {
-      return 'Hoạt động $hours giờ trước';
+      return hoursAgo(hours);
     }
     final days = difference.inDays;
     if (days == 1) {
-      return 'Hoạt động hôm qua';
+      return yesterdayText;
     }
     if (days < 7) {
-      return 'Hoạt động $days ngày trước';
+      return daysAgo(days);
     }
     final day = lastActiveAt!.day.toString().padLeft(2, '0');
     final month = lastActiveAt!.month.toString().padLeft(2, '0');
-    return 'Hoạt động $day/$month';
+    return activeOnDate('$day/$month');
   }
+
+  static String _defaultMinutesAgo(int count) => 'Hoạt động $count phút trước';
+  static String _defaultHoursAgo(int count) => 'Hoạt động $count giờ trước';
+  static String _defaultDaysAgo(int count) => 'Hoạt động $count ngày trước';
+  static String _defaultActiveOnDate(String date) => 'Hoạt động $date';
 
   factory SocialProfile.fromMap(Map<String, dynamic> map) {
     final avatar = map['avatar_url']?.toString() ?? '';
@@ -75,7 +92,9 @@ class SocialProfile {
       email: map['email']?.toString() ?? '',
       displayName: map['display_name']?.toString() ?? '',
       avatarUrl: avatar.isEmpty ? null : avatar,
-      lastActiveAt: DateTime.tryParse(lastActiveRaw?.toString() ?? '')?.toLocal(),
+      lastActiveAt: DateTime.tryParse(
+        lastActiveRaw?.toString() ?? '',
+      )?.toLocal(),
     );
   }
 }
@@ -102,6 +121,7 @@ class Friendship {
 
 class FriendMessage {
   static const recalledBody = 'Tin nhắn đã được thu hồi';
+  static const _themeChangePrefix = '__aivivu_theme_changed__|';
 
   const FriendMessage({
     required this.id,
@@ -136,6 +156,41 @@ class FriendMessage {
   bool get isRead => readAt != null;
   bool get isSystem => type == FriendMessageType.system;
   bool get isRecalled => recalledAt != null || body == recalledBody;
+
+  /// Theme-change events are stored in a language-neutral format so that they
+  /// can be rendered using the language currently selected by each viewer.
+  static String themeChangeBody({
+    required String displayName,
+    required String themeId,
+  }) => '$_themeChangePrefix$themeId|$displayName';
+
+  ({String themeId, String displayName})? get themeChange {
+    if (body.startsWith(_themeChangePrefix)) {
+      final values = body.substring(_themeChangePrefix.length).split('|');
+      if (values.length >= 2 && values.first.isNotEmpty) {
+        return (themeId: values.first, displayName: values.skip(1).join('|'));
+      }
+    }
+
+    // Backward compatibility for events written before the language-neutral
+    // payload was introduced. Their stored theme names were the preset names.
+    final legacy = RegExp(
+      r'^(.+?) đã đổi giao diện thành (AIVIVU|Twilight|Ocean|Sakura|Forest|Golden Hour|Road Grip)$',
+    ).firstMatch(body);
+    if (legacy == null) return null;
+    final themeId = switch (legacy.group(2)) {
+      'AIVIVU' => 'aivivu',
+      'Twilight' => 'twilight',
+      'Ocean' => 'ocean',
+      'Sakura' => 'sakura',
+      'Forest' => 'forest',
+      'Golden Hour' => 'golden',
+      'Road Grip' => 'road_grip',
+      _ => null,
+    };
+    if (themeId == null) return null;
+    return (themeId: themeId, displayName: legacy.group(1)!);
+  }
 
   factory FriendMessage.fromMap(Map<String, dynamic> map) {
     return FriendMessage(
@@ -236,7 +291,9 @@ class FriendsService {
           'display_name': displayName.isEmpty
               ? (user.email ?? 'Traveler')
               : displayName,
-          'avatar_url': avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
+          'avatar_url': avatarUrl == null || avatarUrl.isEmpty
+              ? null
+              : avatarUrl,
           'updated_at': nowIso,
           'last_active_at': nowIso,
         }, onConflict: 'user_id');
@@ -252,8 +309,9 @@ class FriendsService {
             'display_name': displayName.isEmpty
                 ? (user.email ?? 'Traveler')
                 : displayName,
-            'avatar_url':
-                avatarUrl == null || avatarUrl.isEmpty ? null : avatarUrl,
+            'avatar_url': avatarUrl == null || avatarUrl.isEmpty
+                ? null
+                : avatarUrl,
             'updated_at': nowIso,
           }, onConflict: 'user_id');
         } else {
@@ -270,17 +328,18 @@ class FriendsService {
     final nowIso = DateTime.now().toUtc().toIso8601String();
     await _guardSchema(() async {
       try {
-        await _client.from('social_profiles').update({
-          'last_active_at': nowIso,
-          'updated_at': nowIso,
-        }).eq('user_id', user.id);
+        await _client
+            .from('social_profiles')
+            .update({'last_active_at': nowIso, 'updated_at': nowIso})
+            .eq('user_id', user.id);
       } on PostgrestException catch (error) {
         if (error.code == '42703' ||
             error.code == 'PGRST204' ||
             error.message.contains('last_active_at')) {
-          await _client.from('social_profiles').update({
-            'updated_at': nowIso,
-          }).eq('user_id', user.id);
+          await _client
+              .from('social_profiles')
+              .update({'updated_at': nowIso})
+              .eq('user_id', user.id);
         } else {
           rethrow;
         }
@@ -626,7 +685,6 @@ class FriendsService {
   Future<void> changeChatTheme({
     required String friendshipId,
     required String themeId,
-    required String themeName,
   }) async {
     await _guardSchema(() async {
       await _client.rpc(
@@ -634,8 +692,10 @@ class FriendsService {
         params: {
           'p_friendship_id': friendshipId,
           'p_theme_id': themeId,
-          'p_system_message':
-              '$currentUserDisplayName đã đổi giao diện thành $themeName',
+          'p_system_message': FriendMessage.themeChangeBody(
+            displayName: currentUserDisplayName,
+            themeId: themeId,
+          ),
         },
       );
     });

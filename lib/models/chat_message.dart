@@ -7,19 +7,30 @@ class ChatMessage {
   final bool isUser;
   final DateTime timestamp;
   final AiAction? action;
+  final String languageCode;
 
   const ChatMessage({
     required this.text,
     required this.isUser,
     required this.timestamp,
     this.action,
+    this.languageCode = '',
   });
 
   factory ChatMessage.user(String text) =>
       ChatMessage(text: text, isUser: true, timestamp: DateTime.now());
 
-  factory ChatMessage.ai(String text, {AiAction? action}) =>
-      ChatMessage(text: text, isUser: false, timestamp: DateTime.now(), action: action);
+  factory ChatMessage.ai(
+    String text, {
+    AiAction? action,
+    String languageCode = '',
+  }) => ChatMessage(
+    text: text,
+    isUser: false,
+    timestamp: DateTime.now(),
+    action: action,
+    languageCode: languageCode,
+  );
 
   factory ChatMessage.fromMap(Map<dynamic, dynamic> map) {
     final rawAction = map['action'];
@@ -29,14 +40,26 @@ class ChatMessage {
       timestamp:
           DateTime.tryParse(map['timestamp']?.toString() ?? '') ??
           DateTime.now(),
-      action: rawAction is Map ? AiAction.fromJson(Map<String, dynamic>.from(rawAction)) : null,
+      action: rawAction is Map
+          ? AiAction.fromJson(Map<String, dynamic>.from(rawAction))
+          : null,
+      languageCode: map['languageCode']?.toString() ?? '',
     );
   }
+
+  ChatMessage copyWith({String? text, String? languageCode}) => ChatMessage(
+    text: text ?? this.text,
+    isUser: isUser,
+    timestamp: timestamp,
+    action: action,
+    languageCode: languageCode ?? this.languageCode,
+  );
 
   Map<String, dynamic> toMap() => {
     'text': text,
     'isUser': isUser,
     'timestamp': timestamp.toIso8601String(),
+    if (languageCode.isNotEmpty) 'languageCode': languageCode,
     if (action != null) 'action': action!.toJson(),
   };
 }

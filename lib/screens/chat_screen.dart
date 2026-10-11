@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
-import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
 import 'package:voyz/screens/destination_chat_split_screen.dart';
@@ -13,9 +12,6 @@ import 'package:voyz/screens/saved_screen.dart';
 import 'package:voyz/screens/friends_screen.dart';
 import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/services/chat_history_service.dart';
-import 'package:voyz/services/background_music_service.dart';
-import 'package:voyz/services/image_service.dart';
-import 'package:voyz/services/profile_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
@@ -57,6 +53,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _activeConversationId;
   bool _isLoadingHistory = true;
   bool _isSending = false;
+  String? _lastSyncedLanguageCode;
 
   @override
   void initState() {
@@ -93,10 +90,59 @@ class _ChatScreenState extends State<ChatScreen> {
         _activeConversationId = null;
         _messages
           ..clear()
-          ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
+          ..add(
+            ChatMessage.ai(
+              AppLocalizations.of(context)!.chatWelcome,
+              languageCode: LocaleProvider.of(context).value.languageCode,
+            ),
+          );
       }
       _isLoadingHistory = false;
     });
+    unawaited(_syncAssistantReplies());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(_syncAssistantReplies());
+  }
+
+  Future<void> _syncAssistantReplies() async {
+    if (_isLoadingHistory || _isSending) return;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastSyncedLanguageCode == languageCode) return;
+    _lastSyncedLanguageCode = languageCode;
+
+    final pending = <int>[];
+    for (var index = 0; index < _messages.length; index++) {
+      final message = _messages[index];
+      if (!message.isUser && message.languageCode != languageCode) {
+        pending.add(index);
+      }
+    }
+    if (pending.isEmpty) return;
+
+    setState(() => _isSending = true);
+    try {
+      for (final index in pending) {
+        final message = _messages[index];
+        final translated = await GeminiService.instance.translateAssistantReply(
+          message.text,
+          languageCode: languageCode,
+        );
+        if (!mounted) return;
+        _messages[index] = message.copyWith(
+          text: translated,
+          languageCode: languageCode,
+        );
+      }
+      await _persistMessages();
+    } catch (error) {
+      debugPrint('Chat reply language sync skipped: $error');
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
   }
 
   Future<void> _persistMessages() async {
@@ -119,7 +165,12 @@ class _ChatScreenState extends State<ChatScreen> {
       _activeConversationId = null;
       _messages
         ..clear()
-        ..add(ChatMessage.ai(l10n.chatWelcome));
+        ..add(
+          ChatMessage.ai(
+            l10n.chatWelcome,
+            languageCode: LocaleProvider.of(context).value.languageCode,
+          ),
+        );
     });
     unawaited(
       ChatHistoryService.instance.startNewConversation(
@@ -141,10 +192,12 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _conversations = history.conversations;
       _activeConversationId = history.activeConversationId;
+      _lastSyncedLanguageCode = null;
       _messages
         ..clear()
         ..addAll(conversation.first.messages);
     });
+    unawaited(_syncAssistantReplies());
     _scrollToBottom();
   }
 
@@ -161,7 +214,12 @@ class _ChatScreenState extends State<ChatScreen> {
       if (wasActive) {
         _messages
           ..clear()
-          ..add(ChatMessage.ai(AppLocalizations.of(context)!.chatWelcome));
+          ..add(
+            ChatMessage.ai(
+              AppLocalizations.of(context)!.chatWelcome,
+              languageCode: LocaleProvider.of(context).value.languageCode,
+            ),
+          );
       }
     });
   }
@@ -210,7 +268,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final musicAction = AiAction.backgroundMusicActionForPrompt(text);
       final result = await GeminiService.instance.chatWithActions(
         text,
         // The current user message was just appended above; pass only prior
@@ -224,7 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         final aiMsg = ChatMessage.ai(
           result.reply,
-          action: musicAction ?? result.action,
+          action: result.action,
+          languageCode: languageCode,
         );
         setState(() {
           _messages.add(aiMsg);
@@ -232,6 +290,14 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         await _persistMessages();
         _scrollToBottom();
+
+        if (result.action != null) {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted && result.action != null) {
+              _executeAiAction(result.action!);
+            }
+          });
+        }
       }
     } catch (e) {
       debugPrint('Chat: send failed: $e');
@@ -249,7 +315,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _executeAiAction(AiAction action) async {
+  void _executeAiAction(AiAction action) {
     if (!mounted) return;
     switch (action.type) {
       case AiActionType.navigateDestination:
@@ -285,85 +351,6 @@ class _ChatScreenState extends State<ChatScreen> {
         if (action.target.isNotEmpty) {
           _openDestination(action.target);
         }
-        break;
-      case AiActionType.updateLanguage:
-        final code = action.target.trim().toLowerCase();
-        if (supportedLanguageCodes.contains(code)) {
-          await LocaleProvider.of(context).setLocale(Locale(code));
-          _showActionResult('Language updated.');
-        } else {
-          _showActionResult('Unsupported language.');
-        }
-        break;
-      case AiActionType.updateDisplayName:
-        final name = action.target.trim();
-        if (name.isEmpty) {
-          _showActionResult('Invalid display name.');
-          break;
-        }
-        try {
-          await ProfileService.instance.updateDisplayName(displayName: name);
-          _showActionResult('Display name updated.');
-        } catch (_) {
-          _showActionResult('Could not update display name.');
-        }
-        break;
-      case AiActionType.updatePhoneNumber:
-        final phone = action.target.trim();
-        final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
-        if (!RegExp(r'^[0-9 +()\-]+$').hasMatch(phone) || digits.length < 8) {
-          _showActionResult('Invalid phone number.');
-          break;
-        }
-        try {
-          await ProfileService.instance.updateContactInfo(phoneNumber: phone);
-          _showActionResult('Phone number updated.');
-        } catch (_) {
-          _showActionResult('Could not update phone number.');
-        }
-        break;
-      case AiActionType.saveDestination:
-        final destination = action.target.trim();
-        if (destination.isEmpty) {
-          _showActionResult('No destination to save.');
-          break;
-        }
-        try {
-          final imageUrl = await ImageService.instance.getImageUrl(destination);
-          if (!mounted) return;
-          final saved = await SavedTripsProvider.of(context).saveToWishlist(
-            name: destination,
-            imageUrl: imageUrl,
-            price: '',
-            matchPercent: 0,
-            rating: 0,
-            reviewCount: 0,
-            aiInsight: '',
-          );
-          _showActionResult(
-            saved ? 'Destination saved.' : 'Destination is already saved.',
-          );
-        } catch (_) {
-          _showActionResult('Could not save destination.');
-        }
-        break;
-      case AiActionType.setBackgroundMusic:
-        final enabled = AiAction.backgroundMusicEnabled(action.target);
-        if (enabled == null) {
-          _showActionResult(
-            'Please choose to turn background music on or off.',
-          );
-          break;
-        }
-        final music = BackgroundMusicService.instance;
-        if (enabled) {
-          await music.play();
-        } else {
-          await music.pause();
-        }
-        _showActionResult(
-          enabled ? 'Background music is on.' : 'Background music is off.',
-        );
         break;
     }
   }
@@ -477,9 +464,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 final message = _messages[index];
                 return _ChatBubble(
                   message: message,
-                  onActionPressed: (action) {
-                    unawaited(_executeAiAction(action));
-                  },
+                  onActionPressed: _executeAiAction,
                 );
               },
             ),
@@ -764,9 +749,7 @@ class _ChatBubble extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            action.label.isNotEmpty
-                                ? action.label
-                                : 'Thực hiện ngay',
+                            AppLocalizations.of(context)!.performAction,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,

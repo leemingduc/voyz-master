@@ -1,7 +1,21 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/models/chat_theme_model.dart';
 import 'package:voyz/theme/app_theme.dart';
+
+String _localizedThemeName(AppLocalizations l10n, String themeId) {
+  return switch (themeId) {
+    'aivivu' => l10n.themeAivivu,
+    'twilight' => l10n.themeTwilight,
+    'ocean' => l10n.themeOcean,
+    'sakura' => l10n.themeSakura,
+    'forest' => l10n.themeForest,
+    'golden' => l10n.themeGolden,
+    'road_grip' => l10n.themeRoadGrip,
+    _ => themeId,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chat Theme Picker Screen
@@ -73,8 +87,8 @@ class _ChatThemeScreenState extends State<ChatThemeScreen>
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Giao diện Chat',
+        title: Text(
+          AppLocalizations.of(context)!.chatTheme,
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -95,8 +109,8 @@ class _ChatThemeScreenState extends State<ChatThemeScreen>
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                'Áp dụng',
+              child: Text(
+                AppLocalizations.of(context)!.apply,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -141,7 +155,7 @@ class _ChatThemeScreenState extends State<ChatThemeScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Chọn giao diện',
+                        AppLocalizations.of(context)!.chooseTheme,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.55),
                           fontSize: 12,
@@ -211,28 +225,29 @@ class _ChatPreviewPane extends StatelessWidget {
                 // Their message
                 _PreviewBubble(
                   isMine: false,
-                  text: 'Chào! Bạn đang ở đâu vậy? 😊',
+                  text: AppLocalizations.of(context)!.previewMessageOne,
                   time: '14:22',
                   theme: theme,
                 ),
                 const SizedBox(height: 10),
                 _PreviewBubble(
                   isMine: true,
-                  text: 'Mình đang ở Đà Nẵng nè ✈️ Tuyệt lắm!',
+                  text: AppLocalizations.of(context)!.previewMessageTwo,
                   time: '14:23',
                   theme: theme,
                 ),
                 const SizedBox(height: 10),
                 _PreviewBubble(
                   isMine: false,
-                  text: 'Ôi hay quá! Mình muốn đến đó lắm 🌊',
+                  text: AppLocalizations.of(context)!.previewMessageThree,
                   time: '14:23',
                   theme: theme,
                 ),
                 const SizedBox(height: 10),
                 _PreviewBubble(
                   isMine: true,
-                  text: 'Plan trip cùng nhau đi! ${theme.emoji}',
+                  text:
+                      '${AppLocalizations.of(context)!.previewMessageFour} ${theme.emoji}',
                   time: '14:24',
                   theme: theme,
                 ),
@@ -261,7 +276,7 @@ class _ChatPreviewPane extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Nhắn tin...',
+                          AppLocalizations.of(context)!.messageInputHint,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.35),
                             fontSize: 13,
@@ -307,7 +322,7 @@ class _ChatPreviewPane extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  '${theme.emoji}  ${theme.name}',
+                  '${theme.emoji}  ${_localizedThemeName(AppLocalizations.of(context)!, theme.id)}',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -550,7 +565,10 @@ class _ThemeTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      theme.name,
+                      _localizedThemeName(
+                        AppLocalizations.of(context)!,
+                        theme.id,
+                      ),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 9,

@@ -32,6 +32,8 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
   CulturalTips? _tips;
   bool _isLoading = true;
   String? _error;
+  String? _lastLanguageCode;
+  int _requestVersion = 0;
 
   @override
   void initState() {
@@ -39,7 +41,21 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadTips());
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    _loadTips();
+  }
+
   Future<void> _loadTips() async {
+    final requestVersion = ++_requestVersion;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -49,7 +65,7 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
         widget.destinationName,
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _tips = tips;
           _isLoading = false;
@@ -57,7 +73,7 @@ class _CulturalTipsScreenState extends State<CulturalTipsScreen> {
       }
     } catch (e) {
       debugPrint('CulturalTips: load failed: $e');
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _error = ErrorLocalizer.getLocalizedMessage(
             e,

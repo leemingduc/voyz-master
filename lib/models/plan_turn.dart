@@ -35,14 +35,20 @@ class TripOption {
   /// Rỗng tới khi tra ảnh xong; rỗng mãi thì UI vẽ placeholder.
   final String imageUrl;
 
-  TripOption copyWith({String? imageUrl}) => TripOption(
-    title: title,
+  TripOption copyWith({
+    String? title,
+    List<String>? stops,
+    String? price,
+    String? aiInsight,
+    String? imageUrl,
+  }) => TripOption(
+    title: title ?? this.title,
     destination: destination,
     numDays: numDays,
-    stops: stops,
+    stops: stops ?? this.stops,
     imageStop: imageStop,
-    price: price,
-    aiInsight: aiInsight,
+    price: price ?? this.price,
+    aiInsight: aiInsight ?? this.aiInsight,
     imageUrl: imageUrl ?? this.imageUrl,
   );
 
@@ -76,6 +82,8 @@ class PlanTurn {
     required this.trip,
     this.options = const [],
     this.raw = '',
+    this.languageCode = '',
+    this.localizedContentVersion = 0,
   });
 
   /// Câu hỏi thêm, hoặc câu giới thiệu khi có phương án.
@@ -89,14 +97,24 @@ class PlanTurn {
 
   /// JSON gốc, gửi lại cho AI làm lịch sử hội thoại.
   final String raw;
+  final String languageCode;
+  final int localizedContentVersion;
 
   bool get hasOptions => options.isNotEmpty;
 
-  PlanTurn copyWith({List<TripOption>? options}) => PlanTurn(
-    reply: reply,
+  PlanTurn copyWith({
+    String? reply,
+    List<TripOption>? options,
+    String? languageCode,
+    int? localizedContentVersion,
+  }) => PlanTurn(
+    reply: reply ?? this.reply,
     trip: trip,
     options: options ?? this.options,
     raw: raw,
+    languageCode: languageCode ?? this.languageCode,
+    localizedContentVersion:
+        localizedContentVersion ?? this.localizedContentVersion,
   );
 
   factory PlanTurn.fromMap(Map<dynamic, dynamic> map) => PlanTurn(
@@ -109,6 +127,9 @@ class PlanTurn {
         .map(TripOption.fromMap)
         .toList(),
     raw: map['raw']?.toString() ?? '',
+    languageCode: map['languageCode']?.toString() ?? '',
+    localizedContentVersion:
+        int.tryParse(map['localizedContentVersion']?.toString() ?? '') ?? 0,
   );
 
   Map<String, dynamic> toMap() => {
@@ -116,6 +137,9 @@ class PlanTurn {
     'trip': trip.toMap(),
     'options': options.map((option) => option.toMap()).toList(),
     'raw': raw,
+    if (languageCode.isNotEmpty) 'languageCode': languageCode,
+    if (localizedContentVersion > 0)
+      'localizedContentVersion': localizedContentVersion,
   };
 }
 

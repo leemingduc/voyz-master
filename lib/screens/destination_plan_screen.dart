@@ -39,6 +39,8 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
   bool _isLoading = true;
   bool _isRefining = false;
   String? _error;
+  String? _lastLanguageCode;
+  int _requestVersion = 0;
 
   @override
   void initState() {
@@ -46,7 +48,22 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlan());
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    _loadPlan();
+  }
+
   Future<void> _loadPlan() async {
+    final requestVersion = ++_requestVersion;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -55,7 +72,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     try {
       final provider = SavedTripsProvider.of(context);
       final savedPlan = provider.itineraryFor(widget.tripId);
-      if (savedPlan != null) {
+      if (savedPlan != null && savedPlan.languageCode == languageCode) {
         setState(() {
           _plan = savedPlan;
           _isLoading = false;
@@ -70,10 +87,10 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         trip.dayCount(),
         trip,
         limit: 6,
-        languageCode: LocaleProvider.of(context).value.languageCode,
+        languageCode: languageCode,
       );
       final plan = generated.copyWith(tripId: widget.tripId);
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _plan = plan;
           _isLoading = false;
@@ -82,7 +99,7 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
       }
     } catch (e) {
       debugPrint('DestinationPlan: load failed: $e');
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _error = ErrorLocalizer.getLocalizedMessage(
             e,
@@ -97,6 +114,8 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
   Future<void> _refinePlan(String instruction) async {
     if (_isRefining || _plan == null) return;
 
+    final requestVersion = ++_requestVersion;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
     setState(() => _isRefining = true);
     try {
       final provider = SavedTripsProvider.of(context);
@@ -111,11 +130,20 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         trip,
         limit: 6,
         forceRefresh: true,
-        languageCode: LocaleProvider.of(context).value.languageCode,
+        languageCode: languageCode,
         additionalInstruction: instruction,
       )).copyWith(tripId: widget.tripId);
+      if (!mounted) return;
+      if (requestVersion != _requestVersion) {
+        setState(() => _isRefining = false);
+        return;
+      }
       await provider.saveItinerary(plan);
       if (!mounted) return;
+      if (requestVersion != _requestVersion) {
+        setState(() => _isRefining = false);
+        return;
+      }
       setState(() {
         _plan = plan;
         _selectedDay = 0;
@@ -124,6 +152,10 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
     } catch (error) {
       debugPrint('DestinationPlan: refine failed: $error');
       if (!mounted) return;
+      if (requestVersion != _requestVersion) {
+        setState(() => _isRefining = false);
+        return;
+      }
       setState(() => _isRefining = false);
       final message = ErrorLocalizer.getLocalizedMessage(
         error,

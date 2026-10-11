@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
@@ -102,9 +104,10 @@ class _ShareDestinationBottomSheetState
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Đã chia sẻ "${widget.destinationName}" cho ${_selectedFriendshipIds.length} người bạn!',
-          ),
+          content: Text(AppLocalizations.of(context)!.shareDestinationSuccess(
+            widget.destinationName,
+            _selectedFriendshipIds.length,
+          )),
           backgroundColor: AppTheme.primaryPink,
           behavior: SnackBarBehavior.floating,
         ),
@@ -113,14 +116,30 @@ class _ShareDestinationBottomSheetState
       if (!mounted) return;
       setState(() => _isSending = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi gửi: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.sendFailed(e.toString())),
+          backgroundColor: Colors.red,
+        ),
       );
     }
+  }
+
+  void _copyLink() {
+    final link =
+        'https://voyz.app/destination?name=${Uri.encodeComponent(widget.destinationName)}';
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.destinationLinkCopied),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomPadding),
@@ -150,8 +169,8 @@ class _ShareDestinationBottomSheetState
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Chia sẻ địa điểm',
+                  Text(
+                    l10n.shareDestination,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -180,7 +199,7 @@ class _ShareDestinationBottomSheetState
             controller: _noteController,
             style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Thêm lời nhắn (ví dụ: Đi nơi này với mình nhé!)...',
+              hintText: l10n.shareNoteHint,
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
@@ -197,8 +216,8 @@ class _ShareDestinationBottomSheetState
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Chọn bạn bè trong app:',
+          Text(
+            l10n.selectFriends,
             style: TextStyle(
               color: Color(0xFF94A3B8),
               fontSize: 13,
@@ -219,13 +238,13 @@ class _ShareDestinationBottomSheetState
                 color: Colors.white.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.info_outline, color: Colors.white54, size: 18),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Chưa có danh sách bạn bè kết nối trong app.',
+                      l10n.noConnectedFriends,
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ),
@@ -298,26 +317,45 @@ class _ShareDestinationBottomSheetState
               ),
             ),
           const SizedBox(height: 16),
-          if (_selectedFriendshipIds.isNotEmpty)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSending ? null : _sendToSelected,
-                icon: _isSending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: AivivuRocketMascot(size: 16),
-                      )
-                    : const Icon(Icons.send, size: 16),
-                label: Text('Gửi (${_selectedFriendshipIds.length})'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryPink,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _copyLink,
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: Text(l10n.copyLink),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
-            ),
+              if (_selectedFriendshipIds.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isSending ? null : _sendToSelected,
+                    icon: _isSending
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: AivivuRocketMascot(size: 16),
+                          )
+                        : const Icon(Icons.send, size: 16),
+                    label: Text('${l10n.plannerSend} (${_selectedFriendshipIds.length})'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryPink,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

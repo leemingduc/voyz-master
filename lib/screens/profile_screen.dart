@@ -558,7 +558,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: SizedBox(
             width: 180,
             child: GradientButton(
-              label: _isSavingDisplayName ? l10n.saving : 'Lưu tên',
+              label: _isSavingDisplayName ? l10n.saving : l10n.saveName,
               icon: Icons.save,
               height: 42,
               onPressed: _isSavingDisplayName ? null : _saveDisplayName,
@@ -664,12 +664,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const Icon(Icons.music_note_rounded, color: Colors.white70, size: 20),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nhạc nền',
+                  AppLocalizations.of(context)!.music,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -678,7 +678,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Bật hoặc tắt nhạc khi sử dụng ứng dụng',
+                  AppLocalizations.of(context)!.musicDescription,
                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                 ),
               ],
@@ -764,12 +764,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.tune, color: Colors.white70, size: 20),
               SizedBox(width: 8),
               Text(
-                'Travel preferences',
+                AppLocalizations.of(context)!.travelPreferences,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -783,7 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value: _preferredCurrency,
             dropdownColor: const Color(0xFF1E1B2E),
             decoration: InputDecoration(
-              labelText: 'Preferred currency',
+              labelText: AppLocalizations.of(context)!.preferredCurrency,
               prefixIcon: const Icon(Icons.payments_outlined),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.06),
@@ -809,8 +809,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Travel styles',
+          Text(
+            AppLocalizations.of(context)!.travelStyles,
             style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
           ),
           const SizedBox(height: 8),
@@ -818,10 +818,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             spacing: 8,
             runSpacing: 8,
             children: styles.map((style) {
+              final l10n = AppLocalizations.of(context)!;
               final selected = _travelStyles.contains(style);
               return FilterChip(
                 selected: selected,
-                label: Text(style),
+                label: Text(switch (style) {
+                  'Beach' => l10n.beach,
+                  'Adventure' => l10n.adventure,
+                  'Culture' => l10n.culture,
+                  'Food' => l10n.food,
+                  'Nature' => l10n.nature,
+                  'Luxury' => l10n.luxury,
+                  'Budget' => l10n.budget,
+                  _ => l10n.slowTravel,
+                }),
                 onSelected: (value) {
                   setState(() {
                     if (value) {
@@ -844,7 +854,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: SizedBox(
               width: 220,
               child: GradientButton(
-                label: _isSavingPreferences ? 'Saving' : 'Save preferences',
+                label: _isSavingPreferences
+                    ? AppLocalizations.of(context)!.saving
+                    : AppLocalizations.of(context)!.savePreferences,
                 icon: Icons.save,
                 height: 46,
                 onPressed: _isSavingPreferences ? null : _savePreferences,
@@ -1262,8 +1274,8 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet>
                   size: 20,
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  'Chọn ảnh đại diện',
+                Text(
+                  AppLocalizations.of(context)!.chooseAvatar,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -1306,14 +1318,14 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet>
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
-                tabs: const [
+                tabs: [
                   Tab(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.upload_file, size: 15),
                         SizedBox(width: 6),
-                        Text('Tải ảnh lên'),
+                        Text(AppLocalizations.of(context)!.uploadImageTab),
                       ],
                     ),
                   ),
@@ -1323,7 +1335,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet>
                       children: [
                         Icon(Icons.auto_awesome, size: 15),
                         SizedBox(width: 6),
-                        Text('Avatar có sẵn'),
+                        Text(AppLocalizations.of(context)!.presetAvatarTab),
                       ],
                     ),
                   ),
@@ -1395,8 +1407,8 @@ class _UploadTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'Tải ảnh từ thiết bị',
+                Text(
+                  AppLocalizations.of(context)!.uploadFromDevice,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -1405,7 +1417,7 @@ class _UploadTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Hỗ trợ JPG, PNG. Bạn có thể\ncắt và chỉnh sửa sau khi chọn.',
+                  AppLocalizations.of(context)!.uploadImageHelp,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
@@ -1417,7 +1429,7 @@ class _UploadTab extends StatelessWidget {
                 SizedBox(
                   width: 180,
                   child: GradientButton(
-                    label: 'Chọn ảnh',
+                    label: AppLocalizations.of(context)!.chooseImage,
                     icon: Icons.folder_open_rounded,
                     height: 44,
                     onPressed: onUploadPhoto,

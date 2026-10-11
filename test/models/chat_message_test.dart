@@ -20,4 +20,18 @@ void main() {
     expect(restored.messages, hasLength(2));
     expect(restored.updatedAt, DateTime(2026, 10, 8));
   });
+
+  test(
+    'AI message keeps its language marker while user text remains unchanged',
+    () {
+      final user = ChatMessage.user('Đi đâu cuối tuần này?');
+      final ai = ChatMessage.ai(
+        'Where would you like to go?',
+        languageCode: 'en',
+      );
+
+      expect(ChatMessage.fromMap(user.toMap()).text, user.text);
+      expect(ChatMessage.fromMap(ai.toMap()).languageCode, 'en');
+    },
+  );
 }
