@@ -513,7 +513,7 @@ class _MonthCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '${month.suitabilityScore}%',
+                '${month.suitabilityScore}/10',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.primaryPink,
