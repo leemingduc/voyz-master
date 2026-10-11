@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/utils/destination_share.dart';
 import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
 
@@ -17,6 +18,9 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          locale: Locale('vi'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: ShareDestinationBottomSheet(
               destinationName: 'Đà Nẵng',
