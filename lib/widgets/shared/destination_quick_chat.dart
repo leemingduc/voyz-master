@@ -7,7 +7,7 @@ import 'package:voyz/services/gemini_service.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/utils/error_localizer.dart';
 
-/// A compact, destination-aware AI chat that stays available on detail pages.
+/// A compact, destination-aware AI chat opened from the detail-page AI button.
 class DestinationQuickChat extends StatefulWidget {
   const DestinationQuickChat({
     super.key,
@@ -26,7 +26,7 @@ class _DestinationQuickChatState extends State<DestinationQuickChat> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
-  bool _isOpen = true;
+  bool _isOpen = false;
   bool _isSending = false;
 
   @override
@@ -105,17 +105,56 @@ class _DestinationQuickChatState extends State<DestinationQuickChat> {
     final width = MediaQuery.sizeOf(context).width;
 
     if (!_isOpen) {
-      return Material(
-        color: Colors.transparent,
-        child: Ink(
-          decoration: const BoxDecoration(
-            gradient: AppTheme.brandGradient,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            tooltip: l10n.aiChatbotTitle,
-            onPressed: () => setState(() => _isOpen = true),
-            icon: const Icon(Icons.auto_awesome, color: Colors.white),
+      return Semantics(
+        button: true,
+        label: l10n.aiChatbotTitle,
+        child: Tooltip(
+          message: l10n.aiChatbotTitle,
+          child: Material(
+            color: Colors.transparent,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: AppTheme.cyan.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppTheme.cyan.withValues(alpha: 0.7)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.cyan.withValues(alpha: 0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: InkWell(
+                onTap: () => setState(() => _isOpen = true),
+                borderRadius: BorderRadius.circular(18),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.forum_outlined,
+                        color: AppTheme.cyan,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.aiChatbotTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
