@@ -5,7 +5,7 @@ import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
-import 'package:voyz/screens/destination_chat_split_screen.dart';
+import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -367,10 +367,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => DestinationChatSplitScreen(
-          destinationName: destination,
-          chatHistoryDestinationName: widget.destinationName,
-        ),
+        builder: (_) => DestinationDetailScreen(destinationName: destination),
       ),
     );
   }

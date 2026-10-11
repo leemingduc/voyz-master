@@ -17,10 +17,14 @@ void main() {
     );
   }
 
-  testWidgets('shows the current destination and can be minimized', (
-    tester,
-  ) async {
+  testWidgets('opens from the AI button and can be minimized', (tester) async {
     await tester.pumpWidget(buildSubject());
+
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byIcon(Icons.forum_outlined), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.forum_outlined));
+    await tester.pumpAndSettle();
 
     expect(find.text('Đà Lạt'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
@@ -29,6 +33,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TextField), findsNothing);
-    expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
+    expect(find.byIcon(Icons.forum_outlined), findsOneWidget);
   });
 }
