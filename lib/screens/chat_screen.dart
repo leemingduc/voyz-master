@@ -6,7 +6,7 @@ import 'package:voyz/data/locale_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/models/ai_action.dart';
 import 'package:voyz/models/chat_message.dart';
-import 'package:voyz/screens/destination_detail_screen.dart';
+import 'package:voyz/screens/destination_chat_split_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/explore_screen.dart';
 import 'package:voyz/screens/saved_screen.dart';
@@ -24,9 +24,26 @@ import 'package:voyz/utils/error_localizer.dart';
 
 /// AI Travel Chatbot screen — chat directly with the AI travel assistant.
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, this.destinationName});
+  const ChatScreen({
+    super.key,
+    this.destinationName,
+    this.contextDestinationName,
+    this.onDestinationSelected,
+    this.embedded = false,
+  });
 
+  /// Used to scope saved chat history when the chat is opened for a destination.
   final String? destinationName;
+
+  /// The destination the assistant should discuss. This can change independently
+  /// from the conversation's history scope in a split destination view.
+  final String? contextDestinationName;
+
+  /// Lets a parent split view update its destination pane without leaving chat.
+  final ValueChanged<String>? onDestinationSelected;
+
+  /// Removes app-level navigation when this screen is rendered as one pane.
+  final bool embedded;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -200,7 +217,8 @@ class _ChatScreenState extends State<ChatScreen> {
         // messages so it is not duplicated in the prompt.
         history: _messages.take(_messages.length - 1).toList(),
         languageCode: languageCode,
-        destinationName: widget.destinationName,
+        destinationName:
+            widget.contextDestinationName ?? widget.destinationName,
       );
 
       if (mounted) {
@@ -236,12 +254,7 @@ class _ChatScreenState extends State<ChatScreen> {
     switch (action.type) {
       case AiActionType.navigateDestination:
         if (action.target.isNotEmpty) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  DestinationDetailScreen(destinationName: action.target),
-            ),
-          );
+          _openDestination(action.target);
         }
         break;
       case AiActionType.navigateScreen:
@@ -270,12 +283,7 @@ class _ChatScreenState extends State<ChatScreen> {
         break;
       case AiActionType.setTripData:
         if (action.target.isNotEmpty) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  DestinationDetailScreen(destinationName: action.target),
-            ),
-          );
+          _openDestination(action.target);
         }
         break;
       case AiActionType.updateLanguage:
@@ -360,6 +368,26 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _openDestination(String destinationName) {
+    final destination = destinationName.trim();
+    if (destination.isEmpty) return;
+
+    final onDestinationSelected = widget.onDestinationSelected;
+    if (onDestinationSelected != null) {
+      onDestinationSelected(destination);
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DestinationChatSplitScreen(
+          destinationName: destination,
+          chatHistoryDestinationName: widget.destinationName,
+        ),
+      ),
+    );
+  }
+
   void _showActionResult(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -415,10 +443,13 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
       appBar: AivivuHeader(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.embedded
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+        showAccountMenu: !widget.embedded,
         actions: [
           IconButton(
             tooltip: AppLocalizations.of(context)!.newPlannerChat,
@@ -542,7 +573,9 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 0, onTap: _onNavTap),
+      bottomNavigationBar: widget.embedded
+          ? null
+          : BottomNavBar(currentIndex: 0, onTap: _onNavTap),
     );
   }
 }
