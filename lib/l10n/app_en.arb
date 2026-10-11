@@ -500,8 +500,6 @@
   "chatWelcome": "Hi! I'm your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍",
   "@chatWelcome": {"description": "Welcome message shown when chat screen opens"},
 
-  "chatError": "Sorry, I couldn't respond. Please try again.",
-  "@chatError": {"description": "Error message when chat fails"},
 
   "chatCleared": "Chat cleared. How can I help you?",
   "@chatCleared": {"description": "Message shown after chat history is cleared"},
@@ -611,6 +609,17 @@
   "apiKeyNotSet": "GEMINI_API_KEY is not set. Please add your key to .env file.",
   "@apiKeyNotSet": {"description": "Error when API key is missing"},
 
+  "aiQuotaExceeded": "The AI free quota (Gemini) is used up. Wait about 1 minute and try again, or pick another AI model in Profile.",
+  "@aiQuotaExceeded": {"description": "Error when the Gemini API returns 429 / quota exceeded"},
+  "aiKeyInvalid": "The Gemini API key is invalid or was blocked by Google. Replace the key.",
+  "@aiKeyInvalid": {"description": "Error when Gemini rejects or has blocked the API key"},
+  "aiServerBusy": "The AI server is overloaded or has a problem. Please try again in a few minutes.",
+  "@aiServerBusy": {"description": "Error when Gemini returns a 5xx server error"},
+  "aiInvalidResponse": "The AI returned data in a wrong format. Please try again.",
+  "@aiInvalidResponse": {"description": "Error when the AI JSON cannot be parsed"},
+  "networkError": "No network connection. Check the Internet and try again.",
+  "@networkError": {"description": "Error when the device cannot reach the server"},
+
   "invalidLoginCredentials": "Invalid login credentials. Please check your email and password.",
   "@invalidLoginCredentials": {"description": "Error when login credentials are invalid"},
 
@@ -689,8 +698,6 @@
   "chatWelcome": "Hi! I'm your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍",
   "@chatWelcome": {"description": "Welcome message shown when chat screen opens"},
 
-  "chatError": "Sorry, I couldn't respond. Please try again.",
-  "@chatError": {"description": "Error message when chat fails"},
 
   "chatCleared": "Chat cleared. How can I help you?",
   "@chatCleared": {"description": "Message shown after chat history is cleared"},

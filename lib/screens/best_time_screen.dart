@@ -12,6 +12,7 @@ import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// AI Best Time to Travel screen — analyze when to visit a destination.
 class BestTimeScreen extends StatefulWidget {
@@ -79,9 +80,13 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
         });
       }
     } catch (e) {
+      debugPrint('BestTime: load failed: $e');
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.getLocalizedMessage(
+            e,
+            AppLocalizations.of(context)!,
+          );
           _isLoading = false;
         });
       }

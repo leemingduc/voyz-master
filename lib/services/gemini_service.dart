@@ -697,7 +697,7 @@ Quy tắc:
     final response = await _gemini.generateContent([Content.text(prompt)]);
     final text = response.text;
     if (text == null || text.isEmpty) {
-      throw Exception('Không nhận được phản hồi từ AI.');
+      throw Exception('noAiResponse');
     }
 
     // Save to cache

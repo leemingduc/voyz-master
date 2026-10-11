@@ -1,3 +1,5 @@
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -32,6 +34,38 @@ class ErrorLocalizer {
       if (message == 'loginrequired') {
         return l10n.loginRequired;
       }
+    }
+
+    // Handle Gemini API errors. The SDK puts Google's own message in the
+    // exception (no HTTP status code), so match on words from that message.
+    if (error is GenerativeAIException) {
+      final message = error.message.toLowerCase();
+
+      // 429 RESOURCE_EXHAUSTED: free tier quota is used up.
+      if (message.contains('quota') || message.contains('exhausted')) {
+        return l10n.aiQuotaExceeded;
+      }
+
+      // Wrong key, leaked key, or key blocked by Google (401/403).
+      if (error is InvalidApiKey || message.contains('api key')) {
+        return l10n.aiKeyInvalid;
+      }
+
+      // 5xx: the SDK throws "Server Error [503]: ...".
+      if (message.startsWith('server error') ||
+          message.contains('overloaded')) {
+        return l10n.aiServerBusy;
+      }
+    }
+
+    // AI returned JSON that the app cannot parse.
+    if (error is FormatException) {
+      return l10n.aiInvalidResponse;
+    }
+
+    // No network: http throws ClientException ("Failed to fetch" on web).
+    if (error is http.ClientException) {
+      return l10n.networkError;
     }
 
     // Handle generic Exception with our custom error keys

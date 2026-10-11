@@ -27,6 +27,7 @@ import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// Destination Detail screen - hero image, tags, weather, budget breakdown.
 class DestinationDetailScreen extends StatefulWidget {
@@ -154,9 +155,13 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         unawaited(_loadReviews(destinationName));
       }
     } catch (e) {
+      debugPrint('DestinationDetail: load failed: $e');
       if (mounted && _destinationName == destinationName) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.getLocalizedMessage(
+            e,
+            AppLocalizations.of(context)!,
+          );
           _isLoading = false;
         });
       }

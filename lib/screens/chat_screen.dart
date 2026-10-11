@@ -20,6 +20,7 @@ import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/typing_indicator_bubble.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// AI Travel Chatbot screen — chat directly with the AI travel assistant.
 class ChatScreen extends StatefulWidget {
@@ -215,10 +216,13 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom();
       }
     } catch (e) {
+      debugPrint('Chat: send failed: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _messages.add(ChatMessage.ai(l10n.chatError));
+          _messages.add(
+            ChatMessage.ai(ErrorLocalizer.getLocalizedMessage(e, l10n)),
+          );
           _isSending = false;
         });
         await _persistMessages();
