@@ -13,6 +13,7 @@ import 'package:voyz/widgets/shared/aivivu_header.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// AI Destination Comparison screen — compare 2-3 destinations side by side.
 class CompareScreen extends StatefulWidget {
@@ -97,9 +98,13 @@ class _CompareScreenState extends State<CompareScreen> {
         });
       }
     } catch (e) {
+      debugPrint('Compare: load failed: $e');
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.getLocalizedMessage(
+            e,
+            AppLocalizations.of(context)!,
+          );
           _isLoading = false;
         });
       }

@@ -495,9 +495,6 @@ class AppLocalizationsKo extends AppLocalizations {
       '안녕하세요! 저는 AI 여행 어시스턴트입니다. 여행 목적지, 팁 또는 다음 여행 계획에 대해 무엇이든 물어보세요! 🌍';
 
   @override
-  String get chatError => '죄송합니다. 응답할 수 없습니다. 다시 시도해 주세요.';
-
-  @override
   String get chatCleared => '채팅이 삭제되었습니다. 어떻게 도와드릴까요?';
 
   @override
@@ -567,6 +564,23 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bestTimeSeasons => '계절';
+
+  @override
+  String get aiQuotaExceeded =>
+      'AI 무료 한도(Gemini)를 모두 사용했습니다. 약 1분 후 다시 시도하거나 프로필에서 다른 AI 모델을 선택해 주세요.';
+
+  @override
+  String get aiKeyInvalid =>
+      'Gemini API 키가 유효하지 않거나 Google에 의해 차단되었습니다. 키를 교체해 주세요.';
+
+  @override
+  String get aiServerBusy => 'AI 서버가 과부하 상태이거나 문제가 있습니다. 몇 분 후 다시 시도해 주세요.';
+
+  @override
+  String get aiInvalidResponse => 'AI가 잘못된 형식의 데이터를 반환했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get networkError => '네트워크에 연결되어 있지 않습니다. 인터넷을 확인한 후 다시 시도해 주세요.';
 
   @override
   String get bestTimeMonthly => '월별 개요';

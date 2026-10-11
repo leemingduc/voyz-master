@@ -508,9 +508,6 @@ class AppLocalizationsVi extends AppLocalizations {
       'Xin chào! Tôi là trợ lý du lịch AI. Hãy hỏi tôi về điểm đến, mẹo du lịch hoặc lên kế hoạch cho chuyến đi tiếp theo của bạn! 🌍';
 
   @override
-  String get chatError => 'Xin lỗi, tôi không thể phản hồi. Vui lòng thử lại.';
-
-  @override
   String get chatCleared =>
       'Cuộc trò chuyện đã xóa. Tôi có thể giúp gì cho bạn?';
 
@@ -581,6 +578,26 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get bestTimeSeasons => 'Các mùa';
+
+  @override
+  String get aiQuotaExceeded =>
+      'AI đã hết lượt miễn phí (quota Gemini). Đợi khoảng 1 phút rồi thử lại, hoặc đổi Mô hình AI trong Hồ sơ.';
+
+  @override
+  String get aiKeyInvalid =>
+      'Khoá Gemini API không hợp lệ hoặc đã bị Google khoá. Cần thay khoá mới.';
+
+  @override
+  String get aiServerBusy =>
+      'Máy chủ AI đang quá tải hoặc gặp sự cố. Vui lòng thử lại sau ít phút.';
+
+  @override
+  String get aiInvalidResponse =>
+      'AI trả về dữ liệu sai định dạng. Vui lòng thử lại.';
+
+  @override
+  String get networkError =>
+      'Không có kết nối mạng. Kiểm tra Internet rồi thử lại.';
 
   @override
   String get bestTimeMonthly => 'Tổng quan theo tháng';

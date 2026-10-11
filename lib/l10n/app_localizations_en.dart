@@ -509,9 +509,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Hi! I\'m your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍';
 
   @override
-  String get chatError => 'Sorry, I couldn\'t respond. Please try again.';
-
-  @override
   String get chatCleared => 'Chat cleared. How can I help you?';
 
   @override
@@ -581,6 +578,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bestTimeSeasons => 'Seasons';
+
+  @override
+  String get aiQuotaExceeded =>
+      'The AI free quota (Gemini) is used up. Wait about 1 minute and try again, or pick another AI model in Profile.';
+
+  @override
+  String get aiKeyInvalid =>
+      'The Gemini API key is invalid or was blocked by Google. Replace the key.';
+
+  @override
+  String get aiServerBusy =>
+      'The AI server is overloaded or has a problem. Please try again in a few minutes.';
+
+  @override
+  String get aiInvalidResponse =>
+      'The AI returned data in a wrong format. Please try again.';
+
+  @override
+  String get networkError =>
+      'No network connection. Check the Internet and try again.';
 
   @override
   String get bestTimeMonthly => 'Monthly Overview';

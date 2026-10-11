@@ -15,6 +15,7 @@ import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// Explore screen — independent from AI Planner.
 ///
@@ -116,9 +117,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
         });
       }
     } catch (e) {
+      debugPrint('ExploreScreen: load failed: $e');
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.getLocalizedMessage(
+            e,
+            AppLocalizations.of(context)!,
+          );
           _isLoading = false;
         });
       }

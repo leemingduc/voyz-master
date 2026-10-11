@@ -1060,12 +1060,6 @@ abstract class AppLocalizations {
   /// **'Hi! I\'m your AI travel assistant. Ask me anything about travel destinations, tips, or planning your next adventure! 🌍'**
   String get chatWelcome;
 
-  /// Error message when chat fails
-  ///
-  /// In en, this message translates to:
-  /// **'Sorry, I couldn\'t respond. Please try again.'**
-  String get chatError;
-
   /// Message shown after chat history is cleared
   ///
   /// In en, this message translates to:
@@ -1203,6 +1197,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Seasons'**
   String get bestTimeSeasons;
+
+  /// Error when the Gemini API returns 429 / quota exceeded
+  ///
+  /// In en, this message translates to:
+  /// **'The AI free quota (Gemini) is used up. Wait about 1 minute and try again, or pick another AI model in Profile.'**
+  String get aiQuotaExceeded;
+
+  /// Error when Gemini rejects or has blocked the API key
+  ///
+  /// In en, this message translates to:
+  /// **'The Gemini API key is invalid or was blocked by Google. Replace the key.'**
+  String get aiKeyInvalid;
+
+  /// Error when Gemini returns a 5xx server error
+  ///
+  /// In en, this message translates to:
+  /// **'The AI server is overloaded or has a problem. Please try again in a few minutes.'**
+  String get aiServerBusy;
+
+  /// Error when the AI JSON cannot be parsed
+  ///
+  /// In en, this message translates to:
+  /// **'The AI returned data in a wrong format. Please try again.'**
+  String get aiInvalidResponse;
+
+  /// Error when the device cannot reach the server
+  ///
+  /// In en, this message translates to:
+  /// **'No network connection. Check the Internet and try again.'**
+  String get networkError;
 
   /// Section heading for monthly data in best time results
   ///

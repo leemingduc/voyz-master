@@ -14,6 +14,7 @@ import 'package:voyz/widgets/shared/aivivu_loading_indicator.dart';
 import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/glass_card.dart';
+import 'package:voyz/utils/error_localizer.dart';
 
 /// Destination Plan screen — day-by-day itinerary timeline.
 class DestinationPlanScreen extends StatefulWidget {
@@ -80,9 +81,13 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         await provider.saveItinerary(plan);
       }
     } catch (e) {
+      debugPrint('DestinationPlan: load failed: $e');
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = ErrorLocalizer.getLocalizedMessage(
+            e,
+            AppLocalizations.of(context)!,
+          );
           _isLoading = false;
         });
       }
@@ -117,11 +122,16 @@ class _DestinationPlanScreenState extends State<DestinationPlanScreen> {
         _isRefining = false;
       });
     } catch (error) {
+      debugPrint('DestinationPlan: refine failed: $error');
       if (!mounted) return;
       setState(() => _isRefining = false);
+      final message = ErrorLocalizer.getLocalizedMessage(
+        error,
+        AppLocalizations.of(context)!,
+      );
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
