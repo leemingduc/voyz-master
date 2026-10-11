@@ -124,8 +124,8 @@ class _Header extends StatelessWidget {
             children: [
               const AivivuWordmark(fontSize: 11, alignment: Alignment.center),
               const SizedBox(height: 2),
-              const Text(
-                'Trip Workspace',
+              Text(
+                AppLocalizations.of(context)!.tripWorkspace,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -134,7 +134,10 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '$workspaceCount workspaces / $wishlistCount wishlist',
+                AppLocalizations.of(context)!.workspaceSummary(
+                  workspaceCount,
+                  wishlistCount,
+                ),
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.white.withValues(alpha: 0.5),
@@ -173,7 +176,7 @@ class _ItemListView extends StatelessWidget {
         return Center(
           child: TextButton(
             onPressed: onRetry,
-            child: const Text('Unable to load saved places. Try again'),
+            child: Text(AppLocalizations.of(context)!.unableToLoadSaved),
           ),
         );
       }
@@ -500,16 +503,17 @@ class _TrustRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        const _MiniBadge(icon: Icons.psychology, label: 'AI match'),
-        const _MiniBadge(icon: Icons.payments, label: 'Cost estimate'),
+        _MiniBadge(icon: Icons.psychology, label: l10n.aiMatch),
+        _MiniBadge(icon: Icons.payments, label: l10n.costEstimate),
         if (item.rating > 0)
           _MiniBadge(
             icon: Icons.star,
-            label: '${item.rating.toStringAsFixed(1)} reference',
+            label: '${item.rating.toStringAsFixed(1)} ${l10n.reference}',
           ),
       ],
     );
@@ -581,6 +585,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final l10n = AppLocalizations.of(context)!;
     final checklist = _checklistDraft;
     final doneCount = checklist.where((entry) => entry.isDone).length;
 
@@ -602,8 +607,8 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
                 size: 18,
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Trip Workspace',
+              Text(
+                l10n.tripWorkspace,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -612,7 +617,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               ),
               const Spacer(),
               Text(
-                '$doneCount/${checklist.length} ready',
+                l10n.workspaceReady(doneCount, checklist.length),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
                   fontSize: 12,
@@ -658,7 +663,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
               letterSpacing: 0.2,
             ),
             decoration: InputDecoration(
-              labelText: 'Notes',
+              labelText: l10n.notes,
               labelStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.55),
                 height: 1.45,
@@ -698,7 +703,7 @@ class _WorkspacePanelState extends State<_WorkspacePanel> {
             children: [
               _ActionChipButton(
                 icon: Icons.group_add,
-                label: 'Chia sẻ cho bạn bè',
+                label: l10n.shareDestination,
                 onTap: () => ShareDestinationBottomSheet.show(
                   context,
                   destinationName: item.name,
@@ -720,26 +725,27 @@ class _WorkspaceStatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final trip = item.tripData;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        const _MiniBadge(icon: Icons.favorite, label: 'Wishlist'),
+        _MiniBadge(icon: Icons.favorite, label: l10n.wishlist),
         _MiniBadge(
           icon: Icons.calendar_today,
           label: trip?.departDate == null
-              ? 'Flexible dates'
-              : 'Itinerary ready',
+              ? l10n.flexibleDates
+              : l10n.itineraryReady,
         ),
         _MiniBadge(
           icon: Icons.payments,
-          label: item.price.isEmpty ? 'Budget TBD' : item.price,
+          label: item.price.isEmpty ? l10n.budgetTbd : item.price,
           moneyValue: item.price.isEmpty ? null : item.price,
         ),
         _MiniBadge(
           icon: Icons.note_alt,
-          label: item.workspaceNotes.isEmpty ? 'No notes' : 'Notes saved',
+          label: item.workspaceNotes.isEmpty ? l10n.noNotes : l10n.notesSaved,
         ),
       ],
     );

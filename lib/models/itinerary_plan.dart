@@ -7,6 +7,7 @@ class ItineraryPlan {
 
   /// Id of the trip that owns this itinerary. Empty when plan not yet attached to trip.
   final String tripId;
+  final String languageCode;
 
   const ItineraryPlan({
     required this.destinationName,
@@ -14,6 +15,7 @@ class ItineraryPlan {
     required this.days,
     required this.proTip,
     this.tripId = '',
+    this.languageCode = '',
   });
 
   factory ItineraryPlan.fromJson(Map<String, dynamic> json) {
@@ -27,16 +29,19 @@ class ItineraryPlan {
           [],
       proTip: json['proTip'] as String? ?? '',
       tripId: json['tripId']?.toString() ?? '',
+      languageCode: json['languageCode']?.toString() ?? '',
     );
   }
 
-  ItineraryPlan copyWith({String? tripId}) => ItineraryPlan(
-    destinationName: destinationName,
-    dateRange: dateRange,
-    days: days,
-    proTip: proTip,
-    tripId: tripId ?? this.tripId,
-  );
+  ItineraryPlan copyWith({String? tripId, String? languageCode}) =>
+      ItineraryPlan(
+        destinationName: destinationName,
+        dateRange: dateRange,
+        days: days,
+        proTip: proTip,
+        tripId: tripId ?? this.tripId,
+        languageCode: languageCode ?? this.languageCode,
+      );
 
   Map<String, dynamic> toMap() => {
     'destinationName': destinationName,
@@ -44,6 +49,7 @@ class ItineraryPlan {
     'days': days.map((day) => day.toMap()).toList(),
     'proTip': proTip,
     'tripId': tripId,
+    if (languageCode.isNotEmpty) 'languageCode': languageCode,
   };
 }
 
@@ -128,4 +134,3 @@ class ItineraryItem {
     if (details != null) 'details': details,
   };
 }
-

@@ -38,6 +38,8 @@ class _CompareScreenState extends State<CompareScreen> {
   DestinationComparison? _comparison;
   bool _isLoading = false;
   String? _error;
+  String? _lastLanguageCode;
+  int _requestVersion = 0;
 
   @override
   void initState() {
@@ -59,10 +61,27 @@ class _CompareScreenState extends State<CompareScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    if (_dest1Controller.text.trim().isNotEmpty &&
+        _dest2Controller.text.trim().isNotEmpty) {
+      _compare();
+    }
+  }
+
   Future<void> _compare() async {
     final dest1 = _dest1Controller.text.trim();
     final dest2 = _dest2Controller.text.trim();
     final dest3 = _dest3Controller.text.trim();
+    final requestVersion = ++_requestVersion;
 
     if (dest1.isEmpty || dest2.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
@@ -91,7 +110,7 @@ class _CompareScreenState extends State<CompareScreen> {
         trip: widget.initialTrip,
       );
 
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _comparison = result;
           _isLoading = false;
@@ -99,7 +118,7 @@ class _CompareScreenState extends State<CompareScreen> {
       }
     } catch (e) {
       debugPrint('Compare: load failed: $e');
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _error = ErrorLocalizer.getLocalizedMessage(
             e,
@@ -392,11 +411,9 @@ class _CompareScreenState extends State<CompareScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ..._comparison!.aspects.map(
-                (aspect) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _AspectCard(aspect: aspect),
-                ),
+              _ComparisonTable(
+                destinations: _comparison!.destinations,
+                aspects: _comparison!.aspects,
               ),
             ],
           ],
@@ -522,10 +539,11 @@ class _DestinationCard extends StatelessWidget {
   }
 }
 
-class _AspectCard extends StatelessWidget {
-  const _AspectCard({required this.aspect});
+class _ComparisonTable extends StatelessWidget {
+  const _ComparisonTable({required this.destinations, required this.aspects});
 
-  final ComparisonAspect aspect;
+  final List<ComparedDestination> destinations;
+  final List<ComparisonAspect> aspects;
 
   IconData _getIcon(String iconName) {
     switch (iconName) {
@@ -542,81 +560,173 @@ class _AspectCard extends StatelessWidget {
     }
   }
 
+  AspectDetail? _detailFor(
+    ComparisonAspect aspect,
+    ComparedDestination destination,
+    int destinationIndex,
+  ) {
+    for (final detail in aspect.details) {
+      if (detail.destination.trim().toLowerCase() ==
+          destination.name.trim().toLowerCase()) {
+        return detail;
+      }
+    }
+
+    return destinationIndex < aspect.details.length
+        ? aspect.details[destinationIndex]
+        : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _getIcon(aspect.icon),
-                color: AppTheme.primaryPink,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                aspect.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const criterionWidth = 116.0;
+          const destinationWidth = 176.0;
+          final tableWidth =
+              criterionWidth + destinationWidth * destinations.length;
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: tableWidth > constraints.maxWidth
+                  ? tableWidth
+                  : constraints.maxWidth,
+              child: Table(
+                columnWidths: const {0: FixedColumnWidth(criterionWidth)},
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                border: TableBorder(
+                  horizontalInside: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                  verticalInside: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...aspect.details.map(
-            (detail) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 100,
-                    child: Text(
-                      detail.destination,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      detail.value,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                  TableRow(
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryPink.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
-                    child: Text(
-                      '${detail.score}/10',
-                      style: TextStyle(
-                        color: AppTheme.primaryPink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          AppLocalizations.of(context)!.criterion,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
+                      ...destinations.map(
+                        (destination) => Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            destination.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ...aspects.map(
+                    (aspect) => TableRow(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _getIcon(aspect.icon),
+                                color: AppTheme.primaryPink,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  aspect.label,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...destinations.asMap().entries.map((entry) {
+                          final detail = _detailFor(
+                            aspect,
+                            entry.value,
+                            entry.key,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: detail == null
+                                ? const Text(
+                                    '—',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white54),
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        detail.value,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.84,
+                                          ),
+                                          fontSize: 13,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryPink
+                                              .withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${detail.score}/10',
+                                          style: const TextStyle(
+                                            color: AppTheme.primaryPink,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          );
+                        }),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

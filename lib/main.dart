@@ -10,14 +10,12 @@ import 'package:voyz/data/currency_provider.dart';
 import 'package:voyz/data/saved_trips_provider.dart';
 import 'package:voyz/screens/auth_gate.dart';
 import 'package:voyz/screens/friends_screen.dart';
-import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/services/ai_cache_service.dart';
 import 'package:voyz/services/background_music_service.dart';
 import 'package:voyz/services/currency_service.dart';
 import 'package:voyz/services/friend_message_notification_service.dart';
 import 'package:voyz/services/search_history_service.dart';
 import 'package:voyz/services/supabase_service.dart';
-import 'package:voyz/utils/destination_share.dart';
 import 'package:voyz/theme/app_theme.dart';
 import 'package:voyz/widgets/shared/ai_tools_button.dart';
 import 'package:voyz/widgets/shared/aivivu_page_background.dart';
@@ -63,7 +61,6 @@ Future<void> main() async {
     VoyzApp(
       initialLocale: initialLocale,
       initialDisplayCurrency: initialDisplayCurrency,
-      sharedDestinationName: Uri.base.queryParameters['destination'],
     ),
   );
 }
@@ -73,12 +70,10 @@ class VoyzApp extends StatefulWidget {
     super.key,
     required this.initialLocale,
     required this.initialDisplayCurrency,
-    this.sharedDestinationName,
   });
 
   final Locale initialLocale;
   final String initialDisplayCurrency;
-  final String? sharedDestinationName;
 
   @override
   State<VoyzApp> createState() => _VoyzAppState();
@@ -116,9 +111,6 @@ class _VoyzAppState extends State<VoyzApp> {
     final overlay = _navigatorKey.currentState?.overlay;
     if (overlay == null) return;
     final friend = alert.friendship.friend;
-    final sharedDestinationName = destinationNameFromShareMessage(
-      alert.message.body,
-    );
     final name = friend.displayName.isEmpty ? friend.email : friend.displayName;
     _dismissFriendMessageAlert();
 
@@ -136,25 +128,12 @@ class _VoyzAppState extends State<VoyzApp> {
                 child: InkWell(
                   onTap: () {
                     _dismissFriendMessageAlert();
-                    if (sharedDestinationName != null) {
-                      FriendMessageNotificationService.instance.markRead(
-                        alert.friendship.id,
-                      );
-                      _navigatorKey.currentState?.push(
-                        MaterialPageRoute(
-                          builder: (_) => DestinationDetailScreen(
-                            destinationName: sharedDestinationName,
-                          ),
-                        ),
-                      );
-                    } else {
-                      _navigatorKey.currentState?.push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              FriendChatScreen(friendship: alert.friendship),
-                        ),
-                      );
-                    }
+                    _navigatorKey.currentState?.push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            FriendChatScreen(friendship: alert.friendship),
+                      ),
+                    );
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: Ink(
@@ -207,8 +186,8 @@ class _VoyzAppState extends State<VoyzApp> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Xem',
+                        Text(
+                          AppLocalizations.of(context)!.view,
                           style: TextStyle(
                             color: Color(0xFF22D3EE),
                             fontWeight: FontWeight.w800,
@@ -271,9 +250,7 @@ class _VoyzAppState extends State<VoyzApp> {
                     )
                     ? deviceLocale
                     : const Locale('vi'),
-                home: AuthGate(
-                  sharedDestinationName: widget.sharedDestinationName,
-                ),
+                home: const AuthGate(),
                 builder: (context, child) {
                   return AivivuPageBackground(
                     padding: false,

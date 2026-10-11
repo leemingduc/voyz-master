@@ -74,6 +74,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   late String _destinationName;
   late int _selectedSuggestionIndex;
   final Map<int, DestinationDetail> _aiDetailCache = {};
+  String? _lastLanguageCode;
 
   SavedItem? _savedItem;
 
@@ -110,6 +111,20 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    _aiDetailCache.clear();
+    unawaited(_loadDetail());
+  }
+
   Future<void> _loadDetail() async {
     final destinationName = _destinationName;
     final suggestionIndex = _selectedSuggestionIndex;
@@ -121,6 +136,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
 
     try {
       final trip = _trip;
+      final languageCode = LocaleProvider.of(context).value.languageCode;
       final cachedAiDetail = isAiSuggestion
           ? _aiDetailCache[suggestionIndex]
           : null;
@@ -134,18 +150,23 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
         detail = await GeminiService.instance.getDestinationDetail(
           destinationName,
           trip,
-          languageCode: LocaleProvider.of(context).value.languageCode,
+          languageCode: languageCode,
         );
         _aiDetailCache[suggestionIndex] = detail;
       } else {
-        final dbDetail = await DestinationRepository.instance
-            .getDestinationDetail(destinationName);
+        // Curated database copy is Vietnamese. Rebuild AI copy for other
+        // locales so destination facts do not remain in the previous language.
+        final dbDetail = languageCode == 'vi'
+            ? await DestinationRepository.instance.getDestinationDetail(
+                destinationName,
+              )
+            : null;
         detail =
             dbDetail ??
             await GeminiService.instance.getDestinationDetail(
               destinationName,
               trip,
-              languageCode: LocaleProvider.of(context).value.languageCode,
+              languageCode: languageCode,
             );
       }
       if (mounted &&
@@ -215,14 +236,14 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       _reviewController.clear();
       await _loadReviews();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Review saved')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.reviewSaved)),
+      );
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSavingReview = false);
@@ -397,7 +418,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Không thể tải địa điểm này. Vui lòng thử lại.'),
+        content: Text(AppLocalizations.of(context)!.cannotLoadDetail),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -837,9 +858,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       _reviews.map((r) => r.rating),
     );
     if (average == null) {
-      return DestinationRatingCalculator.formatVotes(0);
+      return AppLocalizations.of(context)!.noReviews;
     }
-    final votes = DestinationRatingCalculator.formatVotes(
+    final votes = AppLocalizations.of(context)!.reviewCount(
       DestinationRatingCalculator.calculateReviewCount(_reviews.length),
     );
     return '${average.toStringAsFixed(1)} ($votes)';
@@ -860,8 +881,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             children: [
               const Icon(Icons.star_rate, color: Color(0xFFFBBF24), size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'Community reviews',
+              Text(
+                AppLocalizations.of(context)!.communityReviews,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -904,7 +925,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               letterSpacing: 0.2,
             ),
             decoration: InputDecoration(
-              hintText: 'Share a quick tip for other travelers',
+              hintText: AppLocalizations.of(context)!.reviewHint,
               hintStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.35),
                 fontSize: 14,
@@ -946,7 +967,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 _isSavingReview ? Icons.hourglass_empty : Icons.send,
                 size: 16,
               ),
-              label: Text(_isSavingReview ? 'Saving' : 'Post review'),
+              label: Text(
+                _isSavingReview
+                    ? AppLocalizations.of(context)!.saving
+                    : AppLocalizations.of(context)!.postReview,
+              ),
             ),
           ),
           if (_isLoadingReviews) ...[
@@ -1137,7 +1162,7 @@ class _DestinationSwitcher extends StatelessWidget {
         final button = OutlinedButton.icon(
           onPressed: constraints.maxWidth < 700 ? onOpenMobile : () {},
           icon: const Icon(Icons.sync, size: 18),
-          label: const Text('🔄 Đổi địa điểm'),
+          label: Text('🔄 ${AppLocalizations.of(context)!.changeDestination}'),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppTheme.cyan,
             side: BorderSide(color: AppTheme.cyan.withValues(alpha: 0.45)),
@@ -1148,7 +1173,7 @@ class _DestinationSwitcher extends StatelessWidget {
         if (constraints.maxWidth < 700) return button;
 
         return PopupMenuButton<int>(
-          tooltip: 'Đổi địa điểm',
+          tooltip: AppLocalizations.of(context)!.changeDestination,
           color: AppTheme.surfaceDark,
           constraints: const BoxConstraints(maxWidth: 360),
           onSelected: (value) {
@@ -1176,7 +1201,7 @@ class _DestinationSwitcher extends StatelessWidget {
                 children: [
                   Icon(Icons.balance, color: AppTheme.cyan, size: 20),
                   SizedBox(width: 10),
-                  Text('⚖ So sánh các lựa chọn'),
+                  Text('⚖ ${AppLocalizations.of(context)!.compareOptions}'),
                 ],
               ),
             ),
@@ -1225,8 +1250,8 @@ class _DestinationPickerSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Đổi địa điểm',
+            Text(
+              AppLocalizations.of(context)!.changeDestination,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -1277,8 +1302,8 @@ class _DestinationPickerSheet extends StatelessWidget {
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
               leading: const Icon(Icons.balance, color: AppTheme.cyan),
-              title: const Text(
-                '⚖ So sánh các lựa chọn',
+              title: Text(
+                '⚖ ${AppLocalizations.of(context)!.compareOptions}',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
               ),
               onTap: () => Navigator.pop(context, -1),
@@ -1345,7 +1370,7 @@ class _ReviewTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayName = review.userName.isNotEmpty
         ? review.userName
-        : 'Anonymous';
+        : AppLocalizations.of(context)!.anonymousReviewer;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(10),
@@ -1370,7 +1395,9 @@ class _ReviewTile extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${review.createdAt.month}/${review.createdAt.day}/${review.createdAt.year}',
+                MaterialLocalizations.of(
+                  context,
+                ).formatShortDate(review.createdAt),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 11,
@@ -1615,6 +1642,16 @@ class _BudgetCard extends StatelessWidget {
   final String totalBudget;
   final List<BudgetItem> breakdown;
 
+  String _label(AppLocalizations l10n, BudgetItem item) {
+    return switch (item.icon) {
+      'flight' => l10n.budgetTransport,
+      'hotel' => l10n.budgetStay,
+      'restaurant' => l10n.budgetFood,
+      'kayaking' => l10n.budgetActivities,
+      _ => item.label,
+    };
+  }
+
   static const _colors = [
     AppTheme.primaryPink,
     AppTheme.secondaryOrange,
@@ -1720,7 +1757,7 @@ class _BudgetCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${item.label}: ',
+                        '${_label(AppLocalizations.of(context)!, item)}: ',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.white.withValues(alpha: 0.7),
@@ -1932,8 +1969,8 @@ class _LandmarkGallerySectionState extends State<_LandmarkGallerySection> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'THẮNG CẢNH BIỂU TƯỢNG & ẢNH THỰC TẾ',
+            Text(
+              AppLocalizations.of(context)!.iconicSights,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

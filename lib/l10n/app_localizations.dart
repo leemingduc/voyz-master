@@ -1534,11 +1534,833 @@ abstract class AppLocalizations {
   /// **'View details'**
   String get viewDetails;
 
+  /// No description provided for @friendsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get friendsTitle;
+
+  /// No description provided for @friendRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests'**
+  String get friendRequests;
+
+  /// No description provided for @noFriendsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No friends yet'**
+  String get noFriendsYet;
+
+  /// No description provided for @noFriendsYetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by email or display name to add someone.'**
+  String get noFriendsYetHint;
+
+  /// No description provided for @noPendingRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending requests'**
+  String get noPendingRequests;
+
+  /// No description provided for @noPendingRequestsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming and outgoing requests appear here.'**
+  String get noPendingRequestsHint;
+
+  /// No description provided for @findFriends.
+  ///
+  /// In en, this message translates to:
+  /// **'Find friends'**
+  String get findFriends;
+
+  /// No description provided for @friendSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or display name'**
+  String get friendSearchHint;
+
+  /// No description provided for @addFriend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add friend'**
+  String get addFriend;
+
+  /// No description provided for @friendStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get friendStatus;
+
+  /// No description provided for @accept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get accept;
+
+  /// No description provided for @wantsToConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Wants to connect'**
+  String get wantsToConnect;
+
+  /// No description provided for @friendRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent'**
+  String get friendRequestSent;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
+
+  /// No description provided for @removeFriendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove friend?'**
+  String get removeFriendTitle;
+
+  /// No description provided for @removeFriendMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You will remove {name} from your friends. The conversation for both of you will also be deleted.'**
+  String removeFriendMessage(String name);
+
+  /// No description provided for @removeFriend.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove friend'**
+  String get removeFriend;
+
+  /// No description provided for @typing.
+  ///
+  /// In en, this message translates to:
+  /// **'Typing...'**
+  String get typing;
+
+  /// No description provided for @messageInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a message...'**
+  String get messageInputHint;
+
+  /// No description provided for @messageOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Message options'**
+  String get messageOptions;
+
+  /// No description provided for @cancelReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel reply'**
+  String get cancelReply;
+
+  /// No description provided for @replyingTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String replyingTo(String name);
+
+  /// No description provided for @chatWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with {name}'**
+  String chatWith(String name);
+
+  /// No description provided for @noMessagesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet. Send a quick greeting to get started!'**
+  String get noMessagesYet;
+
+  /// No description provided for @sayHi.
+  ///
+  /// In en, this message translates to:
+  /// **'Say hi'**
+  String get sayHi;
+
+  /// No description provided for @planTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a trip'**
+  String get planTrip;
+
+  /// No description provided for @howAreYou.
+  ///
+  /// In en, this message translates to:
+  /// **'How are you?'**
+  String get howAreYou;
+
+  /// No description provided for @quickHiMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi there!'**
+  String get quickHiMessage;
+
+  /// No description provided for @quickTripMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Want to plan a trip together?'**
+  String get quickTripMessage;
+
+  /// No description provided for @quickHowAreYouMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'How are you doing today?'**
+  String get quickHowAreYouMessage;
+
+  /// No description provided for @reviewSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Review saved'**
+  String get reviewSaved;
+
+  /// No description provided for @communityReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Community reviews'**
+  String get communityReviews;
+
+  /// No description provided for @reviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a quick tip for other travelers'**
+  String get reviewHint;
+
+  /// No description provided for @postReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Post review'**
+  String get postReview;
+
+  /// No description provided for @randomDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore a random new destination'**
+  String get randomDestination;
+
+  /// No description provided for @shareDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Share destination'**
+  String get shareDestination;
+
+  /// No description provided for @shareNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note...'**
+  String get shareNoteHint;
+
+  /// No description provided for @selectFriends.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose friends in the app:'**
+  String get selectFriends;
+
+  /// No description provided for @noConnectedFriends.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have any connected friends in the app yet.'**
+  String get noConnectedFriends;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get copyLink;
+
+  /// No description provided for @destinationLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination link copied!'**
+  String get destinationLinkCopied;
+
+  /// No description provided for @shareDestinationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared \"{name}\" with {count} friends!'**
+  String shareDestinationSuccess(String name, int count);
+
+  /// No description provided for @sendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send: {error}'**
+  String sendFailed(String error);
+
+  /// No description provided for @tripWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip workspace'**
+  String get tripWorkspace;
+
+  /// No description provided for @workspaceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{workspaceCount} workspaces / {wishlistCount} wishlists'**
+  String workspaceSummary(int workspaceCount, int wishlistCount);
+
+  /// No description provided for @unableToLoadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load saved places. Try again'**
+  String get unableToLoadSaved;
+
+  /// No description provided for @aiMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'AI match'**
+  String get aiMatch;
+
+  /// No description provided for @costEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost estimate'**
+  String get costEstimate;
+
+  /// No description provided for @reference.
+  ///
+  /// In en, this message translates to:
+  /// **'reference'**
+  String get reference;
+
+  /// No description provided for @budgetTbd.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget TBD'**
+  String get budgetTbd;
+
+  /// No description provided for @noNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes'**
+  String get noNotes;
+
+  /// No description provided for @notesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes saved'**
+  String get notesSaved;
+
+  /// No description provided for @saveName.
+  ///
+  /// In en, this message translates to:
+  /// **'Save name'**
+  String get saveName;
+
+  /// No description provided for @uploadImageTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload image'**
+  String get uploadImageTab;
+
+  /// No description provided for @presetAvatarTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset avatar'**
+  String get presetAvatarTab;
+
+  /// No description provided for @uploadFromDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload from device'**
+  String get uploadFromDevice;
+
+  /// No description provided for @uploadImageHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'JPG and PNG are supported. You can crop and edit after selecting.'**
+  String get uploadImageHelp;
+
+  /// No description provided for @chooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose image'**
+  String get chooseImage;
+
+  /// No description provided for @plannerAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing your interests and preferences...'**
+  String get plannerAnalyzing;
+
+  /// No description provided for @plannerFinding.
+  ///
+  /// In en, this message translates to:
+  /// **'Exploring and selecting suitable destinations...'**
+  String get plannerFinding;
+
+  /// No description provided for @plannerCalculating.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating an optimized itinerary and estimated budget...'**
+  String get plannerCalculating;
+
+  /// No description provided for @plannerFinishing.
+  ///
+  /// In en, this message translates to:
+  /// **'Finalizing great travel options...'**
+  String get plannerFinishing;
+
+  /// No description provided for @flexibleDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Flexible dates'**
+  String get flexibleDates;
+
+  /// No description provided for @itineraryReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Itinerary ready'**
+  String get itineraryReady;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get reply;
+
+  /// No description provided for @copyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy message'**
+  String get copyMessage;
+
+  /// No description provided for @messageCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Message copied'**
+  String get messageCopied;
+
+  /// No description provided for @deleteForMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete for me'**
+  String get deleteForMe;
+
+  /// No description provided for @deleteForMeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This message is only deleted from your device'**
+  String get deleteForMeHint;
+
+  /// No description provided for @recallForEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Recall for everyone'**
+  String get recallForEveryone;
+
+  /// No description provided for @recallForEveryoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This message will disappear for both people'**
+  String get recallForEveryoneHint;
+
+  /// No description provided for @messageNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Message notifications'**
+  String get messageNotifications;
+
+  /// No description provided for @chatAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat appearance'**
+  String get chatAppearance;
+
+  /// No description provided for @clearConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear conversation'**
+  String get clearConversation;
+
+  /// No description provided for @conversationCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation cleared for you'**
+  String get conversationCleared;
+
+  /// No description provided for @messageRecalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Message recalled for everyone'**
+  String get messageRecalled;
+
+  /// No description provided for @emoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get emoji;
+
+  /// No description provided for @changeDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Change destination'**
+  String get changeDestination;
+
+  /// No description provided for @compareOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare options'**
+  String get compareOptions;
+
+  /// No description provided for @activeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Active now'**
+  String get activeNow;
+
+  /// No description provided for @inactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactive;
+
+  /// No description provided for @activeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Active {count} min ago'**
+  String activeMinutesAgo(int count);
+
+  /// No description provided for @activeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Active {count} hr ago'**
+  String activeHoursAgo(int count);
+
+  /// No description provided for @activeYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Active yesterday'**
+  String get activeYesterday;
+
+  /// No description provided for @activeDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Active {count} days ago'**
+  String activeDaysAgo(int count);
+
+  /// No description provided for @activeOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Active {date}'**
+  String activeOnDate(String date);
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen'**
+  String get seen;
+
+  /// No description provided for @delivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get delivered;
+
+  /// No description provided for @view.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get view;
+
+  /// No description provided for @chatTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat theme'**
+  String get chatTheme;
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @chooseTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a theme'**
+  String get chooseTheme;
+
+  /// No description provided for @music.
+  ///
+  /// In en, this message translates to:
+  /// **'Background music'**
+  String get music;
+
+  /// No description provided for @musicDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn music on or off while using the app'**
+  String get musicDescription;
+
+  /// No description provided for @travelPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel preferences'**
+  String get travelPreferences;
+
+  /// No description provided for @preferredCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred currency'**
+  String get preferredCurrency;
+
+  /// No description provided for @travelStyles.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel styles'**
+  String get travelStyles;
+
+  /// No description provided for @savePreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Save preferences'**
+  String get savePreferences;
+
+  /// No description provided for @chooseAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an avatar'**
+  String get chooseAvatar;
+
+  /// No description provided for @destinationEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'AI estimate at destination · 1 person · excludes tickets and transport'**
+  String get destinationEstimate;
+
+  /// No description provided for @iconicSights.
+  ///
+  /// In en, this message translates to:
+  /// **'ICONIC SIGHTS & REAL PHOTOS'**
+  String get iconicSights;
+
+  /// No description provided for @previewMessageOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi! Where are you? 😊'**
+  String get previewMessageOne;
+
+  /// No description provided for @previewMessageTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m in Da Nang ✈️ It\'s wonderful!'**
+  String get previewMessageTwo;
+
+  /// No description provided for @previewMessageThree.
+  ///
+  /// In en, this message translates to:
+  /// **'That sounds great! I really want to go 🌊'**
+  String get previewMessageThree;
+
+  /// No description provided for @previewMessageFour.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s plan a trip together!'**
+  String get previewMessageFour;
+
+  /// No description provided for @criterion.
+  ///
+  /// In en, this message translates to:
+  /// **'Criterion'**
+  String get criterion;
+
+  /// No description provided for @sharedDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared destination'**
+  String get sharedDestination;
+
+  /// No description provided for @performAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Take action'**
+  String get performAction;
+
+  /// No description provided for @anonymousReviewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous'**
+  String get anonymousReviewer;
+
+  /// No description provided for @noReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet'**
+  String get noReviews;
+
+  /// No description provided for @reviewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 review} other{{count} reviews}}'**
+  String reviewCount(int count);
+
+  /// No description provided for @exploreCategoryRandom.
+  ///
+  /// In en, this message translates to:
+  /// **'🎲 Random'**
+  String get exploreCategoryRandom;
+
+  /// No description provided for @exploreCategoryBeach.
+  ///
+  /// In en, this message translates to:
+  /// **'🏖️ Islands & beaches'**
+  String get exploreCategoryBeach;
+
+  /// No description provided for @exploreCategoryMountain.
+  ///
+  /// In en, this message translates to:
+  /// **'🏔️ Mountains & passes'**
+  String get exploreCategoryMountain;
+
+  /// No description provided for @exploreCategoryHeritage.
+  ///
+  /// In en, this message translates to:
+  /// **'🏯 Heritage'**
+  String get exploreCategoryHeritage;
+
+  /// No description provided for @exploreCategoryCity.
+  ///
+  /// In en, this message translates to:
+  /// **'🏙️ Vibrant cities'**
+  String get exploreCategoryCity;
+
+  /// No description provided for @exploreCategoryWellness.
+  ///
+  /// In en, this message translates to:
+  /// **'🌿 Nature retreat'**
+  String get exploreCategoryWellness;
+
+  /// No description provided for @exploreCategoryHiddenGems.
+  ///
+  /// In en, this message translates to:
+  /// **'💎 Hidden gems'**
+  String get exploreCategoryHiddenGems;
+
+  /// No description provided for @nature.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature'**
+  String get nature;
+
+  /// No description provided for @luxury.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury'**
+  String get luxury;
+
+  /// No description provided for @slowTravel.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow travel'**
+  String get slowTravel;
+
+  /// No description provided for @workspaceReady.
+  ///
+  /// In en, this message translates to:
+  /// **'{doneCount}/{totalCount} ready'**
+  String workspaceReady(int doneCount, int totalCount);
+
   /// Trip duration badge
   ///
   /// In en, this message translates to:
   /// **'{n, plural, =1{1 day} other{{n} days}}'**
   String tripDays(int n);
+
+  /// No description provided for @themeAivivu.
+  ///
+  /// In en, this message translates to:
+  /// **'AIVIVU'**
+  String get themeAivivu;
+
+  /// No description provided for @themeTwilight.
+  ///
+  /// In en, this message translates to:
+  /// **'Twilight'**
+  String get themeTwilight;
+
+  /// No description provided for @themeOcean.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get themeOcean;
+
+  /// No description provided for @themeSakura.
+  ///
+  /// In en, this message translates to:
+  /// **'Sakura'**
+  String get themeSakura;
+
+  /// No description provided for @themeForest.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get themeForest;
+
+  /// No description provided for @themeGolden.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Hour'**
+  String get themeGolden;
+
+  /// No description provided for @themeRoadGrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Road Grip'**
+  String get themeRoadGrip;
+
+  /// No description provided for @chatThemeChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed the theme to {theme}'**
+  String chatThemeChanged(String name, String theme);
+
+  /// No description provided for @budgetTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get budgetTransport;
+
+  /// No description provided for @budgetStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay'**
+  String get budgetStay;
+
+  /// No description provided for @budgetFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get budgetFood;
+
+  /// No description provided for @budgetActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get budgetActivities;
 }
 
 class _AppLocalizationsDelegate

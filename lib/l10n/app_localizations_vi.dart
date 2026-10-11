@@ -759,7 +759,453 @@ class AppLocalizationsVi extends AppLocalizations {
   String get viewDetails => 'Xem chi tiết';
 
   @override
+  String get friendsTitle => 'Bạn bè';
+
+  @override
+  String get friendRequests => 'Lời mời';
+
+  @override
+  String get noFriendsYet => 'Chưa có bạn bè';
+
+  @override
+  String get noFriendsYetHint =>
+      'Tìm bằng email hoặc tên hiển thị để thêm bạn.';
+
+  @override
+  String get noPendingRequests => 'Chưa có lời mời kết bạn';
+
+  @override
+  String get noPendingRequestsHint => 'Lời mời đến và đi sẽ hiển thị ở đây.';
+
+  @override
+  String get findFriends => 'Tìm bạn bè';
+
+  @override
+  String get friendSearchHint => 'Email hoặc tên hiển thị';
+
+  @override
+  String get addFriend => 'Thêm bạn';
+
+  @override
+  String get friendStatus => 'Đã là bạn bè';
+
+  @override
+  String get accept => 'Chấp nhận';
+
+  @override
+  String get wantsToConnect => 'Muốn kết bạn';
+
+  @override
+  String get friendRequestSent => 'Đã gửi lời mời';
+
+  @override
+  String get tryAgain => 'Thử lại';
+
+  @override
+  String get removeFriendTitle => 'Xóa bạn bè?';
+
+  @override
+  String removeFriendMessage(String name) {
+    return 'Bạn sẽ xóa $name khỏi danh sách bạn bè. Cuộc trò chuyện của hai người cũng sẽ bị xóa.';
+  }
+
+  @override
+  String get removeFriend => 'Xóa bạn';
+
+  @override
+  String get typing => 'Đang nhập...';
+
+  @override
+  String get messageInputHint => 'Viết tin nhắn...';
+
+  @override
+  String get messageOptions => 'Tùy chọn tin nhắn';
+
+  @override
+  String get cancelReply => 'Hủy trả lời';
+
+  @override
+  String replyingTo(String name) {
+    return 'Trả lời $name';
+  }
+
+  @override
+  String chatWith(String name) {
+    return 'Trò chuyện với $name';
+  }
+
+  @override
+  String get noMessagesYet => 'Chưa có tin nhắn. Hãy gửi lời chào để bắt đầu!';
+
+  @override
+  String get sayHi => 'Chào bạn';
+
+  @override
+  String get planTrip => 'Lên kế hoạch chuyến đi';
+
+  @override
+  String get howAreYou => 'Bạn khỏe không?';
+
+  @override
+  String get quickHiMessage => 'Chào bạn!';
+
+  @override
+  String get quickTripMessage => 'Cùng lên kế hoạch du lịch nhé?';
+
+  @override
+  String get quickHowAreYouMessage => 'Hôm nay bạn thế nào?';
+
+  @override
+  String get reviewSaved => 'Đã lưu đánh giá';
+
+  @override
+  String get communityReviews => 'Đánh giá cộng đồng';
+
+  @override
+  String get reviewHint => 'Chia sẻ một mẹo nhanh cho những người du lịch khác';
+
+  @override
+  String get postReview => 'Đăng đánh giá';
+
+  @override
+  String get randomDestination => 'Khám phá ngẫu nhiên địa điểm mới';
+
+  @override
+  String get shareDestination => 'Chia sẻ địa điểm';
+
+  @override
+  String get shareNoteHint => 'Thêm lời nhắn...';
+
+  @override
+  String get selectFriends => 'Chọn bạn bè trong ứng dụng:';
+
+  @override
+  String get noConnectedFriends =>
+      'Bạn chưa có danh sách bạn bè kết nối trong ứng dụng.';
+
+  @override
+  String get copyLink => 'Sao chép liên kết';
+
+  @override
+  String get destinationLinkCopied => 'Đã sao chép liên kết địa điểm!';
+
+  @override
+  String shareDestinationSuccess(String name, int count) {
+    return 'Đã chia sẻ \"$name\" cho $count người bạn!';
+  }
+
+  @override
+  String sendFailed(String error) {
+    return 'Lỗi khi gửi: $error';
+  }
+
+  @override
+  String get tripWorkspace => 'Không gian chuyến đi';
+
+  @override
+  String workspaceSummary(int workspaceCount, int wishlistCount) {
+    return '$workspaceCount không gian / $wishlistCount danh sách mong muốn';
+  }
+
+  @override
+  String get unableToLoadSaved =>
+      'Không thể tải địa điểm đã lưu. Vui lòng thử lại';
+
+  @override
+  String get aiMatch => 'Phù hợp với AI';
+
+  @override
+  String get costEstimate => 'Ước tính chi phí';
+
+  @override
+  String get reference => 'tham khảo';
+
+  @override
+  String get budgetTbd => 'Chưa có ngân sách';
+
+  @override
+  String get noNotes => 'Chưa có ghi chú';
+
+  @override
+  String get notesSaved => 'Đã lưu ghi chú';
+
+  @override
+  String get saveName => 'Lưu tên';
+
+  @override
+  String get uploadImageTab => 'Tải ảnh lên';
+
+  @override
+  String get presetAvatarTab => 'Avatar có sẵn';
+
+  @override
+  String get uploadFromDevice => 'Tải ảnh từ thiết bị';
+
+  @override
+  String get uploadImageHelp =>
+      'Hỗ trợ JPG, PNG. Bạn có thể cắt và chỉnh sửa sau khi chọn.';
+
+  @override
+  String get chooseImage => 'Chọn ảnh';
+
+  @override
+  String get plannerAnalyzing =>
+      'Đang phân tích sở thích và mong muốn của bạn...';
+
+  @override
+  String get plannerFinding =>
+      'Đang khám phá và chọn lọc các điểm đến phù hợp nhất...';
+
+  @override
+  String get plannerCalculating =>
+      'Đang tính toán lộ trình tối ưu và dự toán ngân sách...';
+
+  @override
+  String get plannerFinishing =>
+      'Đang hoàn tất các phương án du lịch tuyệt vời...';
+
+  @override
+  String get flexibleDates => 'Ngày linh hoạt';
+
+  @override
+  String get itineraryReady => 'Đã có lịch trình';
+
+  @override
+  String get notes => 'Ghi chú';
+
+  @override
+  String get reply => 'Trả lời';
+
+  @override
+  String get copyMessage => 'Sao chép tin nhắn';
+
+  @override
+  String get messageCopied => 'Đã sao chép tin nhắn';
+
+  @override
+  String get deleteForMe => 'Xóa ở phía bạn';
+
+  @override
+  String get deleteForMeHint => 'Tin nhắn chỉ bị xóa trên thiết bị của bạn';
+
+  @override
+  String get recallForEveryone => 'Thu hồi cho cả hai bên';
+
+  @override
+  String get recallForEveryoneHint => 'Tin nhắn sẽ biến mất với cả hai người';
+
+  @override
+  String get messageNotifications => 'Thông báo tin nhắn';
+
+  @override
+  String get chatAppearance => 'Giao diện chat';
+
+  @override
+  String get clearConversation => 'Xóa toàn bộ cuộc trò chuyện';
+
+  @override
+  String get conversationCleared => 'Đã xóa cuộc trò chuyện ở phía bạn';
+
+  @override
+  String get messageRecalled => 'Đã thu hồi tin nhắn cho cả hai bên';
+
+  @override
+  String get emoji => 'Biểu cảm';
+
+  @override
+  String get changeDestination => 'Đổi địa điểm';
+
+  @override
+  String get compareOptions => 'So sánh các lựa chọn';
+
+  @override
+  String get activeNow => 'Đang hoạt động';
+
+  @override
+  String get inactive => 'Không hoạt động';
+
+  @override
+  String activeMinutesAgo(int count) {
+    return 'Hoạt động $count phút trước';
+  }
+
+  @override
+  String activeHoursAgo(int count) {
+    return 'Hoạt động $count giờ trước';
+  }
+
+  @override
+  String get activeYesterday => 'Hoạt động hôm qua';
+
+  @override
+  String activeDaysAgo(int count) {
+    return 'Hoạt động $count ngày trước';
+  }
+
+  @override
+  String activeOnDate(String date) {
+    return 'Hoạt động $date';
+  }
+
+  @override
+  String get today => 'Hôm nay';
+
+  @override
+  String get yesterday => 'Hôm qua';
+
+  @override
+  String get seen => 'Đã xem';
+
+  @override
+  String get delivered => 'Đã nhận';
+
+  @override
+  String get view => 'Xem';
+
+  @override
+  String get chatTheme => 'Giao diện chat';
+
+  @override
+  String get apply => 'Áp dụng';
+
+  @override
+  String get chooseTheme => 'Chọn giao diện';
+
+  @override
+  String get music => 'Nhạc nền';
+
+  @override
+  String get musicDescription => 'Bật hoặc tắt nhạc khi sử dụng ứng dụng';
+
+  @override
+  String get travelPreferences => 'Tùy chọn du lịch';
+
+  @override
+  String get preferredCurrency => 'Tiền tệ ưu tiên';
+
+  @override
+  String get travelStyles => 'Phong cách du lịch';
+
+  @override
+  String get savePreferences => 'Lưu tùy chọn';
+
+  @override
+  String get chooseAvatar => 'Chọn ảnh đại diện';
+
+  @override
+  String get destinationEstimate =>
+      'Ước tính AI tại điểm đến · 1 người · không gồm vé/xe';
+
+  @override
+  String get iconicSights => 'THẮNG CẢNH BIỂU TƯỢNG & ẢNH THỰC TẾ';
+
+  @override
+  String get previewMessageOne => 'Chào! Bạn đang ở đâu vậy? 😊';
+
+  @override
+  String get previewMessageTwo => 'Mình đang ở Đà Nẵng nè ✈️ Tuyệt lắm!';
+
+  @override
+  String get previewMessageThree => 'Ôi hay quá! Mình muốn đến đó lắm 🌊';
+
+  @override
+  String get previewMessageFour => 'Cùng lên kế hoạch chuyến đi nhé!';
+
+  @override
+  String get criterion => 'Tiêu chí';
+
+  @override
+  String get sharedDestination => 'Địa điểm được chia sẻ';
+
+  @override
+  String get performAction => 'Thực hiện ngay';
+
+  @override
+  String get anonymousReviewer => 'Ẩn danh';
+
+  @override
+  String get noReviews => 'Chưa có đánh giá';
+
+  @override
+  String reviewCount(int count) {
+    return '$count lượt đánh giá';
+  }
+
+  @override
+  String get exploreCategoryRandom => '🎲 Ngẫu nhiên';
+
+  @override
+  String get exploreCategoryBeach => '🏖️ Biển đảo';
+
+  @override
+  String get exploreCategoryMountain => '🏔️ Vùng núi & Đèo';
+
+  @override
+  String get exploreCategoryHeritage => '🏯 Cổ kính & Di sản';
+
+  @override
+  String get exploreCategoryCity => '🏙️ Đô thị sôi động';
+
+  @override
+  String get exploreCategoryWellness => '🌿 Nghỉ dưỡng thiên nhiên';
+
+  @override
+  String get exploreCategoryHiddenGems => '💎 Độc lạ';
+
+  @override
+  String get nature => 'Thiên nhiên';
+
+  @override
+  String get luxury => 'Cao cấp';
+
+  @override
+  String get slowTravel => 'Du lịch chậm';
+
+  @override
+  String workspaceReady(int doneCount, int totalCount) {
+    return 'Đã sẵn sàng $doneCount/$totalCount';
+  }
+
+  @override
   String tripDays(int n) {
     return '$n ngày';
   }
+
+  @override
+  String get themeAivivu => 'AIVIVU';
+
+  @override
+  String get themeTwilight => 'Chạng vạng';
+
+  @override
+  String get themeOcean => 'Đại dương';
+
+  @override
+  String get themeSakura => 'Hoa anh đào';
+
+  @override
+  String get themeForest => 'Rừng xanh';
+
+  @override
+  String get themeGolden => 'Giờ vàng';
+
+  @override
+  String get themeRoadGrip => 'Vệt bánh xe';
+
+  @override
+  String chatThemeChanged(String name, String theme) {
+    return '$name đã đổi giao diện thành $theme';
+  }
+
+  @override
+  String get budgetTransport => 'Di chuyển';
+
+  @override
+  String get budgetStay => 'Lưu trú';
+
+  @override
+  String get budgetFood => 'Ẩn uống';
+
+  @override
+  String get budgetActivities => 'Hoạt động';
 }

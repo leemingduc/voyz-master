@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/data/locale_provider.dart';
@@ -32,6 +34,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<DestinationSuggestion> _destinations = [];
   bool _isLoading = true;
   String? _error;
+  String? _lastLanguageCode;
   String _selectedCategoryKey = 'random';
 
   static const List<(String key, String label, String? promptCategory)>
@@ -75,6 +78,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadExplore());
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    unawaited(
+      _loadExplore(
+        forceRefresh: true,
+        categoryPrompt: _categories
+            .firstWhere((c) => c.$1 == _selectedCategoryKey)
+            .$3,
+      ),
+    );
+  }
+
   Future<void> _loadExplore({
     bool forceRefresh = false,
     String? categoryPrompt,
@@ -88,12 +111,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
       // Repository lỗi (mạng, Supabase) coi như rỗng để rơi xuống Gemini,
       // thay vì hiện màn lỗi khi vẫn còn nguồn thứ hai.
       List<DestinationSuggestion> results;
+      final languageCode = LocaleProvider.of(context).value.languageCode;
       try {
-        results = await DestinationRepository.instance.getFeaturedDestinations(
-          categoryKey: _selectedCategoryKey,
-          limit: 10,
-          forceRefresh: forceRefresh,
-        );
+        results = languageCode == 'vi'
+            ? await DestinationRepository.instance.getFeaturedDestinations(
+                categoryKey: _selectedCategoryKey,
+                limit: 10,
+                forceRefresh: forceRefresh,
+              )
+            : const [];
       } catch (e) {
         debugPrint(
           'ExploreScreen: repository failed, falling back to Gemini: $e',
@@ -106,7 +132,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           limit: 10,
           forceRefresh: forceRefresh,
           category: categoryPrompt,
-          languageCode: LocaleProvider.of(context).value.languageCode,
+          languageCode: languageCode,
         );
       }
 
@@ -136,6 +162,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _selectedCategoryKey = key;
     });
     _loadExplore(forceRefresh: true, categoryPrompt: categoryPrompt);
+  }
+
+  String _categoryLabel(BuildContext context, String key) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (key) {
+      'beach' => l10n.exploreCategoryBeach,
+      'mountain' => l10n.exploreCategoryMountain,
+      'heritage' => l10n.exploreCategoryHeritage,
+      'city' => l10n.exploreCategoryCity,
+      'wellness' => l10n.exploreCategoryWellness,
+      'hidden_gems' => l10n.exploreCategoryHiddenGems,
+      _ => l10n.exploreCategoryRandom,
+    };
   }
 
   void _onNavTap(int index) {
@@ -288,7 +327,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       .$3,
                 );
               },
-              tooltip: 'Khám phá ngẫu nhiên địa điểm mới',
+              tooltip: AppLocalizations.of(context)!.randomDestination,
             ),
           ),
         ],
@@ -333,7 +372,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
               child: Center(
                 child: Text(
-                  cat.$2,
+                  _categoryLabel(context, cat.$1),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -455,10 +494,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 // ── Destination Card ────────────────────────────────────────────────────
 
 class _DestinationCard extends StatelessWidget {
-  const _DestinationCard({
-    required this.destination,
-    required this.onTap,
-  });
+  const _DestinationCard({required this.destination, required this.onTap});
 
   final DestinationSuggestion destination;
   final VoidCallback onTap;
@@ -549,8 +585,8 @@ class _DestinationCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Ước tính AI tại điểm đến · 1 người · không gồm vé/xe',
+                  Text(
+                    AppLocalizations.of(context)!.destinationEstimate,
                     style: TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                   const SizedBox(height: 8),

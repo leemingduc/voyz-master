@@ -759,6 +759,420 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewDetails => 'View details';
 
   @override
+  String get friendsTitle => 'Friends';
+
+  @override
+  String get friendRequests => 'Requests';
+
+  @override
+  String get noFriendsYet => 'No friends yet';
+
+  @override
+  String get noFriendsYetHint =>
+      'Search by email or display name to add someone.';
+
+  @override
+  String get noPendingRequests => 'No pending requests';
+
+  @override
+  String get noPendingRequestsHint =>
+      'Incoming and outgoing requests appear here.';
+
+  @override
+  String get findFriends => 'Find friends';
+
+  @override
+  String get friendSearchHint => 'Email or display name';
+
+  @override
+  String get addFriend => 'Add friend';
+
+  @override
+  String get friendStatus => 'Friends';
+
+  @override
+  String get accept => 'Accept';
+
+  @override
+  String get wantsToConnect => 'Wants to connect';
+
+  @override
+  String get friendRequestSent => 'Request sent';
+
+  @override
+  String get tryAgain => 'Try again';
+
+  @override
+  String get removeFriendTitle => 'Remove friend?';
+
+  @override
+  String removeFriendMessage(String name) {
+    return 'You will remove $name from your friends. The conversation for both of you will also be deleted.';
+  }
+
+  @override
+  String get removeFriend => 'Remove friend';
+
+  @override
+  String get typing => 'Typing...';
+
+  @override
+  String get messageInputHint => 'Write a message...';
+
+  @override
+  String get messageOptions => 'Message options';
+
+  @override
+  String get cancelReply => 'Cancel reply';
+
+  @override
+  String replyingTo(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String chatWith(String name) {
+    return 'Chat with $name';
+  }
+
+  @override
+  String get noMessagesYet =>
+      'No messages yet. Send a quick greeting to get started!';
+
+  @override
+  String get sayHi => 'Say hi';
+
+  @override
+  String get planTrip => 'Plan a trip';
+
+  @override
+  String get howAreYou => 'How are you?';
+
+  @override
+  String get quickHiMessage => 'Hi there!';
+
+  @override
+  String get quickTripMessage => 'Want to plan a trip together?';
+
+  @override
+  String get quickHowAreYouMessage => 'How are you doing today?';
+
+  @override
+  String get reviewSaved => 'Review saved';
+
+  @override
+  String get communityReviews => 'Community reviews';
+
+  @override
+  String get reviewHint => 'Share a quick tip for other travelers';
+
+  @override
+  String get postReview => 'Post review';
+
+  @override
+  String get randomDestination => 'Explore a random new destination';
+
+  @override
+  String get shareDestination => 'Share destination';
+
+  @override
+  String get shareNoteHint => 'Add a note...';
+
+  @override
+  String get selectFriends => 'Choose friends in the app:';
+
+  @override
+  String get noConnectedFriends =>
+      'You do not have any connected friends in the app yet.';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get destinationLinkCopied => 'Destination link copied!';
+
+  @override
+  String shareDestinationSuccess(String name, int count) {
+    return 'Shared \"$name\" with $count friends!';
+  }
+
+  @override
+  String sendFailed(String error) {
+    return 'Could not send: $error';
+  }
+
+  @override
+  String get tripWorkspace => 'Trip workspace';
+
+  @override
+  String workspaceSummary(int workspaceCount, int wishlistCount) {
+    return '$workspaceCount workspaces / $wishlistCount wishlists';
+  }
+
+  @override
+  String get unableToLoadSaved => 'Unable to load saved places. Try again';
+
+  @override
+  String get aiMatch => 'AI match';
+
+  @override
+  String get costEstimate => 'Cost estimate';
+
+  @override
+  String get reference => 'reference';
+
+  @override
+  String get budgetTbd => 'Budget TBD';
+
+  @override
+  String get noNotes => 'No notes';
+
+  @override
+  String get notesSaved => 'Notes saved';
+
+  @override
+  String get saveName => 'Save name';
+
+  @override
+  String get uploadImageTab => 'Upload image';
+
+  @override
+  String get presetAvatarTab => 'Preset avatar';
+
+  @override
+  String get uploadFromDevice => 'Upload from device';
+
+  @override
+  String get uploadImageHelp =>
+      'JPG and PNG are supported. You can crop and edit after selecting.';
+
+  @override
+  String get chooseImage => 'Choose image';
+
+  @override
+  String get plannerAnalyzing => 'Analyzing your interests and preferences...';
+
+  @override
+  String get plannerFinding =>
+      'Exploring and selecting suitable destinations...';
+
+  @override
+  String get plannerCalculating =>
+      'Calculating an optimized itinerary and estimated budget...';
+
+  @override
+  String get plannerFinishing => 'Finalizing great travel options...';
+
+  @override
+  String get flexibleDates => 'Flexible dates';
+
+  @override
+  String get itineraryReady => 'Itinerary ready';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get reply => 'Reply';
+
+  @override
+  String get copyMessage => 'Copy message';
+
+  @override
+  String get messageCopied => 'Message copied';
+
+  @override
+  String get deleteForMe => 'Delete for me';
+
+  @override
+  String get deleteForMeHint => 'This message is only deleted from your device';
+
+  @override
+  String get recallForEveryone => 'Recall for everyone';
+
+  @override
+  String get recallForEveryoneHint =>
+      'This message will disappear for both people';
+
+  @override
+  String get messageNotifications => 'Message notifications';
+
+  @override
+  String get chatAppearance => 'Chat appearance';
+
+  @override
+  String get clearConversation => 'Clear conversation';
+
+  @override
+  String get conversationCleared => 'Conversation cleared for you';
+
+  @override
+  String get messageRecalled => 'Message recalled for everyone';
+
+  @override
+  String get emoji => 'Emoji';
+
+  @override
+  String get changeDestination => 'Change destination';
+
+  @override
+  String get compareOptions => 'Compare options';
+
+  @override
+  String get activeNow => 'Active now';
+
+  @override
+  String get inactive => 'Inactive';
+
+  @override
+  String activeMinutesAgo(int count) {
+    return 'Active $count min ago';
+  }
+
+  @override
+  String activeHoursAgo(int count) {
+    return 'Active $count hr ago';
+  }
+
+  @override
+  String get activeYesterday => 'Active yesterday';
+
+  @override
+  String activeDaysAgo(int count) {
+    return 'Active $count days ago';
+  }
+
+  @override
+  String activeOnDate(String date) {
+    return 'Active $date';
+  }
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get seen => 'Seen';
+
+  @override
+  String get delivered => 'Delivered';
+
+  @override
+  String get view => 'View';
+
+  @override
+  String get chatTheme => 'Chat theme';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String get chooseTheme => 'Choose a theme';
+
+  @override
+  String get music => 'Background music';
+
+  @override
+  String get musicDescription => 'Turn music on or off while using the app';
+
+  @override
+  String get travelPreferences => 'Travel preferences';
+
+  @override
+  String get preferredCurrency => 'Preferred currency';
+
+  @override
+  String get travelStyles => 'Travel styles';
+
+  @override
+  String get savePreferences => 'Save preferences';
+
+  @override
+  String get chooseAvatar => 'Choose an avatar';
+
+  @override
+  String get destinationEstimate =>
+      'AI estimate at destination · 1 person · excludes tickets and transport';
+
+  @override
+  String get iconicSights => 'ICONIC SIGHTS & REAL PHOTOS';
+
+  @override
+  String get previewMessageOne => 'Hi! Where are you? 😊';
+
+  @override
+  String get previewMessageTwo => 'I\'m in Da Nang ✈️ It\'s wonderful!';
+
+  @override
+  String get previewMessageThree => 'That sounds great! I really want to go 🌊';
+
+  @override
+  String get previewMessageFour => 'Let\'s plan a trip together!';
+
+  @override
+  String get criterion => 'Criterion';
+
+  @override
+  String get sharedDestination => 'Shared destination';
+
+  @override
+  String get performAction => 'Take action';
+
+  @override
+  String get anonymousReviewer => 'Anonymous';
+
+  @override
+  String get noReviews => 'No reviews yet';
+
+  @override
+  String reviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get exploreCategoryRandom => '🎲 Random';
+
+  @override
+  String get exploreCategoryBeach => '🏖️ Islands & beaches';
+
+  @override
+  String get exploreCategoryMountain => '🏔️ Mountains & passes';
+
+  @override
+  String get exploreCategoryHeritage => '🏯 Heritage';
+
+  @override
+  String get exploreCategoryCity => '🏙️ Vibrant cities';
+
+  @override
+  String get exploreCategoryWellness => '🌿 Nature retreat';
+
+  @override
+  String get exploreCategoryHiddenGems => '💎 Hidden gems';
+
+  @override
+  String get nature => 'Nature';
+
+  @override
+  String get luxury => 'Luxury';
+
+  @override
+  String get slowTravel => 'Slow travel';
+
+  @override
+  String workspaceReady(int doneCount, int totalCount) {
+    return '$doneCount/$totalCount ready';
+  }
+
+  @override
   String tripDays(int n) {
     String _temp0 = intl.Intl.pluralLogic(
       n,
@@ -768,4 +1182,42 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get themeAivivu => 'AIVIVU';
+
+  @override
+  String get themeTwilight => 'Twilight';
+
+  @override
+  String get themeOcean => 'Ocean';
+
+  @override
+  String get themeSakura => 'Sakura';
+
+  @override
+  String get themeForest => 'Forest';
+
+  @override
+  String get themeGolden => 'Golden Hour';
+
+  @override
+  String get themeRoadGrip => 'Road Grip';
+
+  @override
+  String chatThemeChanged(String name, String theme) {
+    return '$name changed the theme to $theme';
+  }
+
+  @override
+  String get budgetTransport => 'Transport';
+
+  @override
+  String get budgetStay => 'Stay';
+
+  @override
+  String get budgetFood => 'Food';
+
+  @override
+  String get budgetActivities => 'Activities';
 }

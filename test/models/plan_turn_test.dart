@@ -45,6 +45,12 @@ void main() {
       expect(withImage.title, option.title);
       expect(withImage.stops, option.stops);
 
+      final withTranslatedStops = option.copyWith(
+        stops: const ['Visit Bến Đầm', 'Explore Hòn Bảy Cạnh'],
+      );
+      expect(withTranslatedStops.stops.first, 'Visit Bến Đầm');
+      expect(withTranslatedStops.destination, option.destination);
+
       final turn = PlanTurn(reply: 'r', trip: TripData(), raw: '{}');
       final updated = turn.copyWith(options: [withImage]);
       expect(updated.options.single.imageUrl, 'https://x/y.jpg');
@@ -69,6 +75,21 @@ void main() {
       expect(restored.turn!.trip.destination, 'Côn Đảo');
       expect(restored.turn!.options.single.title, option.title);
       expect(restored.turn!.raw, message.turn!.raw);
+    });
+
+    test('round-trips the language of an AI planner reply', () {
+      final message = PlannerMessage.agent(
+        PlanTurn(
+          reply: 'English reply',
+          trip: TripData(),
+          languageCode: 'en',
+          localizedContentVersion: 3,
+        ),
+      );
+
+      final turn = PlannerMessage.fromMap(message.toMap()).turn!;
+      expect(turn.languageCode, 'en');
+      expect(turn.localizedContentVersion, 3);
     });
 
     test('saved conversations retain their id and message history', () {

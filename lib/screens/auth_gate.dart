@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:voyz/screens/auth_screen.dart';
-import 'package:voyz/screens/destination_detail_screen.dart';
 import 'package:voyz/screens/smart_planner_screen.dart';
 import 'package:voyz/screens/splash_screen.dart';
 import 'package:voyz/data/friend_message_notification_settings.dart';
@@ -12,15 +11,9 @@ import 'package:voyz/services/friend_message_notification_service.dart';
 import 'package:voyz/services/user_presence_service.dart';
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({
-    super.key,
-    this.showSplash = true,
-    this.sharedDestinationName,
-  });
+  const AuthGate({super.key, this.showSplash = true});
 
   final bool showSplash;
-
-  final String? sharedDestinationName;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -76,11 +69,9 @@ class _AuthGateState extends State<AuthGate> {
       stream: SupabaseService.instance.auth.onAuthStateChange,
       builder: (context, snapshot) {
         final session = SupabaseService.instance.auth.currentSession;
-        if (session == null) return const AuthScreen();
-        final destinationName = widget.sharedDestinationName;
-        return destinationName == null
-            ? const SmartPlannerScreen()
-            : DestinationDetailScreen(destinationName: destinationName);
+        return session == null
+            ? const AuthScreen()
+            : const SmartPlannerScreen();
       },
     );
   }

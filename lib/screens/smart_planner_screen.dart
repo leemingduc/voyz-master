@@ -46,6 +46,7 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
   bool _isRestoringHistory = true;
   bool _isSending = false;
   Object? _error;
+  String? _lastSyncedLanguageCode;
 
   /// Lượt đang chạy có bắt buộc đưa phương án không, để "Thử lại" gọi lại y hệt.
   bool _lastForce = false;
@@ -94,6 +95,50 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
       _isRestoringHistory = false;
     });
     _loadMissingImages(savedMessages);
+    unawaited(_syncAssistantReplies());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(_syncAssistantReplies());
+  }
+
+  Future<void> _syncAssistantReplies() async {
+    if (_isRestoringHistory || _isSending) return;
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastSyncedLanguageCode == languageCode) return;
+    _lastSyncedLanguageCode = languageCode;
+
+    final pending = <int>[];
+    for (var index = 0; index < _messages.length; index++) {
+      final turn = _messages[index].turn;
+      if (turn != null &&
+          (turn.languageCode != languageCode ||
+              turn.localizedContentVersion < 3)) {
+        pending.add(index);
+      }
+    }
+    if (pending.isEmpty) return;
+
+    setState(() => _isSending = true);
+    try {
+      for (final index in pending) {
+        final message = _messages[index];
+        final turn = message.turn!;
+        final translated = await GeminiService.instance.translatePlannerTurn(
+          turn,
+          languageCode: languageCode,
+        );
+        if (!mounted) return;
+        _messages[index] = PlannerMessage.agent(translated);
+      }
+      await _persistMessages();
+    } catch (error) {
+      debugPrint('Planner reply language sync skipped: $error');
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
   }
 
   void _loadMissingImages(Iterable<PlannerMessage> messages) {
@@ -243,8 +288,10 @@ class _SmartPlannerScreenState extends State<SmartPlannerScreen> {
         ..addAll(messages);
       _error = null;
       _promptController.clear();
+      _lastSyncedLanguageCode = null;
     });
     _loadMissingImages(messages);
+    unawaited(_syncAssistantReplies());
     _scrollToBottom();
   }
 

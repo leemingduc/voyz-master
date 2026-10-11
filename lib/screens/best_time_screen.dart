@@ -30,6 +30,8 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
   BestTimeTravel? _bestTime;
   bool _isLoading = false;
   String? _error;
+  String? _lastLanguageCode;
+  int _requestVersion = 0;
 
   @override
   void initState() {
@@ -47,8 +49,22 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = LocaleProvider.of(context).value.languageCode;
+    if (_lastLanguageCode == null) {
+      _lastLanguageCode = languageCode;
+      return;
+    }
+    if (_lastLanguageCode == languageCode) return;
+    _lastLanguageCode = languageCode;
+    if (_destinationController.text.trim().isNotEmpty) _analyze();
+  }
+
   Future<void> _analyze() async {
     final destination = _destinationController.text.trim();
+    final requestVersion = ++_requestVersion;
 
     if (destination.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
@@ -73,7 +89,7 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
         languageCode: LocaleProvider.of(context).value.languageCode,
       );
 
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _bestTime = result;
           _isLoading = false;
@@ -81,7 +97,7 @@ class _BestTimeScreenState extends State<BestTimeScreen> {
       }
     } catch (e) {
       debugPrint('BestTime: load failed: $e');
-      if (mounted) {
+      if (mounted && requestVersion == _requestVersion) {
         setState(() {
           _error = ErrorLocalizer.getLocalizedMessage(
             e,

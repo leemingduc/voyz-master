@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/theme/app_theme.dart';
 
 /// Thẻ hiệu ứng chờ AI tạo gợi ý chuyến đi với thông điệp luân phiên sinh động.
@@ -16,13 +17,6 @@ class _PlannerGeneratingCardState extends State<PlannerGeneratingCard>
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
-  static const List<String> _messages = [
-    'Đang phân tích sở thích và mong muốn của bạn...',
-    'Khám phá và chọn lọc các điểm đến phù hợp nhất...',
-    'Tính toán lộ trình tối ưu và dự toán ngân sách...',
-    'Đang hoàn tất các phương án du lịch tuyệt vời...',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -34,7 +28,7 @@ class _PlannerGeneratingCardState extends State<PlannerGeneratingCard>
     _messageTimer = Timer.periodic(const Duration(milliseconds: 2200), (_) {
       if (mounted) {
         setState(() {
-          _currentMessageIndex = (_currentMessageIndex + 1) % _messages.length;
+          _currentMessageIndex = (_currentMessageIndex + 1) % 4;
         });
       }
     });
@@ -49,6 +43,13 @@ class _PlannerGeneratingCardState extends State<PlannerGeneratingCard>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final messages = [
+      l10n.plannerAnalyzing,
+      l10n.plannerFinding,
+      l10n.plannerCalculating,
+      l10n.plannerFinishing,
+    ];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Container(
@@ -116,7 +117,7 @@ class _PlannerGeneratingCardState extends State<PlannerGeneratingCard>
                   );
                 },
                 child: Text(
-                  _messages[_currentMessageIndex],
+                  messages[_currentMessageIndex],
                   key: ValueKey<int>(_currentMessageIndex),
                   style: const TextStyle(
                     color: Colors.white,
