@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:voyz/l10n/app_localizations.dart';
 import 'package:voyz/services/friends_service.dart';
 import 'package:voyz/theme/app_theme.dart';
@@ -122,18 +121,6 @@ class _ShareDestinationBottomSheetState
         ),
       );
     }
-  }
-
-  void _copyLink() {
-    final link =
-        'https://voyz.app/destination?name=${Uri.encodeComponent(widget.destinationName)}';
-    Clipboard.setData(ClipboardData(text: link));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.destinationLinkCopied),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
@@ -317,45 +304,26 @@ class _ShareDestinationBottomSheetState
               ),
             ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _copyLink,
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: Text(l10n.copyLink),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+          if (_selectedFriendshipIds.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSending ? null : _sendToSelected,
+                icon: _isSending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: AivivuRocketMascot(size: 16),
+                      )
+                    : const Icon(Icons.send, size: 16),
+                label: Text('${l10n.plannerSend} (${_selectedFriendshipIds.length})'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryPink,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
-              if (_selectedFriendshipIds.isNotEmpty) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isSending ? null : _sendToSelected,
-                    icon: _isSending
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: AivivuRocketMascot(size: 16),
-                          )
-                        : const Icon(Icons.send, size: 16),
-                    label: Text('${l10n.plannerSend} (${_selectedFriendshipIds.length})'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryPink,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
         ],
       ),
     );

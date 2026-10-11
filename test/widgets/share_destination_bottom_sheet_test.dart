@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:voyz/l10n/app_localizations.dart';
+import 'package:voyz/utils/destination_share.dart';
 import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
 
 void main() {
+  test('extracts a destination from a shared friend message', () {
+    expect(
+      destinationNameFromShareMessage(
+        '\u{1f4cd} [\u{0110}\u{1ecb}a \u{0111}i\u{1ec3}m] Da Nang',
+      ),
+      'Da Nang',
+    );
+  });
   testWidgets(
-    'renders ShareDestinationBottomSheet header and copy link fallback button',
+    'renders ShareDestinationBottomSheet without a copy link button',
     (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          locale: Locale('vi'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: ShareDestinationBottomSheet(
               destinationName: 'Đà Nẵng',
@@ -19,7 +32,7 @@ void main() {
 
       expect(find.text('Chia sẻ địa điểm'), findsOneWidget);
       expect(find.text('Đà Nẵng'), findsOneWidget);
-      expect(find.text('Sao chép liên kết'), findsOneWidget);
+      expect(find.byIcon(Icons.copy), findsNothing);
     },
   );
 }
