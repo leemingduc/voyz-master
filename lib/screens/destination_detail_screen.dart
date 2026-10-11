@@ -25,6 +25,7 @@ import 'package:voyz/widgets/shared/aivivu_rocket_mascot.dart';
 import 'package:voyz/widgets/shared/bottom_nav_bar.dart';
 import 'package:voyz/widgets/shared/currency_amount_text.dart';
 import 'package:voyz/widgets/shared/destination_image.dart';
+import 'package:voyz/widgets/shared/destination_quick_chat.dart';
 import 'package:voyz/widgets/shared/gradient_button.dart';
 import 'package:voyz/widgets/shared/share_destination_bottom_sheet.dart';
 import 'package:voyz/utils/error_localizer.dart';
@@ -37,6 +38,7 @@ class DestinationDetailScreen extends StatefulWidget {
     this.savedItem,
     this.suggestedOptions = const [],
     this.selectedSuggestionIndex = 0,
+    this.embedded = false,
   });
 
   final String destinationName;
@@ -47,6 +49,9 @@ class DestinationDetailScreen extends StatefulWidget {
 
   final List<TripOption> suggestedOptions;
   final int selectedSuggestionIndex;
+
+  /// Hides app-level controls when rendered inside a split destination view.
+  final bool embedded;
 
   /// Các phương án từ cùng một lượt gợi ý AI. Chỉ có khi mở từ Planner.
   @override
@@ -575,6 +580,16 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     }
   }
 
+  void _openDestinationFromQuickChat(String destinationName) {
+    final destination = destinationName.trim();
+    if (destination.isEmpty || destination == _destinationName) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => DestinationDetailScreen(destinationName: destination),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -795,12 +810,22 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
               right: 0,
               child: LinearProgressIndicator(minHeight: 2),
             ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: BottomNavBar(currentIndex: 1, onTap: _onNavTap),
-          ),
+          if (!widget.embedded) ...[
+            Positioned(
+              right: 16,
+              bottom: 76,
+              child: DestinationQuickChat(
+                destinationName: d.name,
+                onDestinationSelected: _openDestinationFromQuickChat,
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: BottomNavBar(currentIndex: 1, onTap: _onNavTap),
+            ),
+          ],
         ],
       ),
     );
